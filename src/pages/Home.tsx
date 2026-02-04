@@ -13,8 +13,11 @@ import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
 import { usePurchases } from '@/hooks/usePurchases';
 import { useGoals } from '@/hooks/useGoals';
+import { useHaptics } from '@/hooks/useHaptics';
 import { AppLayout } from '@/components/AppLayout';
-import { Button } from '@/components/ui/button';
+import { AnimatedButton } from '@/components/ui/AnimatedButton';
+import { AnimatedCard } from '@/components/ui/AnimatedCard';
+import { TapScale } from '@/components/ui/TapScale';
 import { Card } from '@/components/ui/card';
 import { ProgressRing } from '@/components/ui/ProgressRing';
 import { AnimatedCounter } from '@/components/ui/AnimatedCounter';
@@ -29,6 +32,7 @@ export default function Home() {
   const { profile, isLoading: profileLoading } = useProfile();
   const { purchases, monthlyTotal, monthlyChange, topCategory, recentPurchases } = usePurchases();
   const { primaryGoal, activeGoals } = useGoals();
+  const { haptic } = useHaptics();
 
   useEffect(() => {
     if (!profileLoading && profile && !profile.onboarding_completed) {
@@ -91,7 +95,7 @@ export default function Home() {
         >
           {/* Today's Summary */}
           <motion.div variants={itemVariants}>
-            <Card className="p-6 glass-card">
+            <AnimatedCard className="p-6 glass-card" interactive={false}>
               <div className="flex items-center justify-between mb-4">
                 <h2 className="font-semibold">Today's Spending</h2>
                 <span className="text-xs text-muted-foreground">
@@ -110,101 +114,107 @@ export default function Home() {
                   </p>
                 </div>
                 <Link to="/add-purchase">
-                  <Button className="bg-gradient-cta hover:opacity-90 glow h-12 px-6">
+                  <AnimatedButton className="bg-gradient-cta hover:opacity-90 glow h-12 px-6" haptic="medium">
                     <Plus className="h-5 w-5 mr-2" />
                     Add Purchase
-                  </Button>
+                  </AnimatedButton>
                 </Link>
               </div>
-            </Card>
+            </AnimatedCard>
           </motion.div>
 
           {/* Primary Goal Card */}
           {primaryGoal && (
             <motion.div variants={itemVariants}>
-              <Card className="p-6 glass-card">
-                <div className="flex items-center gap-6">
-                  <ProgressRing
-                    progress={goalProgress}
-                    size={100}
-                    strokeWidth={8}
-                    status={goalStatus}
-                  >
-                    <div className="text-center">
-                      <span className="text-2xl font-bold">{goalProgress}%</span>
-                    </div>
-                  </ProgressRing>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Target className="h-4 w-4 text-primary" />
-                      <span className="text-sm text-muted-foreground">Primary Goal</span>
-                    </div>
-                    <h3 className="font-semibold text-lg mb-1">{primaryGoal.name}</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {formatCurrency(Number(primaryGoal.current_amount), 0)} of{' '}
-                      {formatCurrency(Number(primaryGoal.target_amount), 0)}
-                    </p>
-                    <div className={cn(
-                      'inline-block mt-2 px-2 py-0.5 rounded-full text-xs font-medium',
-                      goalStatus === 'on-track' && 'bg-success/10 text-success',
-                      goalStatus === 'at-risk' && 'bg-warning/10 text-warning',
-                      goalStatus === 'off-track' && 'bg-destructive/10 text-destructive',
-                    )}>
-                      {goalStatus === 'on-track' && 'On Track'}
-                      {goalStatus === 'at-risk' && 'At Risk'}
-                      {goalStatus === 'off-track' && 'Behind'}
+              <TapScale haptic="selection" onClick={() => navigate('/goals')}>
+                <Card className="p-6 glass-card cursor-pointer">
+                  <div className="flex items-center gap-6">
+                    <ProgressRing
+                      progress={goalProgress}
+                      size={100}
+                      strokeWidth={8}
+                      status={goalStatus}
+                    >
+                      <div className="text-center">
+                        <span className="text-2xl font-bold">{goalProgress}%</span>
+                      </div>
+                    </ProgressRing>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Target className="h-4 w-4 text-primary" />
+                        <span className="text-sm text-muted-foreground">Primary Goal</span>
+                      </div>
+                      <h3 className="font-semibold text-lg mb-1">{primaryGoal.name}</h3>
+                      <p className="text-sm text-muted-foreground">
+                        {formatCurrency(Number(primaryGoal.current_amount), 0)} of{' '}
+                        {formatCurrency(Number(primaryGoal.target_amount), 0)}
+                      </p>
+                      <div className={cn(
+                        'inline-block mt-2 px-2 py-0.5 rounded-full text-xs font-medium',
+                        goalStatus === 'on-track' && 'bg-success/10 text-success',
+                        goalStatus === 'at-risk' && 'bg-warning/10 text-warning',
+                        goalStatus === 'off-track' && 'bg-destructive/10 text-destructive',
+                      )}>
+                        {goalStatus === 'on-track' && 'On Track'}
+                        {goalStatus === 'at-risk' && 'At Risk'}
+                        {goalStatus === 'off-track' && 'Behind'}
+                      </div>
                     </div>
                   </div>
-                </div>
-              </Card>
+                </Card>
+              </TapScale>
             </motion.div>
           )}
 
           {/* Stats Grid */}
           <motion.div variants={itemVariants} className="grid grid-cols-2 gap-4">
             {/* Monthly Spending */}
-            <Card className="p-4 glass-card">
-              <div className="flex items-center gap-2 mb-2">
-                <DollarSign className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">This Month</span>
-              </div>
-              <AnimatedCounter
-                value={monthlyTotal}
-                className="currency-medium text-foreground"
-                decimals={0}
-              />
-              <div className={cn(
-                'flex items-center gap-1 mt-1 text-xs',
-                monthlyChange > 0 ? 'text-destructive' : 'text-success'
-              )}>
-                {monthlyChange > 0 ? (
-                  <TrendingUp className="h-3 w-3" />
-                ) : (
-                  <TrendingDown className="h-3 w-3" />
-                )}
-                <span>
-                  {monthlyChange > 0 ? '+' : ''}{monthlyChange.toFixed(0)}% vs last month
-                </span>
-              </div>
-            </Card>
+            <TapScale haptic="light" onClick={() => navigate('/insights')}>
+              <Card className="p-4 glass-card cursor-pointer">
+                <div className="flex items-center gap-2 mb-2">
+                  <DollarSign className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">This Month</span>
+                </div>
+                <AnimatedCounter
+                  value={monthlyTotal}
+                  className="currency-medium text-foreground"
+                  decimals={0}
+                />
+                <div className={cn(
+                  'flex items-center gap-1 mt-1 text-xs',
+                  monthlyChange > 0 ? 'text-destructive' : 'text-success'
+                )}>
+                  {monthlyChange > 0 ? (
+                    <TrendingUp className="h-3 w-3" />
+                  ) : (
+                    <TrendingDown className="h-3 w-3" />
+                  )}
+                  <span>
+                    {monthlyChange > 0 ? '+' : ''}{monthlyChange.toFixed(0)}% vs last month
+                  </span>
+                </div>
+              </Card>
+            </TapScale>
 
             {/* Top Category */}
-            <Card className="p-4 glass-card">
-              <div className="flex items-center gap-2 mb-2">
-                <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">Top Category</span>
-              </div>
-              {topCategory ? (
-                <>
-                  <p className="font-semibold text-lg capitalize">{topCategory.name}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {formatCurrency(topCategory.amount, 0)}
-                  </p>
-                </>
-              ) : (
-                <p className="text-muted-foreground text-sm">No purchases yet</p>
-              )}
-            </Card>
+            <TapScale haptic="light" onClick={() => navigate('/insights')}>
+              <Card className="p-4 glass-card cursor-pointer">
+                <div className="flex items-center gap-2 mb-2">
+                  <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">Top Category</span>
+                </div>
+                {topCategory ? (
+                  <>
+                    <p className="font-semibold text-lg capitalize">{topCategory.name}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {formatCurrency(topCategory.amount, 0)}
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-muted-foreground text-sm">No purchases yet</p>
+                )}
+              </Card>
+            </TapScale>
           </motion.div>
 
           {/* Recent Purchases */}
@@ -225,41 +235,45 @@ export default function Home() {
                   Log your first purchase in under 30 seconds
                 </p>
                 <Link to="/add-purchase">
-                  <Button className="bg-gradient-cta">
+                  <AnimatedButton className="bg-gradient-cta" haptic="medium">
                     <Plus className="h-4 w-4 mr-2" />
                     Add your first purchase
-                  </Button>
+                  </AnimatedButton>
                 </Link>
               </Card>
             ) : (
               <div className="space-y-3">
                 {recentPurchases.slice(0, 3).map((purchase, index) => (
-                  <motion.div
+                  <TapScale
                     key={purchase.id}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: index * 0.05 }}
+                    haptic="selection"
                   >
-                    <Card className="p-4 glass-card">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium">{purchase.item_name}</p>
-                          <p className="text-sm text-muted-foreground capitalize">
-                            {purchase.category}
-                          </p>
+                    <motion.div
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: index * 0.05 }}
+                    >
+                      <Card className="p-4 glass-card">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-medium">{purchase.item_name}</p>
+                            <p className="text-sm text-muted-foreground capitalize">
+                              {purchase.category}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-semibold">{formatCurrency(Number(purchase.amount))}</p>
+                            <Link 
+                              to="/insights" 
+                              className="text-xs text-primary hover:underline"
+                            >
+                              See true cost →
+                            </Link>
+                          </div>
                         </div>
-                        <div className="text-right">
-                          <p className="font-semibold">{formatCurrency(Number(purchase.amount))}</p>
-                          <Link 
-                            to="/insights" 
-                            className="text-xs text-primary hover:underline"
-                          >
-                            See true cost →
-                          </Link>
-                        </div>
-                      </div>
-                    </Card>
-                  </motion.div>
+                      </Card>
+                    </motion.div>
+                  </TapScale>
                 ))}
               </div>
             )}

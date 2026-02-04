@@ -13,6 +13,8 @@ import {
 import { AppLayout } from '@/components/AppLayout';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { AnimatedButton } from '@/components/ui/AnimatedButton';
+import { TapScale } from '@/components/ui/TapScale';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -24,6 +26,7 @@ import {
 import { useSavedAlternatives } from '@/hooks/useSavedAlternatives';
 import { useProfile } from '@/hooks/useProfile';
 import { useGoals } from '@/hooks/useGoals';
+import { useHaptics } from '@/hooks/useHaptics';
 import { formatCurrency, calculateInvestmentGrowth } from '@/lib/calculations';
 import { cn } from '@/lib/utils';
 
@@ -60,6 +63,7 @@ export default function Alternatives() {
   const { savedAlternatives, saveAlternative } = useSavedAlternatives();
   const { profile } = useProfile();
   const { primaryGoal } = useGoals();
+  const { haptic } = useHaptics();
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
 
@@ -88,6 +92,7 @@ export default function Alternatives() {
   );
 
   const handleSaveAlternative = (alt: typeof ALTERNATIVES_LIBRARY[0]) => {
+    haptic('success');
     const savings = alt.originalPrice - alt.alternativePrice;
     saveAlternative({
       category: alt.category,
@@ -249,23 +254,25 @@ export default function Alternatives() {
                             </div>
                           )}
                         </div>
-                        <Button
-                          size="icon"
-                          variant={isSaved ? 'default' : 'outline'}
-                          className={cn(
-                            'h-10 w-10 rounded-full flex-shrink-0',
-                            isSaved && 'bg-success hover:bg-success/90'
-                          )}
-                          onClick={() => !isSaved && handleSaveAlternative(alt)}
-                          disabled={isSaved}
-                          aria-label={isSaved ? 'Saved' : 'Save alternative'}
-                        >
-                          {isSaved ? (
-                            <Check className="h-4 w-4" />
-                          ) : (
-                            <Plus className="h-4 w-4" />
-                          )}
-                        </Button>
+                        <TapScale haptic={isSaved ? 'none' : 'success'} scale={0.9}>
+                          <Button
+                            size="icon"
+                            variant={isSaved ? 'default' : 'outline'}
+                            className={cn(
+                              'h-10 w-10 rounded-full flex-shrink-0',
+                              isSaved && 'bg-success hover:bg-success/90'
+                            )}
+                            onClick={() => !isSaved && handleSaveAlternative(alt)}
+                            disabled={isSaved}
+                            aria-label={isSaved ? 'Saved' : 'Save alternative'}
+                          >
+                            {isSaved ? (
+                              <Check className="h-4 w-4" />
+                            ) : (
+                              <Plus className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </TapScale>
                       </div>
                     </Card>
                   </motion.div>

@@ -13,6 +13,8 @@ import {
   AlertTriangle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { AnimatedButton } from '@/components/ui/AnimatedButton';
+import { TapScale } from '@/components/ui/TapScale';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
@@ -28,6 +30,7 @@ import { useQuickAdds } from '@/hooks/useQuickAdds';
 import { useGoals } from '@/hooks/useGoals';
 import { useProfile } from '@/hooks/useProfile';
 import { useToast } from '@/hooks/use-toast';
+import { useHaptics } from '@/hooks/useHaptics';
 import { AnimatedCounter } from '@/components/ui/AnimatedCounter';
 import { 
   calculateCostBreakdown, 
@@ -67,6 +70,7 @@ export default function AddPurchase() {
   const { primaryGoal } = useGoals();
   const { profile } = useProfile();
   const { toast } = useToast();
+  const { haptic } = useHaptics();
 
   const [amount, setAmount] = useState('');
   const [itemName, setItemName] = useState('');
@@ -87,6 +91,7 @@ export default function AddPurchase() {
   }, [numericAmount, primaryGoal, profile?.monthly_income]);
 
   const handleQuickAdd = (quickAdd: typeof quickAdds[0]) => {
+    haptic('medium');
     setAmount(String(quickAdd.amount));
     setItemName(quickAdd.item_name);
     setCategory(quickAdd.category);
@@ -113,6 +118,7 @@ export default function AddPurchase() {
       frequency,
     }, {
       onSuccess: () => {
+        haptic('success');
         toast({
           title: 'Purchase added',
           description: `${itemName} - ${formatCurrency(numericAmount)}`,
@@ -120,6 +126,7 @@ export default function AddPurchase() {
         navigate('/dashboard');
       },
       onError: (error) => {
+        haptic('error');
         toast({
           title: 'Error',
           description: 'Failed to add purchase. Please try again.',
@@ -163,14 +170,15 @@ export default function AddPurchase() {
             </div>
             <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-2">
               {quickAdds.map((qa) => (
-                <Button
-                  key={qa.id}
-                  variant="outline"
-                  onClick={() => handleQuickAdd(qa)}
-                  className="flex-shrink-0 h-10 px-4"
-                >
-                  {qa.item_name} · {formatCurrency(Number(qa.amount), 0)}
-                </Button>
+                <TapScale key={qa.id} haptic="light" scale={0.95}>
+                  <Button
+                    variant="outline"
+                    onClick={() => handleQuickAdd(qa)}
+                    className="flex-shrink-0 h-10 px-4"
+                  >
+                    {qa.item_name} · {formatCurrency(Number(qa.amount), 0)}
+                  </Button>
+                </TapScale>
               ))}
             </div>
           </div>
@@ -220,20 +228,21 @@ export default function AddPurchase() {
             <Label>Category</Label>
             <div className="grid grid-cols-5 gap-2">
               {CATEGORIES.map((cat) => (
-                <button
-                  key={cat.value}
-                  type="button"
-                  onClick={() => setCategory(cat.value)}
-                  className={cn(
-                    'flex flex-col items-center gap-1 p-3 rounded-xl border transition-all',
-                    category === cat.value
-                      ? 'border-primary bg-primary/10'
-                      : 'border-border hover:border-primary/50'
-                  )}
-                >
-                  <span className="text-xl">{cat.icon}</span>
-                  <span className="text-xs">{cat.label}</span>
-                </button>
+                <TapScale key={cat.value} haptic="selection" scale={0.95}>
+                  <button
+                    type="button"
+                    onClick={() => setCategory(cat.value)}
+                    className={cn(
+                      'flex flex-col items-center gap-1 p-3 rounded-xl border transition-all w-full',
+                      category === cat.value
+                        ? 'border-primary bg-primary/10'
+                        : 'border-border hover:border-primary/50'
+                    )}
+                  >
+                    <span className="text-xl">{cat.icon}</span>
+                    <span className="text-xs">{cat.label}</span>
+                  </button>
+                </TapScale>
               ))}
             </div>
           </div>
@@ -375,10 +384,11 @@ export default function AddPurchase() {
 
       {/* Submit Button */}
       <div className="fixed bottom-0 left-0 right-0 p-6 bg-background/80 backdrop-blur-lg border-t border-border safe-area-inset-bottom">
-        <Button
+        <AnimatedButton
           onClick={handleSubmit}
           className="w-full h-14 text-lg bg-gradient-cta hover:opacity-90"
           disabled={isAdding || !numericAmount || !itemName}
+          haptic="success"
         >
           {isAdding ? (
             <Loader2 className="h-5 w-5 animate-spin" />
@@ -387,7 +397,7 @@ export default function AddPurchase() {
               Add Purchase · {formatCurrency(numericAmount)}
             </>
           )}
-        </Button>
+        </AnimatedButton>
       </div>
     </div>
   );

@@ -2,6 +2,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Home, BarChart3, Lightbulb, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { triggerHaptic } from '@/hooks/useHaptics';
 
 const tabs = [
   { path: '/home', label: 'Home', icon: Home },
@@ -21,10 +22,17 @@ export function BottomTabBar() {
             (tab.path === '/home' && location.pathname === '/dashboard');
           const Icon = tab.icon;
 
+          const handleTabPress = () => {
+            if (!isActive) {
+              triggerHaptic('selection');
+            }
+          };
+
           return (
             <Link
               key={tab.path}
               to={tab.path}
+              onClick={handleTabPress}
               className="flex-1 flex flex-col items-center justify-center gap-1 py-2 relative touch-target"
               aria-label={tab.label}
             >
@@ -35,12 +43,17 @@ export function BottomTabBar() {
                   transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                 />
               )}
-              <Icon
-                className={cn(
-                  'h-5 w-5 transition-colors',
-                  isActive ? 'text-cta' : 'text-muted-foreground'
-                )}
-              />
+              <motion.div
+                whileTap={{ scale: 0.9 }}
+                transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+              >
+                <Icon
+                  className={cn(
+                    'h-5 w-5 transition-colors',
+                    isActive ? 'text-cta' : 'text-muted-foreground'
+                  )}
+                />
+              </motion.div>
               <span
                 className={cn(
                   'text-2xs font-medium transition-colors',
