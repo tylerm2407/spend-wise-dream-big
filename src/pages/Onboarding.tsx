@@ -8,7 +8,8 @@ import {
   TrendingUp,
   Sparkles,
   DollarSign,
-  User
+  User,
+  Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,14 +25,16 @@ export default function Onboarding() {
   const [goalName, setGoalName] = useState('');
   const [goalAmount, setGoalAmount] = useState('');
   const navigate = useNavigate();
-  const { updateProfile } = useProfile();
+  const { updateProfileAsync } = useProfile();
   const { addGoal } = useGoals();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
   const handleComplete = async () => {
+    setIsSubmitting(true);
     try {
-      // Update profile
-      updateProfile({
+      // Update profile and wait for completion
+      await updateProfileAsync({
         name: name || null,
         monthly_income: monthlyIncome ? parseFloat(monthlyIncome) : null,
         onboarding_completed: true,
@@ -53,6 +56,7 @@ export default function Onboarding() {
         description: 'Failed to save your information. Please try again.',
         variant: 'destructive',
       });
+      setIsSubmitting(false);
     }
   };
 
@@ -278,15 +282,23 @@ export default function Onboarding() {
                 <Button
                   onClick={handleComplete}
                   className="flex-1 h-12 bg-gradient-primary hover:opacity-90"
+                  disabled={isSubmitting}
                 >
-                  Start Using True Cost
-                  <ArrowRight className="ml-2 h-5 w-5" />
+                  {isSubmitting ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    <>
+                      Start Using True Cost
+                      <ArrowRight className="ml-2 h-5 w-5" />
+                    </>
+                  )}
                 </Button>
               </div>
 
               <button
                 onClick={handleComplete}
-                className="w-full mt-4 text-sm text-muted-foreground hover:text-foreground"
+                disabled={isSubmitting}
+                className="w-full mt-4 text-sm text-muted-foreground hover:text-foreground disabled:opacity-50"
               >
                 Skip for now
               </button>
