@@ -20,6 +20,7 @@ import { Card } from '@/components/ui/card';
 import { ProgressRing } from '@/components/ui/ProgressRing';
 import { AnimatedCounter } from '@/components/ui/AnimatedCounter';
 import { SpendingCharts } from '@/components/SpendingCharts';
+import { SmarterSpendingSuggestions } from '@/components/SmarterSpendingSuggestions';
 import { formatCurrency, calculateGoalProgress, getGoalStatus } from '@/lib/calculations';
 import { cn } from '@/lib/utils';
 
@@ -240,6 +241,17 @@ export default function Dashboard() {
             </div>
           )}
         </motion.div>
+
+        {/* Smarter Spending Suggestions */}
+        {purchases.length > 0 && (
+          <motion.div variants={itemVariants}>
+            <SmarterSpendingSuggestions 
+              purchases={purchases}
+              primaryGoal={primaryGoal ?? null}
+              monthlyIncome={profile?.monthly_income}
+            />
+          </motion.div>
+        )}
 
         {/* Spending Charts */}
         {purchases.length > 0 && (
