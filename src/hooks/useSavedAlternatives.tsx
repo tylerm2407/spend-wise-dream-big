@@ -68,6 +68,26 @@ export function useSavedAlternatives() {
     },
   });
 
+  const unsaveAlternative = useMutation({
+    mutationFn: async ({ alternativeName, category }: { alternativeName: string; category: string }) => {
+      if (!user) throw new Error('Not authenticated');
+      
+      const { error } = await supabase
+        .from('saved_alternatives')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('alternative_name', alternativeName)
+        .eq('category', category)
+        .eq('status', 'saved');
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['saved-alternatives', user?.id] });
+      queryClient.invalidateQueries({ queryKey: ['weekly-challenge', user?.id] });
+    },
+  });
+
   const dismissedAlternatives = savedAlternatives.filter(a => a.status === 'dismissed');
   const favoritedAlternatives = savedAlternatives.filter(a => a.status === 'saved');
   
@@ -83,6 +103,12 @@ export function useSavedAlternatives() {
     );
   };
 
+  const isAlternativeSavedByName = (alternativeName: string, category: string) => {
+    return favoritedAlternatives.some(
+      a => a.alternative_name === alternativeName && a.category === category
+    );
+  };
+
   const totalSavedAmount = favoritedAlternatives.reduce((sum, a) => sum + Number(a.savings), 0);
 
   return {
@@ -91,9 +117,12 @@ export function useSavedAlternatives() {
     favoritedAlternatives,
     isLoading,
     saveAlternative: saveAlternative.mutate,
+    unsaveAlternative: unsaveAlternative.mutate,
     isSaving: saveAlternative.isPending,
+    isUnsaving: unsaveAlternative.isPending,
     isAlternativeDismissed,
     isAlternativeSaved,
+    isAlternativeSavedByName,
     totalSavedAmount,
   };
 }

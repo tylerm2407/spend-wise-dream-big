@@ -4,16 +4,13 @@ import {
   Lightbulb, 
   Plus,
   Check,
-  X,
-  TrendingUp,
   Clock,
-  Search,
-  Filter
+  Filter,
+  Search
 } from 'lucide-react';
 import { AppLayout } from '@/components/AppLayout';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { AnimatedButton } from '@/components/ui/AnimatedButton';
 import { TapScale } from '@/components/ui/TapScale';
 import { Input } from '@/components/ui/input';
 import {
@@ -27,6 +24,7 @@ import { useSavedAlternatives } from '@/hooks/useSavedAlternatives';
 import { useProfile } from '@/hooks/useProfile';
 import { useGoals } from '@/hooks/useGoals';
 import { useHaptics } from '@/hooks/useHaptics';
+import { AIAlternativeSearch } from '@/components/AIAlternativeSearch';
 import { formatCurrency, calculateInvestmentGrowth } from '@/lib/calculations';
 import { cn } from '@/lib/utils';
 
@@ -60,7 +58,7 @@ const ALTERNATIVES_LIBRARY = [
 ];
 
 export default function Alternatives() {
-  const { savedAlternatives, saveAlternative } = useSavedAlternatives();
+  const { savedAlternatives, saveAlternative, unsaveAlternative, isAlternativeSavedByName } = useSavedAlternatives();
   const { profile } = useProfile();
   const { primaryGoal } = useGoals();
   const { haptic } = useHaptics();
@@ -91,17 +89,24 @@ export default function Alternatives() {
     0
   );
 
-  const handleSaveAlternative = (alt: typeof ALTERNATIVES_LIBRARY[0]) => {
-    haptic('success');
-    const savings = alt.originalPrice - alt.alternativePrice;
-    saveAlternative({
-      category: alt.category,
-      original_amount: alt.originalPrice,
-      alternative_name: alt.alternative,
-      alternative_price: alt.alternativePrice,
-      savings,
-      status: 'saved',
-    });
+  const handleToggleAlternative = (alt: typeof ALTERNATIVES_LIBRARY[0]) => {
+    const isSaved = isAlternativeSavedByName(alt.alternative, alt.category);
+    
+    if (isSaved) {
+      haptic('light');
+      unsaveAlternative({ alternativeName: alt.alternative, category: alt.category });
+    } else {
+      haptic('success');
+      const savings = alt.originalPrice - alt.alternativePrice;
+      saveAlternative({
+        category: alt.category,
+        original_amount: alt.originalPrice,
+        alternative_name: alt.alternative,
+        alternative_price: alt.alternativePrice,
+        savings,
+        status: 'saved',
+      });
+    }
   };
 
   const containerVariants = {
@@ -161,6 +166,10 @@ export default function Alternatives() {
           animate="visible"
           className="px-6 space-y-6 pb-6"
         >
+          {/* AI Alternative Search */}
+          <motion.div variants={itemVariants}>
+            <AIAlternativeSearch />
+          </motion.div>
           {/* My Saved Alternatives Summary */}
           {activeSavedAlternatives.length > 0 && (
             <motion.div variants={itemVariants}>
@@ -254,17 +263,16 @@ export default function Alternatives() {
                             </div>
                           )}
                         </div>
-                        <TapScale haptic={isSaved ? 'none' : 'success'} scale={0.9}>
+                        <TapScale haptic="light" scale={0.9}>
                           <Button
                             size="icon"
                             variant={isSaved ? 'default' : 'outline'}
                             className={cn(
-                              'h-10 w-10 rounded-full flex-shrink-0',
-                              isSaved && 'bg-success hover:bg-success/90'
+                              'h-10 w-10 rounded-full flex-shrink-0 transition-all',
+                              isSaved && 'bg-success hover:bg-success/80'
                             )}
-                            onClick={() => !isSaved && handleSaveAlternative(alt)}
-                            disabled={isSaved}
-                            aria-label={isSaved ? 'Saved' : 'Save alternative'}
+                            onClick={() => handleToggleAlternative(alt)}
+                            aria-label={isSaved ? 'Unsave alternative' : 'Save alternative'}
                           >
                             {isSaved ? (
                               <Check className="h-4 w-4" />
