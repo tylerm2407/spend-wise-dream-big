@@ -7,22 +7,24 @@ import {
   TrendingDown,
   Target,
   DollarSign,
-  ChevronRight
+  ChevronRight,
+  Trophy
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
 import { usePurchases } from '@/hooks/usePurchases';
 import { useGoals } from '@/hooks/useGoals';
 import { useHaptics } from '@/hooks/useHaptics';
+import { useWeeklyChallenge } from '@/hooks/useWeeklyChallenge';
 import { AppLayout } from '@/components/AppLayout';
 import { AnimatedButton } from '@/components/ui/AnimatedButton';
 import { AnimatedCard } from '@/components/ui/AnimatedCard';
 import { TapScale } from '@/components/ui/TapScale';
 import { Card } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
 import { ProgressRing } from '@/components/ui/ProgressRing';
 import { AnimatedCounter } from '@/components/ui/AnimatedCounter';
 import { SmarterSpendingSuggestions } from '@/components/SmarterSpendingSuggestions';
-import { WeeklySpendingChallenge } from '@/components/WeeklySpendingChallenge';
 import { formatCurrency, calculateGoalProgress, getGoalStatus } from '@/lib/calculations';
 import { cn } from '@/lib/utils';
 
@@ -33,6 +35,7 @@ export default function Home() {
   const { purchases, monthlyTotal, monthlyChange, topCategory, recentPurchases } = usePurchases();
   const { primaryGoal, activeGoals } = useGoals();
   const { haptic } = useHaptics();
+  const { currentChallenge, progressPercent } = useWeeklyChallenge();
 
   useEffect(() => {
     if (!profileLoading && profile && !profile.onboarding_completed) {
@@ -279,10 +282,36 @@ export default function Home() {
             )}
           </motion.div>
 
-          {/* Weekly Spending Challenge */}
-          <motion.div variants={itemVariants}>
-            <WeeklySpendingChallenge />
-          </motion.div>
+          {/* Weekly Challenge Preview */}
+          {currentChallenge && (
+            <motion.div variants={itemVariants}>
+              <TapScale haptic="selection" onClick={() => navigate('/challenges')}>
+                <Card className="p-4 glass-card cursor-pointer">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <div className="p-2 rounded-full bg-warning/10">
+                        <Trophy className="h-4 w-4 text-warning" />
+                      </div>
+                      <div>
+                        <h3 className="font-medium text-sm">Weekly Challenge</h3>
+                        <p className="text-xs text-muted-foreground">
+                          {currentChallenge.is_completed ? 'Completed!' : `${progressPercent}% progress`}
+                        </p>
+                      </div>
+                    </div>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                  <Progress 
+                    value={progressPercent} 
+                    className={cn(
+                      "h-2",
+                      currentChallenge.is_completed && "[&>div]:bg-success"
+                    )}
+                  />
+                </Card>
+              </TapScale>
+            </motion.div>
+          )}
 
           {/* Smarter Spending Suggestions */}
           {purchases.length > 0 && (

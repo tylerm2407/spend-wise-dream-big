@@ -16,6 +16,7 @@ import History from "./pages/History";
 import Goals from "./pages/Goals";
 import Insights from "./pages/Insights";
 import Alternatives from "./pages/Alternatives";
+import Challenges from "./pages/Challenges";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
@@ -89,6 +90,7 @@ function AppRoutes() {
       <Route path="/dashboard" element={<Navigate to="/home" replace />} />
       <Route path="/insights" element={<ProtectedRoute><Insights /></ProtectedRoute>} />
       <Route path="/alternatives" element={<ProtectedRoute><Alternatives /></ProtectedRoute>} />
+      <Route path="/challenges" element={<ProtectedRoute><Challenges /></ProtectedRoute>} />
       <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
       
       {/* Protected routes - Secondary screens (no tab bar) */}
