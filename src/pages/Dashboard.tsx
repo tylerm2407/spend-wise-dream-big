@@ -19,6 +19,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { ProgressRing } from '@/components/ui/ProgressRing';
 import { AnimatedCounter } from '@/components/ui/AnimatedCounter';
+import { SpendingCharts } from '@/components/SpendingCharts';
 import { formatCurrency, calculateGoalProgress, getGoalStatus } from '@/lib/calculations';
 import { cn } from '@/lib/utils';
 
@@ -26,7 +27,7 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const { profile, isLoading: profileLoading } = useProfile();
-  const { monthlyTotal, lastMonthTotal, monthlyChange, topCategory, recentPurchases } = usePurchases();
+  const { purchases, monthlyTotal, lastMonthTotal, monthlyChange, topCategory, recentPurchases } = usePurchases();
   const { primaryGoal, activeGoals } = useGoals();
 
   useEffect(() => {
@@ -239,6 +240,16 @@ export default function Dashboard() {
             </div>
           )}
         </motion.div>
+
+        {/* Spending Charts */}
+        {purchases.length > 0 && (
+          <motion.div variants={itemVariants}>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-semibold text-lg">Spending Insights</h2>
+            </div>
+            <SpendingCharts purchases={purchases} />
+          </motion.div>
+        )}
 
         {/* Goals Section */}
         {activeGoals.length > 1 && (
