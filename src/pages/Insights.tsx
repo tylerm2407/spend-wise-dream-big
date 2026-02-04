@@ -18,6 +18,7 @@ import { useGoals } from '@/hooks/useGoals';
 import { useProfile } from '@/hooks/useProfile';
 import { SpendingCharts } from '@/components/SpendingCharts';
 import { OpportunityCostCalculator } from '@/components/OpportunityCostCalculator';
+import { CreditCardLinking } from '@/components/CreditCardLinking';
 import { formatCurrency, calculateInvestmentGrowth } from '@/lib/calculations';
 import { cn } from '@/lib/utils';
 import { Database } from '@/integrations/supabase/types';
@@ -121,6 +122,11 @@ export default function Insights() {
                 vs {formatCurrency(lastMonthTotal, 0)} last month
               </p>
             </Card>
+          </motion.div>
+
+          {/* Credit Card Linking */}
+          <motion.div variants={itemVariants}>
+            <CreditCardLinking />
           </motion.div>
 
           {/* Opportunity Cost Calculator */}
