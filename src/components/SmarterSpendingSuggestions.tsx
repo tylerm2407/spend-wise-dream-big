@@ -1,18 +1,23 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Lightbulb, 
-  TrendingDown, 
   Rocket, 
   Sparkles,
   ChevronRight,
-  Zap
+  Zap,
+  Bookmark,
+  X,
+  Check
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { formatCurrency } from '@/lib/calculations';
 import { cn } from '@/lib/utils';
 import { Database } from '@/integrations/supabase/types';
+import { useSavedAlternatives } from '@/hooks/useSavedAlternatives';
+import { useWeeklyChallenge } from '@/hooks/useWeeklyChallenge';
+import { toast } from 'sonner';
 
 type Purchase = Database['public']['Tables']['purchases']['Row'];
 type Goal = Database['public']['Tables']['goals']['Row'];
@@ -363,6 +368,16 @@ export function SmarterSpendingSuggestions({
   primaryGoal,
   monthlyIncome 
 }: SmarterSpendingSuggestionsProps) {
+  const { 
+    saveAlternative, 
+    isSaving, 
+    isAlternativeDismissed, 
+    isAlternativeSaved 
+  } = useSavedAlternatives();
+  const { recordSavings } = useWeeklyChallenge();
+  const [dismissedLocally, setDismissedLocally] = useState<Set<string>>(new Set());
+  const [savedLocally, setSavedLocally] = useState<Set<string>>(new Set());
+
   const suggestionData = useMemo(() => {
     if (purchases.length === 0) return null;
     
@@ -410,11 +425,71 @@ export function SmarterSpendingSuggestions({
       monthlySavings,
     } as SuggestionData;
   }, [purchases, monthlyIncome]);
+
+  const handleSaveAlternative = async (purchase: Purchase, alt: Alternative) => {
+    const key = `${purchase.id}-${alt.name}`;
+    if (savedLocally.has(key)) return;
+    
+    setSavedLocally(prev => new Set(prev).add(key));
+    
+    saveAlternative({
+      purchase_id: purchase.id,
+      alternative_name: alt.name,
+      original_amount: Number(purchase.amount),
+      alternative_price: alt.price,
+      savings: alt.savings,
+      category: purchase.category,
+      status: 'saved',
+    });
+    
+    // Record savings for weekly challenge
+    await recordSavings(alt.savings);
+    
+    toast.success(`Saved "${alt.name}" as a smarter choice! +${formatCurrency(alt.savings)} to your challenge!`, {
+      icon: '🎯',
+    });
+  };
+
+  const handleDismissAlternative = (purchase: Purchase, alt: Alternative) => {
+    const key = `${purchase.id}-${alt.name}`;
+    if (dismissedLocally.has(key)) return;
+    
+    setDismissedLocally(prev => new Set(prev).add(key));
+    
+    saveAlternative({
+      purchase_id: purchase.id,
+      alternative_name: alt.name,
+      original_amount: Number(purchase.amount),
+      alternative_price: alt.price,
+      savings: alt.savings,
+      category: purchase.category,
+      status: 'dismissed',
+    });
+    
+    toast.info(`Dismissed "${alt.name}"`, {
+      icon: '👋',
+    });
+  };
+
+  const isAltDismissed = (purchaseId: string, altName: string) => {
+    const key = `${purchaseId}-${altName}`;
+    return dismissedLocally.has(key) || isAlternativeDismissed(purchaseId, altName);
+  };
+
+  const isAltSaved = (purchaseId: string, altName: string) => {
+    const key = `${purchaseId}-${altName}`;
+    return savedLocally.has(key) || isAlternativeSaved(purchaseId, altName);
+  };
   
   if (!suggestionData) return null;
   
   const { purchase, alternatives, daysCloserToGoal, monthlySavings } = suggestionData;
   const bestSavings = alternatives[0]?.savings || 0;
+  
+  // Filter out dismissed alternatives
+  const visibleAlternatives = alternatives.filter(
+    alt => !isAltDismissed(purchase.id, alt.name)
+  );
   
   return (
     <motion.div
@@ -462,50 +537,102 @@ export function SmarterSpendingSuggestions({
           <span className="text-sm font-medium">Cheaper alternatives</span>
         </div>
         
-        {alternatives.map((alt, index) => (
-          <motion.div
-            key={alt.name}
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: index * 0.1 }}
-          >
-            <Card className={cn(
-              "p-4 transition-all hover:shadow-md cursor-pointer",
-              index === 0 && "bg-success/5 border-success/20"
-            )}>
-              <div className="flex items-start gap-3">
-                <div className="text-2xl">{alt.emoji}</div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="font-medium">{alt.name}</p>
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <span className="font-bold text-success">
-                        Save {formatCurrency(alt.savings)}
-                      </span>
-                      <span className={cn(
-                        "px-2 py-0.5 rounded-full text-xs font-bold",
-                        alt.savingsPercent >= 50 
-                          ? "bg-success/20 text-success" 
-                          : "bg-warning/20 text-warning"
-                      )}>
-                        -{alt.savingsPercent}%
-                      </span>
+        <AnimatePresence mode="popLayout">
+          {visibleAlternatives.length === 0 ? (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="text-center py-4 text-muted-foreground text-sm"
+            >
+              All alternatives dismissed. Add a new purchase to see more suggestions!
+            </motion.div>
+          ) : (
+            visibleAlternatives.map((alt, index) => {
+              const isSaved = isAltSaved(purchase.id, alt.name);
+              
+              return (
+                <motion.div
+                  key={alt.name}
+                  layout
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20, height: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                >
+                  <Card className={cn(
+                    "p-4 transition-all",
+                    index === 0 && !isSaved && "bg-success/5 border-success/20",
+                    isSaved && "bg-primary/5 border-primary/30"
+                  )}>
+                    <div className="flex items-start gap-3">
+                      <div className="text-2xl">{alt.emoji}</div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="font-medium">{alt.name}</p>
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            <span className="font-bold text-success">
+                              Save {formatCurrency(alt.savings)}
+                            </span>
+                            <span className={cn(
+                              "px-2 py-0.5 rounded-full text-xs font-bold",
+                              alt.savingsPercent >= 50 
+                                ? "bg-success/20 text-success" 
+                                : "bg-warning/20 text-warning"
+                            )}>
+                              -{alt.savingsPercent}%
+                            </span>
+                          </div>
+                        </div>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Only {formatCurrency(alt.price)}
+                        </p>
+                        {alt.tip && (
+                          <p className="text-xs text-primary mt-2 flex items-center gap-1">
+                            <Zap className="h-3 w-3" />
+                            {alt.tip}
+                          </p>
+                        )}
+                        
+                        {/* Save/Dismiss Buttons */}
+                        <div className="flex items-center gap-2 mt-3">
+                          {isSaved ? (
+                            <div className="flex items-center gap-1 text-sm text-primary font-medium">
+                              <Check className="h-4 w-4" />
+                              Saved to challenge!
+                            </div>
+                          ) : (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleSaveAlternative(purchase, alt)}
+                                disabled={isSaving}
+                                className="text-xs h-8 gap-1 hover:bg-primary/10 hover:text-primary hover:border-primary"
+                              >
+                                <Bookmark className="h-3 w-3" />
+                                I'll try this!
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleDismissAlternative(purchase, alt)}
+                                disabled={isSaving}
+                                className="text-xs h-8 gap-1 text-muted-foreground hover:text-destructive"
+                              >
+                                <X className="h-3 w-3" />
+                                Not for me
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Only {formatCurrency(alt.price)}
-                  </p>
-                  {alt.tip && (
-                    <p className="text-xs text-primary mt-2 flex items-center gap-1">
-                      <Zap className="h-3 w-3" />
-                      {alt.tip}
-                    </p>
-                  )}
-                </div>
-              </div>
-            </Card>
-          </motion.div>
-        ))}
+                  </Card>
+                </motion.div>
+              );
+            })
+          )}
+        </AnimatePresence>
       </div>
       
       {/* Goal Acceleration */}

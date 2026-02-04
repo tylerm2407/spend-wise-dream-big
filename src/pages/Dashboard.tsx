@@ -21,6 +21,7 @@ import { ProgressRing } from '@/components/ui/ProgressRing';
 import { AnimatedCounter } from '@/components/ui/AnimatedCounter';
 import { SpendingCharts } from '@/components/SpendingCharts';
 import { SmarterSpendingSuggestions } from '@/components/SmarterSpendingSuggestions';
+import { WeeklySpendingChallenge } from '@/components/WeeklySpendingChallenge';
 import { formatCurrency, calculateGoalProgress, getGoalStatus } from '@/lib/calculations';
 import { cn } from '@/lib/utils';
 
@@ -240,6 +241,11 @@ export default function Dashboard() {
               ))}
             </div>
           )}
+        </motion.div>
+
+        {/* Weekly Spending Challenge */}
+        <motion.div variants={itemVariants}>
+          <WeeklySpendingChallenge />
         </motion.div>
 
         {/* Smarter Spending Suggestions */}
