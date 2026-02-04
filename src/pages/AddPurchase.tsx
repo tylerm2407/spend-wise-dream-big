@@ -264,68 +264,88 @@ export default function AddPurchase() {
                 exit={{ opacity: 0, height: 0 }}
                 className="space-y-4"
               >
-                {/* Cost Breakdown */}
-                {frequency !== 'one-time' && (
-                  <Card className="p-4 bg-gradient-card">
-                    <div className="flex items-center gap-2 mb-4">
-                      <TrendingUp className="h-5 w-5 text-primary" />
-                      <h3 className="font-semibold">The True Cost</h3>
+                {/* Opportunity Cost with Time Horizons */}
+                <Card className="p-4 bg-gradient-card">
+                  <div className="flex items-center gap-2 mb-4">
+                    <TrendingUp className="h-5 w-5 text-primary" />
+                    <h3 className="font-semibold">Opportunity Cost</h3>
+                  </div>
+                  
+                  <p className="text-sm text-muted-foreground mb-3">
+                    If you invested this instead...
+                  </p>
+                  
+                  <div className="grid grid-cols-2 gap-3 mb-4">
+                    <div className="p-3 bg-muted/50 rounded-lg">
+                      <p className="text-xs text-muted-foreground">1 Year</p>
+                      <AnimatedCounter
+                        value={numericAmount * 1.07}
+                        className="text-lg font-bold"
+                        decimals={0}
+                      />
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-sm text-muted-foreground">Monthly</p>
-                        <AnimatedCounter
-                          value={breakdown.monthly}
-                          className="text-xl font-bold"
-                          decimals={0}
-                        />
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Yearly</p>
-                        <AnimatedCounter
-                          value={breakdown.yearly}
-                          className="text-xl font-bold text-primary"
-                          decimals={0}
-                        />
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">5 Years (invested)</p>
-                        <AnimatedCounter
-                          value={breakdown.fiveYear}
-                          className="text-lg font-semibold text-success"
-                          decimals={0}
-                        />
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">10 Years (invested)</p>
-                        <AnimatedCounter
-                          value={breakdown.tenYear}
-                          className="text-lg font-semibold text-success"
-                          decimals={0}
-                        />
-                      </div>
+                    <div className="p-3 bg-muted/50 rounded-lg">
+                      <p className="text-xs text-muted-foreground">5 Years</p>
+                      <AnimatedCounter
+                        value={numericAmount * Math.pow(1.07, 5)}
+                        className="text-lg font-bold text-primary"
+                        decimals={0}
+                      />
                     </div>
+                    <div className="p-3 bg-success/10 rounded-lg">
+                      <p className="text-xs text-muted-foreground">10 Years</p>
+                      <AnimatedCounter
+                        value={numericAmount * Math.pow(1.07, 10)}
+                        className="text-lg font-bold text-success"
+                        decimals={0}
+                      />
+                    </div>
+                    <div className="p-3 bg-success/10 rounded-lg">
+                      <p className="text-xs text-muted-foreground">30 Years</p>
+                      <AnimatedCounter
+                        value={numericAmount * Math.pow(1.07, 30)}
+                        className="text-lg font-bold text-success"
+                        decimals={0}
+                      />
+                    </div>
+                  </div>
 
-                    {/* Comparisons */}
-                    {breakdown.comparisons.length > 0 && (
-                      <div className="mt-4 pt-4 border-t border-border">
-                        <p className="text-sm text-muted-foreground mb-2">
-                          That's equivalent to:
-                        </p>
-                        <div className="flex flex-wrap gap-2">
-                          {breakdown.comparisons.map((comp, i) => (
-                            <span
-                              key={i}
-                              className="px-3 py-1 bg-secondary rounded-full text-sm"
-                            >
-                              {comp}
-                            </span>
-                          ))}
+                  {/* Cost Breakdown for recurring */}
+                  {frequency !== 'one-time' && (
+                    <div className="pt-3 border-t border-border">
+                      <p className="text-xs text-muted-foreground mb-2">Recurring impact:</p>
+                      <div className="flex gap-4 text-sm">
+                        <div>
+                          <span className="text-muted-foreground">Monthly:</span>{' '}
+                          <span className="font-semibold">{formatCurrency(breakdown.monthly, 0)}</span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Yearly:</span>{' '}
+                          <span className="font-semibold text-primary">{formatCurrency(breakdown.yearly, 0)}</span>
                         </div>
                       </div>
-                    )}
-                  </Card>
-                )}
+                    </div>
+                  )}
+
+                  {/* Comparisons */}
+                  {breakdown.comparisons.length > 0 && (
+                    <div className="mt-3 pt-3 border-t border-border">
+                      <p className="text-xs text-muted-foreground mb-2">
+                        That's equivalent to:
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {breakdown.comparisons.map((comp, i) => (
+                          <span
+                            key={i}
+                            className="px-3 py-1 bg-secondary rounded-full text-sm"
+                          >
+                            {comp}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </Card>
 
                 {/* Goal Impact */}
                 {primaryGoal && goalDelay > 0 && (
@@ -357,7 +377,7 @@ export default function AddPurchase() {
       <div className="fixed bottom-0 left-0 right-0 p-6 bg-background/80 backdrop-blur-lg border-t border-border safe-area-inset-bottom">
         <Button
           onClick={handleSubmit}
-          className="w-full h-14 text-lg bg-gradient-primary hover:opacity-90"
+          className="w-full h-14 text-lg bg-gradient-cta hover:opacity-90"
           disabled={isAdding || !numericAmount || !itemName}
         >
           {isAdding ? (
