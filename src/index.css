@@ -4,7 +4,8 @@
 
 /* True Cost - Financial App Design System
    A calming, modern fintech aesthetic with blue-green tones
-   Inspired by Revolut, N26, and Mint */
+   Premium-but-friendly finance tool with orange CTA accents
+   60-30-10 color rule: 60% background, 30% secondary surfaces, 10% accent CTAs */
 
 @layer base {
   :root {
@@ -34,6 +35,10 @@
     --accent: 174 70% 45%;
     --accent-foreground: 0 0% 100%;
 
+    /* CTA Orange - For action buttons */
+    --cta: 24 95% 53%;
+    --cta-foreground: 0 0% 100%;
+
     /* Destructive - Warm coral for warnings */
     --destructive: 12 76% 61%;
     --destructive-foreground: 0 0% 100%;
@@ -58,6 +63,7 @@
 
     /* Custom gradients */
     --gradient-primary: linear-gradient(135deg, hsl(174 62% 35%), hsl(185 68% 45%));
+    --gradient-cta: linear-gradient(135deg, hsl(24 95% 53%), hsl(32 95% 55%));
     --gradient-success: linear-gradient(135deg, hsl(152 60% 45%), hsl(168 55% 50%));
     --gradient-warning: linear-gradient(135deg, hsl(38 92% 50%), hsl(28 90% 55%));
     --gradient-destructive: linear-gradient(135deg, hsl(12 76% 61%), hsl(0 70% 55%));
@@ -70,6 +76,7 @@
     --shadow-lg: 0 10px 15px -3px hsl(200 20% 10% / 0.08), 0 4px 6px -4px hsl(200 20% 10% / 0.05);
     --shadow-xl: 0 20px 25px -5px hsl(200 20% 10% / 0.1), 0 8px 10px -6px hsl(200 20% 10% / 0.05);
     --shadow-glow: 0 0 20px hsl(174 62% 35% / 0.2);
+    --shadow-cta-glow: 0 0 20px hsl(24 95% 53% / 0.3);
     --shadow-card: 0 2px 8px hsl(200 20% 10% / 0.04), 0 8px 24px hsl(200 20% 10% / 0.06);
 
     /* Sidebar */
@@ -81,29 +88,37 @@
     --sidebar-accent-foreground: 174 62% 25%;
     --sidebar-border: 200 20% 88%;
     --sidebar-ring: 174 62% 35%;
+
+    /* Tab bar */
+    --tab-bar-background: 0 0% 100%;
+    --tab-bar-border: 200 20% 90%;
   }
 
   .dark {
-    --background: 200 30% 8%;
+    --background: 200 30% 6%;
     --foreground: 200 15% 95%;
 
-    --card: 200 25% 12%;
+    --card: 200 25% 10%;
     --card-foreground: 200 15% 95%;
 
-    --popover: 200 25% 12%;
+    --popover: 200 25% 10%;
     --popover-foreground: 200 15% 95%;
 
     --primary: 174 55% 50%;
     --primary-foreground: 200 30% 8%;
 
-    --secondary: 200 25% 18%;
+    --secondary: 200 25% 15%;
     --secondary-foreground: 174 55% 60%;
 
-    --muted: 200 25% 18%;
+    --muted: 200 25% 15%;
     --muted-foreground: 200 15% 60%;
 
     --accent: 174 60% 55%;
     --accent-foreground: 200 30% 8%;
+
+    /* CTA Orange - Dark mode */
+    --cta: 24 90% 55%;
+    --cta-foreground: 0 0% 100%;
 
     --destructive: 12 70% 50%;
     --destructive-foreground: 0 0% 100%;
@@ -117,24 +132,29 @@
     --info: 199 80% 55%;
     --info-foreground: 0 0% 100%;
 
-    --border: 200 25% 20%;
-    --input: 200 25% 20%;
+    --border: 200 25% 18%;
+    --input: 200 25% 18%;
     --ring: 174 55% 50%;
 
     --gradient-primary: linear-gradient(135deg, hsl(174 55% 45%), hsl(185 60% 50%));
-    --gradient-hero: linear-gradient(180deg, hsl(200 30% 10%), hsl(200 25% 12%));
-    --gradient-card: linear-gradient(145deg, hsl(200 25% 14%), hsl(200 25% 11%));
+    --gradient-cta: linear-gradient(135deg, hsl(24 90% 50%), hsl(32 90% 55%));
+    --gradient-hero: linear-gradient(180deg, hsl(200 30% 8%), hsl(200 25% 10%));
+    --gradient-card: linear-gradient(145deg, hsl(200 25% 12%), hsl(200 25% 9%));
 
     --shadow-glow: 0 0 25px hsl(174 55% 50% / 0.25);
+    --shadow-cta-glow: 0 0 25px hsl(24 90% 55% / 0.35);
 
-    --sidebar-background: 200 30% 8%;
+    --sidebar-background: 200 30% 6%;
     --sidebar-foreground: 200 15% 80%;
     --sidebar-primary: 174 55% 50%;
     --sidebar-primary-foreground: 200 30% 8%;
-    --sidebar-accent: 200 25% 18%;
+    --sidebar-accent: 200 25% 15%;
     --sidebar-accent-foreground: 174 55% 60%;
-    --sidebar-border: 200 25% 20%;
+    --sidebar-border: 200 25% 18%;
     --sidebar-ring: 174 55% 50%;
+
+    --tab-bar-background: 200 25% 8%;
+    --tab-bar-border: 200 25% 15%;
   }
 }
 
