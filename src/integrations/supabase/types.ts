@@ -161,6 +161,98 @@ export type Database = {
         }
         Relationships: []
       }
+      saved_alternatives: {
+        Row: {
+          alternative_name: string
+          alternative_price: number
+          category: string
+          created_at: string
+          id: string
+          original_amount: number
+          purchase_id: string | null
+          savings: number
+          status: string
+          user_id: string
+        }
+        Insert: {
+          alternative_name: string
+          alternative_price: number
+          category: string
+          created_at?: string
+          id?: string
+          original_amount: number
+          purchase_id?: string | null
+          savings: number
+          status?: string
+          user_id: string
+        }
+        Update: {
+          alternative_name?: string
+          alternative_price?: number
+          category?: string
+          created_at?: string
+          id?: string
+          original_amount?: number
+          purchase_id?: string | null
+          savings?: number
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saved_alternatives_purchase_id_fkey"
+            columns: ["purchase_id"]
+            isOneToOne: false
+            referencedRelation: "purchases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      weekly_challenges: {
+        Row: {
+          actual_savings: number
+          alternatives_chosen: number
+          created_at: string
+          id: string
+          is_completed: boolean
+          reward_claimed: boolean
+          streak_count: number
+          target_savings: number
+          updated_at: string
+          user_id: string
+          week_end: string
+          week_start: string
+        }
+        Insert: {
+          actual_savings?: number
+          alternatives_chosen?: number
+          created_at?: string
+          id?: string
+          is_completed?: boolean
+          reward_claimed?: boolean
+          streak_count?: number
+          target_savings?: number
+          updated_at?: string
+          user_id: string
+          week_end: string
+          week_start: string
+        }
+        Update: {
+          actual_savings?: number
+          alternatives_chosen?: number
+          created_at?: string
+          id?: string
+          is_completed?: boolean
+          reward_claimed?: boolean
+          streak_count?: number
+          target_savings?: number
+          updated_at?: string
+          user_id?: string
+          week_end?: string
+          week_start?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
