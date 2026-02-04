@@ -82,8 +82,8 @@ export function AIAlternativeSearch() {
           <Sparkles className="h-5 w-5 text-primary" />
         </div>
         <div>
-          <h2 className="font-semibold">AI Alternative Finder</h2>
-          <p className="text-xs text-muted-foreground">Search any product for cheaper options</p>
+          <h2 className="font-semibold">Alternative Finder</h2>
+          <p className="text-xs text-muted-foreground">Find cheaper options for any product</p>
         </div>
       </div>
 
