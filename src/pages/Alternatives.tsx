@@ -1,25 +1,14 @@
-import { useState, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { 
   Lightbulb, 
   Plus,
   Check,
-  Clock,
-  Filter,
-  Search
+  Clock
 } from 'lucide-react';
 import { AppLayout } from '@/components/AppLayout';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { TapScale } from '@/components/ui/TapScale';
-import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { useSavedAlternatives } from '@/hooks/useSavedAlternatives';
 import { useProfile } from '@/hooks/useProfile';
 import { useGoals } from '@/hooks/useGoals';
@@ -62,23 +51,10 @@ export default function Alternatives() {
   const { profile } = useProfile();
   const { primaryGoal } = useGoals();
   const { haptic } = useHaptics();
-  const [search, setSearch] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('all');
 
   const dailySavingsRate = profile?.monthly_income 
     ? (Number(profile.monthly_income) * 0.2) / 30 
     : 0;
-
-  // Filter alternatives
-  const filteredAlternatives = useMemo(() => {
-    return ALTERNATIVES_LIBRARY.filter((alt) => {
-      const matchesSearch = 
-        alt.original.toLowerCase().includes(search.toLowerCase()) ||
-        alt.alternative.toLowerCase().includes(search.toLowerCase());
-      const matchesCategory = categoryFilter === 'all' || alt.category === categoryFilter;
-      return matchesSearch && matchesCategory;
-    });
-  }, [search, categoryFilter]);
 
   // Get saved alternatives with status 'saved'
   const activeSavedAlternatives = savedAlternatives.filter(sa => sa.status === 'saved');
@@ -124,41 +100,11 @@ export default function Alternatives() {
       <div className="min-h-screen bg-gradient-hero">
         {/* Header */}
         <header className="px-6 pt-6 pb-4">
-          <h1 className="text-2xl font-bold">Cheaper Alternatives</h1>
+          <h1 className="text-2xl font-bold">Alternatives</h1>
           <p className="text-muted-foreground text-sm mt-1">
             Discover ways to save and accelerate your goals
           </p>
         </header>
-
-        {/* Search & Filter */}
-        <div className="px-6 mb-4">
-          <div className="flex gap-2">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search alternatives..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-9 h-10"
-              />
-            </div>
-            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger className="w-[130px] h-10">
-                <Filter className="h-4 w-4 mr-2" />
-                <SelectValue placeholder="All" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All</SelectItem>
-                <SelectItem value="dining">Dining</SelectItem>
-                <SelectItem value="shopping">Shopping</SelectItem>
-                <SelectItem value="transportation">Transport</SelectItem>
-                <SelectItem value="entertainment">Entertainment</SelectItem>
-                <SelectItem value="subscriptions">Subscriptions</SelectItem>
-                <SelectItem value="groceries">Groceries</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
 
         <motion.main
           variants={containerVariants}
@@ -208,7 +154,7 @@ export default function Alternatives() {
               Alternatives Library
             </h2>
             <div className="space-y-3">
-              {filteredAlternatives.map((alt, index) => {
+              {ALTERNATIVES_LIBRARY.map((alt, index) => {
                 const savings = alt.originalPrice - alt.alternativePrice;
                 const yearlySavings = savings * 12;
                 const daysCloserToGoal = dailySavingsRate > 0 
