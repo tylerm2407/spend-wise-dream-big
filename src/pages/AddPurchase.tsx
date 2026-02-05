@@ -33,7 +33,11 @@ import { useGoals } from '@/hooks/useGoals';
 import { useProfile } from '@/hooks/useProfile';
 import { useToast } from '@/hooks/use-toast';
 import { useHaptics } from '@/hooks/useHaptics';
+ import { useRecurringDetection } from '@/hooks/useRecurringDetection';
 import { AnimatedCounter } from '@/components/ui/AnimatedCounter';
+ import { VoiceInput } from '@/components/VoiceInput';
+ import { ReceiptScanner } from '@/components/ReceiptScanner';
+ import { RecurringPurchasePrompt } from '@/components/RecurringPurchasePrompt';
 import { 
   calculateCostBreakdown, 
   calculateGoalDelay,
@@ -80,6 +84,10 @@ export default function AddPurchase() {
   const [category, setCategory] = useState<PurchaseCategory>('other');
   const [frequency, setFrequency] = useState<Frequency>('one-time');
   const [showImpact, setShowImpact] = useState(false);
+   const [showRecurringPrompt, setShowRecurringPrompt] = useState(true);
+ 
+   // Recurring purchase detection
+   const { matchedRecurring } = useRecurringDetection(itemName);
 
   const numericAmount = parseFloat(amount) || 0;
   
@@ -299,19 +307,64 @@ export default function AddPurchase() {
 
           {/* Item Name */}
           <div className="space-y-2">
-            <Label htmlFor="itemName">What did you buy?</Label>
-            <div className="relative">
-              <Tag className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-              <Input
-                id="itemName"
-                placeholder="e.g., Coffee at Starbucks"
-                value={itemName}
-                onChange={(e) => setItemName(e.target.value)}
-                className="pl-10 h-12"
-                required
-                aria-label="Item name"
-              />
+           <Label htmlFor="itemName">What did you buy?</Label>
+           <div className="flex gap-2">
+             <div className="relative flex-1">
+               <Tag className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+               <Input
+                 id="itemName"
+                 placeholder="e.g., Coffee at Starbucks"
+                 value={itemName}
+                 onChange={(e) => {
+                   setItemName(e.target.value);
+                   setShowRecurringPrompt(true);
+                 }}
+                 className="pl-10 h-12"
+                 required
+                 aria-label="Item name"
+               />
+             </div>
+             <VoiceInput
+               onResult={(text) => {
+                 toast({ title: 'Heard:', description: text });
+               }}
+               onParsedPurchase={(data) => {
+                 if (data.amount) {
+                   setAmount(String(data.amount));
+                   setShowImpact(true);
+                 }
+                 if (data.item) setItemName(data.item);
+                 haptic('success');
+               }}
+               className="h-12 w-12"
+             />
+             <ReceiptScanner
+               onReceiptScanned={(data) => {
+                 if (data.total) {
+                   setAmount(String(data.total));
+                   setShowImpact(true);
+                 }
+                 if (data.merchant) setItemName(data.merchant);
+                 haptic('success');
+               }}
+             />
             </div>
+           
+           {/* Recurring Purchase Prompt */}
+           {showRecurringPrompt && matchedRecurring && itemName.length >= 3 && (
+             <RecurringPurchasePrompt
+               itemName={itemName}
+               matchedPurchase={matchedRecurring}
+               onConfirm={(freq) => {
+                 setFrequency(freq as Frequency);
+                 setAmount(String(matchedRecurring.amount));
+                 setShowRecurringPrompt(false);
+                 haptic('medium');
+                 toast({ title: 'Frequency updated', description: `Set to ${freq}` });
+               }}
+               onDismiss={() => setShowRecurringPrompt(false)}
+             />
+           )}
           </div>
 
           {/* Category */}
