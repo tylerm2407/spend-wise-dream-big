@@ -553,7 +553,7 @@ export default function AddPurchase() {
       <div className="fixed bottom-0 left-0 right-0 p-6 bg-background/80 backdrop-blur-lg border-t border-border safe-area-inset-bottom">
         <AnimatedButton
           onClick={handleSubmit}
-          className="w-full h-14 text-lg bg-gradient-cta hover:opacity-90"
+          className="w-full h-14 text-lg bg-gradient-primary glow hover:opacity-90"
           disabled={isAdding || !numericAmount || !itemName}
           haptic="success"
         >

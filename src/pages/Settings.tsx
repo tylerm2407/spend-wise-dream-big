@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { 
   User,
@@ -12,7 +12,12 @@ import {
   Bell,
   ChevronRight,
   LogOut,
-  Link as LinkIcon
+  Link as LinkIcon,
+  Clock,
+  DollarSign,
+  Zap,
+  Trash2,
+  Plus
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/AppLayout';
@@ -31,6 +36,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
 import { useGoals } from '@/hooks/useGoals';
 import { usePurchases } from '@/hooks/usePurchases';
+import { useQuickAdds } from '@/hooks/useQuickAdds';
 import { useToast } from '@/hooks/use-toast';
 import { formatCurrency } from '@/lib/calculations';
 
@@ -40,6 +46,7 @@ export default function Settings() {
   const { profile, updateProfile } = useProfile();
   const { primaryGoal } = useGoals();
   const { purchases } = usePurchases();
+  const { quickAdds, addQuickAdd, deleteQuickAdd, isAdding } = useQuickAdds();
   const { toast } = useToast();
 
   const [isDarkMode, setIsDarkMode] = useState(
@@ -50,6 +57,46 @@ export default function Settings() {
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
   const [isPlaidConnecting, setIsPlaidConnecting] = useState(false);
+  const [isQuickAddsOpen, setIsQuickAddsOpen] = useState(false);
+  const [newQuickAdd, setNewQuickAdd] = useState({ item_name: '', amount: '' });
+  const [wageInputMode, setWageInputMode] = useState<'hourly' | 'yearly'>('hourly');
+
+  // Calculate hourly wage from yearly salary or vice versa
+  const hourlyWage = useMemo(() => {
+    if (profile?.hourly_wage) return Number(profile.hourly_wage);
+    if (profile?.monthly_income) return Number(profile.monthly_income) / 173;
+    return 0;
+  }, [profile]);
+
+  const yearlySalary = useMemo(() => {
+    return hourlyWage * 2080; // 40 hours/week * 52 weeks
+  }, [hourlyWage]);
+
+  const handleHourlyWageChange = (value: string) => {
+    const wage = parseFloat(value) || null;
+    updateProfile({ hourly_wage: wage });
+  };
+
+  const handleYearlySalaryChange = (value: string) => {
+    const salary = parseFloat(value) || 0;
+    const calculatedHourly = salary / 2080;
+    updateProfile({ hourly_wage: calculatedHourly > 0 ? calculatedHourly : null });
+  };
+
+  const handleAddQuickAdd = () => {
+    if (!newQuickAdd.item_name || !newQuickAdd.amount) {
+      toast({ title: 'Please fill in both fields', variant: 'destructive' });
+      return;
+    }
+    addQuickAdd({
+      item_name: newQuickAdd.item_name,
+      amount: parseFloat(newQuickAdd.amount),
+      category: 'other',
+      frequency: 'one-time',
+    });
+    setNewQuickAdd({ item_name: '', amount: '' });
+    toast({ title: 'Quick Add created!' });
+  };
 
   const handleToggleDarkMode = () => {
     const newMode = !isDarkMode;
@@ -192,6 +239,173 @@ export default function Settings() {
                 </div>
               </div>
             </Card>
+          </motion.div>
+
+          {/* Income & Work Hours */}
+          <motion.div variants={itemVariants}>
+            <Card className="p-6 glass-card">
+              <div className="flex items-center gap-4 mb-6">
+                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Clock className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <h3 className="font-medium">Income & Work Hours</h3>
+                  <p className="text-sm text-muted-foreground">
+                    See how long purchases take to earn
+                  </p>
+                </div>
+              </div>
+              
+              {/* Toggle between hourly and yearly */}
+              <div className="flex gap-2 mb-4">
+                <Button
+                  variant={wageInputMode === 'hourly' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setWageInputMode('hourly')}
+                  className="flex-1"
+                >
+                  <Clock className="h-4 w-4 mr-2" />
+                  Hourly Wage
+                </Button>
+                <Button
+                  variant={wageInputMode === 'yearly' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setWageInputMode('yearly')}
+                  className="flex-1"
+                >
+                  <DollarSign className="h-4 w-4 mr-2" />
+                  Yearly Salary
+                </Button>
+              </div>
+
+              {wageInputMode === 'hourly' ? (
+                <div className="space-y-2">
+                  <Label htmlFor="hourlyWage">Hourly Wage ($)</Label>
+                  <Input
+                    id="hourlyWage"
+                    type="number"
+                    value={profile?.hourly_wage || ''}
+                    onChange={(e) => handleHourlyWageChange(e.target.value)}
+                    placeholder="25.00"
+                    step="0.01"
+                  />
+                  {profile?.hourly_wage && (
+                    <p className="text-xs text-muted-foreground">
+                      ≈ {formatCurrency(yearlySalary, 0)}/year (based on 40hr weeks)
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <Label htmlFor="yearlySalary">Yearly Salary ($)</Label>
+                  <Input
+                    id="yearlySalary"
+                    type="number"
+                    value={yearlySalary > 0 ? Math.round(yearlySalary) : ''}
+                    onChange={(e) => handleYearlySalaryChange(e.target.value)}
+                    placeholder="52000"
+                  />
+                  {hourlyWage > 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      ≈ {formatCurrency(hourlyWage, 2)}/hour
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {hourlyWage > 0 && (
+                <div className="mt-4 p-3 bg-primary/5 rounded-lg">
+                  <p className="text-sm text-muted-foreground">
+                    A $50 purchase = <span className="font-semibold text-foreground">{(50 / hourlyWage).toFixed(1)} hours</span> of work
+                  </p>
+                </div>
+              )}
+            </Card>
+          </motion.div>
+
+          {/* Quick Adds Management */}
+          <motion.div variants={itemVariants}>
+            <Collapsible open={isQuickAddsOpen} onOpenChange={setIsQuickAddsOpen}>
+              <CollapsibleTrigger asChild>
+                <Card className="p-4 glass-card cursor-pointer hover:bg-muted/50 transition-colors">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-full bg-warning/10 flex items-center justify-center">
+                        <Zap className="h-5 w-5 text-warning" />
+                      </div>
+                      <div>
+                        <h3 className="font-medium">Quick Adds</h3>
+                        <p className="text-sm text-muted-foreground">
+                          {quickAdds.length} saved • Tap to manage
+                        </p>
+                      </div>
+                    </div>
+                    <ChevronRight className={`h-5 w-5 text-muted-foreground transition-transform ${isQuickAddsOpen ? 'rotate-90' : ''}`} />
+                  </div>
+                </Card>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <Card className="p-4 glass-card mt-2 space-y-4">
+                  {/* Add new Quick Add */}
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Item name"
+                      value={newQuickAdd.item_name}
+                      onChange={(e) => setNewQuickAdd(prev => ({ ...prev, item_name: e.target.value }))}
+                      className="flex-1"
+                    />
+                    <Input
+                      placeholder="$"
+                      type="number"
+                      value={newQuickAdd.amount}
+                      onChange={(e) => setNewQuickAdd(prev => ({ ...prev, amount: e.target.value }))}
+                      className="w-20"
+                    />
+                    <Button
+                      size="icon"
+                      onClick={handleAddQuickAdd}
+                      disabled={isAdding}
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
+
+                  {/* List existing Quick Adds */}
+                  {quickAdds.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-4">
+                      No quick adds yet. Add your frequent purchases above.
+                    </p>
+                  ) : (
+                    <div className="space-y-2">
+                      {quickAdds.map((qa) => (
+                        <div
+                          key={qa.id}
+                          className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
+                        >
+                          <div>
+                            <p className="font-medium">{qa.item_name}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {formatCurrency(Number(qa.amount))} • {qa.category}
+                            </p>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => {
+                              deleteQuickAdd(qa.id);
+                              toast({ title: 'Quick Add removed' });
+                            }}
+                            className="text-destructive hover:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </Card>
+              </CollapsibleContent>
+            </Collapsible>
           </motion.div>
 
           {/* Goals Quick Access */}
