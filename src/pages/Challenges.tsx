@@ -1,9 +1,15 @@
 import { motion } from 'framer-motion';
-import { Trophy } from 'lucide-react';
+import { Trophy, Award } from 'lucide-react';
 import { AppLayout } from '@/components/AppLayout';
 import { WeeklySpendingChallenge } from '@/components/WeeklySpendingChallenge';
+import { StreakDisplay } from '@/components/StreakDisplay';
+import { AchievementBadges } from '@/components/AchievementBadges';
+import { useStreaks } from '@/hooks/useStreaks';
+import { Card } from '@/components/ui/card';
 
 export default function Challenges() {
+  const { currentStreak, longestStreak, streakFreezesRemaining, allAchievements } = useStreaks();
+
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: { opacity: 1, transition: { staggerChildren: 0.1 } },
@@ -38,8 +44,40 @@ export default function Challenges() {
           animate="visible"
           className="px-6 space-y-6 pb-6"
         >
+          {/* Streak Display */}
+          <motion.div variants={itemVariants}>
+            <StreakDisplay
+              currentStreak={currentStreak}
+              longestStreak={longestStreak}
+              freezesRemaining={streakFreezesRemaining}
+            />
+          </motion.div>
+
           <motion.div variants={itemVariants}>
             <WeeklySpendingChallenge />
+          </motion.div>
+
+          {/* Achievements */}
+          <motion.div variants={itemVariants}>
+            <Card className="p-4">
+              <AchievementBadges achievements={allAchievements} />
+            </Card>
+          </motion.div>
+
+          {/* Motivational Message */}
+          <motion.div variants={itemVariants}>
+            <Card className="p-4 bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
+              <div className="flex items-center gap-3">
+                <Award className="h-5 w-5 text-primary" />
+                <p className="text-sm">
+                  {currentStreak === 0 
+                    ? "Log a purchase today to start your streak!"
+                    : currentStreak < 7 
+                      ? `${7 - currentStreak} more days until your Week Warrior badge!`
+                      : "You're on fire! Keep the momentum going."}
+                </p>
+              </div>
+            </Card>
           </motion.div>
         </motion.main>
       </div>

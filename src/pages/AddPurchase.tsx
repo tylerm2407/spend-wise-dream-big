@@ -10,7 +10,8 @@ import {
   Zap,
   TrendingUp,
   Target,
-  AlertTriangle
+   AlertTriangle,
+   Undo2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AnimatedButton } from '@/components/ui/AnimatedButton';
@@ -27,6 +28,7 @@ import {
 } from '@/components/ui/select';
 import { usePurchases } from '@/hooks/usePurchases';
 import { useQuickAdds } from '@/hooks/useQuickAdds';
+import { useFavorites } from '@/hooks/useFavorites';
 import { useGoals } from '@/hooks/useGoals';
 import { useProfile } from '@/hooks/useProfile';
 import { useToast } from '@/hooks/use-toast';
@@ -65,8 +67,9 @@ const FREQUENCIES: { value: Frequency; label: string }[] = [
 
 export default function AddPurchase() {
   const navigate = useNavigate();
-  const { addPurchase, isAdding } = usePurchases();
+  const { addPurchase, isAdding, purchases } = usePurchases();
   const { quickAdds } = useQuickAdds();
+  const { topFavorites, incrementFavorite } = useFavorites();
   const { primaryGoal } = useGoals();
   const { profile } = useProfile();
   const { toast } = useToast();
@@ -79,6 +82,21 @@ export default function AddPurchase() {
   const [showImpact, setShowImpact] = useState(false);
 
   const numericAmount = parseFloat(amount) || 0;
+  
+  // Get recent amounts for smart keypad
+  const recentAmounts = useMemo(() => {
+    return [...new Set(purchases.slice(0, 20).map(p => Number(p.amount)))].slice(0, 5);
+  }, [purchases]);
+  
+  // Get last purchase for prefill suggestion
+  const mostRecentPurchase = purchases[0];
+
+  // Calculate hourly wage from profile
+  const hourlyWage = useMemo(() => {
+    if ((profile as any)?.hourly_wage) return Number((profile as any).hourly_wage);
+    if (profile?.monthly_income) return Number(profile.monthly_income) / 173;
+    return 0;
+  }, [profile]);
   
   const breakdown = useMemo(() => 
     calculateCostBreakdown(numericAmount, frequency),
@@ -96,6 +114,15 @@ export default function AddPurchase() {
     setItemName(quickAdd.item_name);
     setCategory(quickAdd.category);
     setFrequency(quickAdd.frequency as Frequency);
+    setShowImpact(true);
+  };
+
+  const handleFavoriteSelect = (favorite: typeof topFavorites[0]) => {
+    haptic('medium');
+    setAmount(String(favorite.amount));
+    setItemName(favorite.item_name);
+    setCategory(favorite.category as PurchaseCategory);
+    setFrequency(favorite.frequency as Frequency);
     setShowImpact(true);
   };
 
@@ -119,11 +146,27 @@ export default function AddPurchase() {
     }, {
       onSuccess: () => {
         haptic('success');
+        // Track as favorite
+        incrementFavorite({
+          item_name: itemName,
+          amount: numericAmount,
+          category,
+          frequency,
+        });
         toast({
           title: 'Purchase added',
           description: `${itemName} - ${formatCurrency(numericAmount)}`,
+          action: (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => toast({ title: 'Undo coming soon' })}
+            >
+              <Undo2 className="h-4 w-4 mr-1" /> Undo
+            </Button>
+          ),
         });
-        navigate('/dashboard');
+        navigate('/home');
       },
       onError: (error) => {
         haptic('error');
@@ -161,6 +204,29 @@ export default function AddPurchase() {
       </header>
 
       <main className="px-6 py-6 space-y-6 pb-32">
+        {/* Favorites (frequent purchases) */}
+        {topFavorites.length > 0 && (
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-warning">⭐</span>
+              <span className="text-sm font-medium">Favorites</span>
+            </div>
+            <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-2">
+              {topFavorites.slice(0, 5).map((fav) => (
+                <TapScale key={fav.id} haptic="medium" scale={0.95}>
+                  <Button
+                    variant="outline"
+                    onClick={() => handleFavoriteSelect(fav)}
+                    className="flex-shrink-0 h-10 px-4 bg-warning/5 border-warning/20"
+                  >
+                    {fav.item_name} · {formatCurrency(Number(fav.amount), 0)}
+                  </Button>
+                </TapScale>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Quick Add Buttons */}
         {quickAdds.length > 0 && (
           <div>
@@ -203,6 +269,31 @@ export default function AddPurchase() {
                 required
                 aria-label="Purchase amount"
               />
+            </div>
+            
+            {/* Smart Keypad - Quick amounts */}
+            <div className="space-y-2">
+              <p className="text-xs text-muted-foreground font-medium">Quick amounts</p>
+              <div className="flex flex-wrap gap-2">
+                {[5, 10, 15, 20, 25, 50, ...recentAmounts.filter(a => ![5,10,15,20,25,50].includes(a))].slice(0, 8).map((amt) => (
+                  <TapScale key={amt} haptic="light" scale={0.95}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAmount(String(amt));
+                        setShowImpact(true);
+                      }}
+                      className={cn(
+                        "px-4 py-2 rounded-full text-sm font-medium transition-all",
+                        "bg-secondary hover:bg-secondary/80 border border-border",
+                        recentAmounts.includes(amt) && ![5,10,15,20,25,50].includes(amt) && "bg-primary/10 border-primary/30"
+                      )}
+                    >
+                      ${amt}
+                    </button>
+                  </TapScale>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -371,6 +462,29 @@ export default function AddPurchase() {
                           <span className="font-bold text-warning">
                             {goalDelay} day{goalDelay > 1 ? 's' : ''}
                           </span>
+                        </p>
+                      </div>
+                    </div>
+                  </Card>
+                )}
+
+                {/* Work Hours Equivalent */}
+                {hourlyWage > 0 && (
+                  <Card className="p-4 bg-gradient-to-br from-accent/50 to-accent/30">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                        <span className="text-lg">💼</span>
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-sm">Work Hours Equivalent</h3>
+                        <p className="text-2xl font-bold text-primary mt-1">
+                          {numericAmount / hourlyWage < 1 
+                            ? `${Math.round((numericAmount / hourlyWage) * 60)} minutes`
+                            : `${(numericAmount / hourlyWage).toFixed(1)} hours`
+                          }
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          at ${hourlyWage.toFixed(2)}/hour
                         </p>
                       </div>
                     </div>
