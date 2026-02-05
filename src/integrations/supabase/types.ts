@@ -130,6 +130,7 @@ export type Database = {
           streak_freezes_remaining: number | null
           updated_at: string
           user_id: string
+          zip_code: string | null
         }
         Insert: {
           created_at?: string
@@ -144,6 +145,7 @@ export type Database = {
           streak_freezes_remaining?: number | null
           updated_at?: string
           user_id: string
+          zip_code?: string | null
         }
         Update: {
           created_at?: string
@@ -158,6 +160,7 @@ export type Database = {
           streak_freezes_remaining?: number | null
           updated_at?: string
           user_id?: string
+          zip_code?: string | null
         }
         Relationships: []
       }
