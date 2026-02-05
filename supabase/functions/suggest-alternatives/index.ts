@@ -11,7 +11,7 @@ serve(async (req) => {
   }
 
   try {
-    const { product } = await req.json();
+    const { product, zipCode, category, originalPrice } = await req.json();
 
     if (!product || typeof product !== 'string') {
       return new Response(
@@ -25,18 +25,38 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    const systemPrompt = `You are a helpful savings assistant that suggests cheaper alternatives to products. 
+    // Build location context for the prompt
+    const locationContext = zipCode 
+      ? `The user is located in zip code ${zipCode}. Include specific store locations near this area.`
+      : 'Suggest nationally available stores.';
+
+    const priceContext = originalPrice 
+      ? `The original item costs approximately $${originalPrice}.`
+      : '';
+
+    const categoryContext = category 
+      ? `This is in the "${category}" category.`
+      : '';
+
+    const systemPrompt = `You are a helpful savings assistant that suggests cheaper alternatives to products with REAL store information.
+${locationContext}
+${priceContext}
+${categoryContext}
+
 When given a product or purchase, respond with 2-3 cheaper alternatives.
 
 IMPORTANT: Use the suggest_alternatives tool to return your response in a structured format.
 
 For each alternative, provide:
-- name: The alternative product/service name (brief, 2-4 words)
+- name: The specific alternative product/brand name (e.g., "Great Value Coffee" not just "Store brand")
 - description: Why it's a good alternative (1 sentence)
-- estimated_savings: Percentage saved compared to original (e.g., "30-50%")
+- estimated_savings: Dollar amount or percentage saved (e.g., "$3.50" or "30%")
+- estimated_price: The approximate price of the alternative (e.g., "$4.99")
+- store_name: Specific store name (e.g., "Walmart", "Aldi", "Target", "Costco")
+- store_location: Location hint (e.g., "Supercenter locations", "Most grocery stores")
 - tip: A quick actionable tip for the user
 
-Be practical and realistic. Focus on commonly available alternatives.`;
+Be practical, realistic, and use real brand names and stores. Focus on commonly available alternatives at major retailers.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -55,7 +75,7 @@ Be practical and realistic. Focus on commonly available alternatives.`;
             type: "function",
             function: {
               name: "suggest_alternatives",
-              description: "Return 2-3 cheaper alternatives for a product",
+              description: "Return 2-3 cheaper alternatives with real store information",
               parameters: {
                 type: "object",
                 properties: {
@@ -64,12 +84,15 @@ Be practical and realistic. Focus on commonly available alternatives.`;
                     items: {
                       type: "object",
                       properties: {
-                        name: { type: "string", description: "Alternative product name" },
+                        name: { type: "string", description: "Specific alternative product/brand name" },
                         description: { type: "string", description: "Why this is a good alternative" },
-                        estimated_savings: { type: "string", description: "Estimated savings percentage" },
+                        estimated_savings: { type: "string", description: "Dollar amount or percentage saved" },
+                        estimated_price: { type: "string", description: "Approximate price of alternative" },
+                        store_name: { type: "string", description: "Specific store name (Walmart, Aldi, Target, etc.)" },
+                        store_location: { type: "string", description: "Location hint or availability" },
                         tip: { type: "string", description: "Quick actionable tip" },
                       },
-                      required: ["name", "description", "estimated_savings", "tip"],
+                      required: ["name", "description", "estimated_savings", "store_name", "tip"],
                       additionalProperties: false,
                     },
                   },
