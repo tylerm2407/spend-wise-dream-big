@@ -20,31 +20,42 @@ import { cn } from '@/lib/utils';
 // Pre-defined alternatives library
 const ALTERNATIVES_LIBRARY = [
   // Dining
-  { category: 'dining', original: 'Chipotle Burrito Bowl', alternative: 'Trader Joe\'s Burrito Bowl (frozen)', originalPrice: 12.50, alternativePrice: 3.99 },
-  { category: 'dining', original: 'Starbucks Iced Latte', alternative: 'Dunkin\' Original Blend Ground Coffee (bag)', originalPrice: 6.45, alternativePrice: 0.35 },
-  { category: 'dining', original: 'DoorDash Delivery Order', alternative: 'Costco Rotisserie Chicken + sides', originalPrice: 35, alternativePrice: 12 },
-  { category: 'dining', original: 'Panera Mac & Cheese Bowl', alternative: 'Stouffer\'s Family Size Mac & Cheese', originalPrice: 10.99, alternativePrice: 4.29 },
+  { category: 'dining', original: 'Chipotle Burrito Bowl', alternative: 'Trader Joe\'s Burrito Bowl (frozen)', originalPrice: 12.50, alternativePrice: 3.99, store: 'Trader Joe\'s' },
+  { category: 'dining', original: 'Starbucks Iced Latte', alternative: 'Dunkin\' Original Blend Ground Coffee (bag)', originalPrice: 6.45, alternativePrice: 0.35, store: 'Target, Walmart' },
+  { category: 'dining', original: 'DoorDash Delivery Order', alternative: 'Costco Rotisserie Chicken + sides', originalPrice: 35, alternativePrice: 12, store: 'Costco' },
+  { category: 'dining', original: 'Panera Mac & Cheese Bowl', alternative: 'Stouffer\'s Family Size Mac & Cheese', originalPrice: 10.99, alternativePrice: 4.29, store: 'Kroger, Walmart' },
+  // Fast Food Alternatives
+  { category: 'dining', original: 'McDonald\'s Big Mac Meal', alternative: 'Homemade smash burgers (4 servings)', originalPrice: 11.99, alternativePrice: 3.50, store: 'Aldi, Walmart' },
+  { category: 'dining', original: 'Chick-fil-A Sandwich Meal', alternative: 'Tyson Crispy Chicken Patties + brioche buns', originalPrice: 12.49, alternativePrice: 2.75, store: 'Costco, Target' },
+  { category: 'dining', original: 'Taco Bell Crunchwrap Supreme', alternative: 'DIY Crunchwrap (Old El Paso kit)', originalPrice: 6.49, alternativePrice: 1.80, store: 'Kroger, Walmart' },
+  { category: 'dining', original: 'Wendy\'s Baconator Combo', alternative: 'Wright Brand Bacon + ground beef patties', originalPrice: 14.29, alternativePrice: 4.25, store: 'Sam\'s Club, Costco' },
+  { category: 'dining', original: 'Panda Express Orange Chicken', alternative: 'Trader Joe\'s Mandarin Orange Chicken', originalPrice: 11.50, alternativePrice: 4.99, store: 'Trader Joe\'s' },
+  { category: 'dining', original: 'Subway Footlong Sub', alternative: 'Boar\'s Head deli meat + French bread', originalPrice: 12.99, alternativePrice: 4.50, store: 'Publix, Kroger' },
+  { category: 'dining', original: 'Five Guys Burger & Fries', alternative: 'Bubba Burgers + Ore-Ida fries', originalPrice: 18.99, alternativePrice: 5.50, store: 'Costco, Walmart' },
+  { category: 'dining', original: 'Popeyes Chicken Sandwich', alternative: 'Popeyes frozen chicken (grocery) + pickles', originalPrice: 8.99, alternativePrice: 3.25, store: 'Walmart, Target' },
   // Shopping
-  { category: 'shopping', original: 'Nike Air Force 1 Sneakers', alternative: 'Puma Carina Sneakers (similar style)', originalPrice: 115, alternativePrice: 45 },
-  { category: 'shopping', original: 'Apple AirPods Pro (2nd Gen)', alternative: 'Anker Soundcore Liberty 4 NC', originalPrice: 249, alternativePrice: 79 },
-  { category: 'shopping', original: 'Lululemon Align Leggings', alternative: 'CRZ Yoga Naked Feeling Leggings', originalPrice: 98, alternativePrice: 28 },
+  { category: 'shopping', original: 'Nike Air Force 1 Sneakers', alternative: 'Puma Carina Sneakers (similar style)', originalPrice: 115, alternativePrice: 45, store: 'Amazon, DSW' },
+  { category: 'shopping', original: 'Apple AirPods Pro (2nd Gen)', alternative: 'Anker Soundcore Liberty 4 NC', originalPrice: 249, alternativePrice: 79, store: 'Amazon' },
+  { category: 'shopping', original: 'Lululemon Align Leggings', alternative: 'CRZ Yoga Naked Feeling Leggings', originalPrice: 98, alternativePrice: 28, store: 'Amazon' },
   // Transportation
-  { category: 'transportation', original: 'Uber XL (5 miles)', alternative: 'City Bus/Metro Day Pass', originalPrice: 22, alternativePrice: 3.50 },
-  { category: 'transportation', original: 'Shell V-Power Premium (15 gal)', alternative: 'Costco Regular Gas (15 gal)', originalPrice: 67.50, alternativePrice: 48 },
-  { category: 'transportation', original: 'Mister Car Wash Unlimited', alternative: 'Chemical Guys Complete Wash Kit', originalPrice: 30, alternativePrice: 8 },
+  { category: 'transportation', original: 'Uber XL (5 miles)', alternative: 'City Bus/Metro Day Pass', originalPrice: 22, alternativePrice: 3.50, store: 'Local Transit App' },
+  { category: 'transportation', original: 'Shell V-Power Premium (15 gal)', alternative: 'Costco Regular Gas (15 gal)', originalPrice: 67.50, alternativePrice: 48, store: 'Costco' },
+  { category: 'transportation', original: 'Mister Car Wash Unlimited', alternative: 'Chemical Guys Complete Wash Kit', originalPrice: 30, alternativePrice: 8, store: 'Amazon, AutoZone' },
   // Entertainment
-  { category: 'entertainment', original: 'AMC Movie Ticket + Popcorn Combo', alternative: 'Netflix Standard + microwave popcorn', originalPrice: 28, alternativePrice: 5 },
-  { category: 'entertainment', original: 'Kindle Unlimited Monthly', alternative: 'Libby App (free library access)', originalPrice: 11.99, alternativePrice: 0 },
-  { category: 'entertainment', original: 'PlayStation Plus Premium', alternative: 'Xbox Game Pass Core', originalPrice: 17.99, alternativePrice: 9.99 },
+  { category: 'entertainment', original: 'AMC Movie Ticket + Popcorn Combo', alternative: 'Netflix Standard + microwave popcorn', originalPrice: 28, alternativePrice: 5, store: 'Netflix.com' },
+  { category: 'entertainment', original: 'Kindle Unlimited Monthly', alternative: 'Libby App (free library access)', originalPrice: 11.99, alternativePrice: 0, store: 'App Store, Google Play' },
+  { category: 'entertainment', original: 'PlayStation Plus Premium', alternative: 'Xbox Game Pass Core', originalPrice: 17.99, alternativePrice: 9.99, store: 'Xbox.com' },
   // Subscriptions
-  { category: 'subscriptions', original: 'Netflix + Hulu + Disney+ Bundle', alternative: 'Netflix Standard with Ads', originalPrice: 45, alternativePrice: 6.99 },
-  { category: 'subscriptions', original: 'Spotify Premium Individual', alternative: 'YouTube Music Free (with ads)', originalPrice: 11.99, alternativePrice: 0 },
-  { category: 'subscriptions', original: 'Equinox Gym Membership', alternative: 'Planet Fitness Classic', originalPrice: 200, alternativePrice: 15 },
+  { category: 'subscriptions', original: 'Netflix + Hulu + Disney+ Bundle', alternative: 'Netflix Standard with Ads', originalPrice: 45, alternativePrice: 6.99, store: 'Netflix.com' },
+  { category: 'subscriptions', original: 'Spotify Premium Individual', alternative: 'YouTube Music Free (with ads)', originalPrice: 11.99, alternativePrice: 0, store: 'YouTube.com' },
+  { category: 'subscriptions', original: 'Equinox Gym Membership', alternative: 'Planet Fitness Classic', originalPrice: 200, alternativePrice: 15, store: 'PlanetFitness.com' },
   // Groceries
-  { category: 'groceries', original: 'Whole Foods Organic Spinach (5oz)', alternative: 'Aldi SimplyNature Organic Spinach (5oz)', originalPrice: 5.99, alternativePrice: 2.99 },
-  { category: 'groceries', original: 'Dole Pre-Cut Fruit Bowl', alternative: 'Whole cantaloupe + grapes (DIY)', originalPrice: 8.99, alternativePrice: 4.50 },
-  { category: 'groceries', original: 'Tide Pods (42 count)', alternative: 'Kirkland Ultra Clean Pods (90 count)', originalPrice: 14.99, alternativePrice: 18.99 },
-  { category: 'groceries', original: 'Oatly Oat Milk (64oz)', alternative: 'Aldi Friendly Farms Oat Milk (64oz)', originalPrice: 5.49, alternativePrice: 2.99 },
+  { category: 'groceries', original: 'Whole Foods Organic Spinach (5oz)', alternative: 'Aldi SimplyNature Organic Spinach (5oz)', originalPrice: 5.99, alternativePrice: 2.99, store: 'Aldi' },
+  { category: 'groceries', original: 'Dole Pre-Cut Fruit Bowl', alternative: 'Whole cantaloupe + grapes (DIY)', originalPrice: 8.99, alternativePrice: 4.50, store: 'Aldi, Walmart' },
+  { category: 'groceries', original: 'Tide Pods (42 count)', alternative: 'Kirkland Ultra Clean Pods (90 count)', originalPrice: 14.99, alternativePrice: 18.99, store: 'Costco' },
+  { category: 'groceries', original: 'Oatly Oat Milk (64oz)', alternative: 'Aldi Friendly Farms Oat Milk (64oz)', originalPrice: 5.49, alternativePrice: 2.99, store: 'Aldi' },
+  { category: 'groceries', original: 'Starbucks Cold Brew (bottle)', alternative: 'Chameleon Cold Brew Concentrate', originalPrice: 5.99, alternativePrice: 0.75, store: 'Target, Kroger' },
+  { category: 'groceries', original: 'Kind Bars (12 pack)', alternative: 'Nature Valley Protein Bars (15 pack)', originalPrice: 17.99, alternativePrice: 8.99, store: 'Costco, Sam\'s Club' },
 ];
 
 export default function Alternatives() {
@@ -201,6 +212,11 @@ export default function Alternatives() {
                               Save {formatCurrency(savings)}
                             </span>
                           </div>
+                          {alt.store && (
+                            <p className="text-xs text-muted-foreground mt-1">
+                              📍 Find at: <span className="font-medium text-foreground">{alt.store}</span>
+                            </p>
+                          )}
                           {daysCloserToGoal > 0 && primaryGoal && (
                             <div className="flex items-center gap-1 mt-2 text-xs text-primary">
                               <Clock className="h-3 w-3" />
