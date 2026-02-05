@@ -5,6 +5,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
+ import { SubscriptionProvider } from "@/hooks/useSubscription";
+ import { SubscriptionGate, TrialBanner } from "@/components/SubscriptionGate";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
@@ -37,8 +39,8 @@ function ThemeInitializer() {
   return null;
 }
 
-// Protected route wrapper
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
+// Protected route wrapper with subscription check
+function ProtectedRoute({ children, requireSubscription = true }: { children: React.ReactNode; requireSubscription?: boolean }) {
   const { user, loading } = useAuth();
   
   if (loading) {
@@ -53,6 +55,15 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     return <Navigate to="/login" replace />;
   }
   
+   if (requireSubscription) {
+     return (
+       <SubscriptionGate>
+         <TrialBanner />
+         {children}
+       </SubscriptionGate>
+     );
+   }
+ 
   return <>{children}</>;
 }
 
@@ -85,13 +96,13 @@ function AppRoutes() {
       <Route path="/forgot-password" element={<ForgotPassword />} />
       
       {/* Protected routes - Main app with tab bar */}
-      <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
+      <Route path="/onboarding" element={<ProtectedRoute requireSubscription={false}><Onboarding /></ProtectedRoute>} />
       <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
       <Route path="/dashboard" element={<Navigate to="/home" replace />} />
       <Route path="/insights" element={<ProtectedRoute><Insights /></ProtectedRoute>} />
       <Route path="/alternatives" element={<ProtectedRoute><Alternatives /></ProtectedRoute>} />
       <Route path="/challenges" element={<ProtectedRoute><Challenges /></ProtectedRoute>} />
-      <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+      <Route path="/settings" element={<ProtectedRoute requireSubscription={false}><Settings /></ProtectedRoute>} />
       
       {/* Protected routes - Secondary screens (no tab bar) */}
       <Route path="/add-purchase" element={<ProtectedRoute><AddPurchase /></ProtectedRoute>} />
@@ -107,14 +118,16 @@ function AppRoutes() {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
-      <TooltipProvider>
-        <ThemeInitializer />
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <AppRoutes />
-        </BrowserRouter>
-      </TooltipProvider>
+      <SubscriptionProvider>
+        <TooltipProvider>
+          <ThemeInitializer />
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <AppRoutes />
+          </BrowserRouter>
+        </TooltipProvider>
+      </SubscriptionProvider>
     </AuthProvider>
   </QueryClientProvider>
 );
