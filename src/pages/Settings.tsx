@@ -17,7 +17,10 @@ import {
   DollarSign,
   Zap,
   Trash2,
-  Plus
+  Plus,
+  Crown,
+  Calendar,
+  ExternalLink
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/AppLayout';
@@ -37,6 +40,7 @@ import { useProfile } from '@/hooks/useProfile';
 import { useGoals } from '@/hooks/useGoals';
 import { usePurchases } from '@/hooks/usePurchases';
 import { useQuickAdds } from '@/hooks/useQuickAdds';
+ import { useSubscription } from '@/hooks/useSubscription';
 import { useToast } from '@/hooks/use-toast';
 import { formatCurrency } from '@/lib/calculations';
 
@@ -47,6 +51,16 @@ export default function Settings() {
   const { primaryGoal } = useGoals();
   const { purchases } = usePurchases();
   const { quickAdds, addQuickAdd, deleteQuickAdd, isAdding } = useQuickAdds();
+  const { 
+    subscribed, 
+    isInTrial, 
+    trialDaysRemaining, 
+    trialEndDate,
+    subscriptionEnd,
+    openCheckout, 
+    openCustomerPortal,
+    loading: subscriptionLoading 
+  } = useSubscription();
   const { toast } = useToast();
 
   const [isDarkMode, setIsDarkMode] = useState(
@@ -241,6 +255,65 @@ export default function Settings() {
             </Card>
           </motion.div>
 
+          {/* Subscription Status */}
+          <motion.div variants={itemVariants}>
+            <Card className="p-6 glass-card border-primary/20">
+              <div className="flex items-center gap-4 mb-4">
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                  subscribed ? 'bg-success/10' : isInTrial ? 'bg-primary/10' : 'bg-warning/10'
+                }`}>
+                  <Crown className={`h-5 w-5 ${
+                    subscribed ? 'text-success' : isInTrial ? 'text-primary' : 'text-warning'
+                  }`} />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-medium">
+                    {subscribed ? 'Premium Subscriber' : isInTrial ? 'Free Trial' : 'Trial Expired'}
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    {subscribed && subscriptionEnd 
+                      ? `Renews ${new Date(subscriptionEnd).toLocaleDateString()}`
+                      : isInTrial 
+                        ? `${trialDaysRemaining} days remaining`
+                        : 'Subscribe to continue using SpendWise'
+                    }
+                  </p>
+                </div>
+              </div>
+              
+              {subscribed ? (
+                <Button 
+                  variant="outline" 
+                  className="w-full"
+                  onClick={openCustomerPortal}
+                >
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Manage Subscription
+                </Button>
+              ) : (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">SpendWise Premium</span>
+                    <span className="font-semibold">$5/month</span>
+                  </div>
+                  <Button 
+                    className="w-full bg-gradient-primary glow"
+                    onClick={openCheckout}
+                    disabled={subscriptionLoading}
+                  >
+                    <CreditCard className="h-4 w-4 mr-2" />
+                    {isInTrial ? 'Subscribe Now' : 'Start Subscription'}
+                  </Button>
+                  {isInTrial && (
+                    <p className="text-xs text-center text-muted-foreground">
+                      Your trial ends on {trialEndDate ? new Date(trialEndDate).toLocaleDateString() : 'soon'}
+                    </p>
+                  )}
+                </div>
+              )}
+            </Card>
+          </motion.div>
+ 
           {/* Income & Work Hours */}
           <motion.div variants={itemVariants}>
             <Card className="p-6 glass-card">
