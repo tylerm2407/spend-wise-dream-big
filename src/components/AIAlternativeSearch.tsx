@@ -6,19 +6,26 @@ import {
   Loader2, 
   TrendingDown,
   Lightbulb,
-  AlertCircle
+  AlertCircle,
+  MapPin,
+  Store,
+  DollarSign
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useProfile } from '@/hooks/useProfile';
 import { cn } from '@/lib/utils';
 
 interface Alternative {
   name: string;
   description: string;
   estimated_savings: string;
+  estimated_price?: string;
+  store_name?: string;
+  store_location?: string;
   tip: string;
 }
 
@@ -28,6 +35,7 @@ export function AIAlternativeSearch() {
   const [alternatives, setAlternatives] = useState<Alternative[]>([]);
   const [hasSearched, setHasSearched] = useState(false);
   const { toast } = useToast();
+  const { profile } = useProfile();
 
   const handleSearch = async () => {
     if (!query.trim()) return;
@@ -38,7 +46,10 @@ export function AIAlternativeSearch() {
 
     try {
       const { data, error } = await supabase.functions.invoke('suggest-alternatives', {
-        body: { product: query.trim() },
+        body: { 
+          product: query.trim(),
+          zipCode: profile?.zip_code || null,
+        },
       });
 
       if (error) {
@@ -81,10 +92,16 @@ export function AIAlternativeSearch() {
         <div className="p-2 rounded-full bg-primary/10">
           <Sparkles className="h-5 w-5 text-primary" />
         </div>
-        <div>
+        <div className="flex-1">
           <h2 className="font-semibold">Alternative Finder</h2>
-          <p className="text-xs text-muted-foreground">Find cheaper options for any product</p>
+          <p className="text-xs text-muted-foreground">Find cheaper options with real store prices</p>
         </div>
+        {profile?.zip_code && (
+          <div className="flex items-center gap-1 text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full">
+            <MapPin className="h-3 w-3" />
+            {profile.zip_code}
+          </div>
+        )}
       </div>
 
       <div className="flex gap-2 mb-4">
@@ -122,7 +139,9 @@ export function AIAlternativeSearch() {
             className="flex flex-col items-center justify-center py-8 text-center"
           >
             <Loader2 className="h-8 w-8 animate-spin text-primary mb-3" />
-            <p className="text-sm text-muted-foreground">Finding cheaper alternatives...</p>
+            <p className="text-sm text-muted-foreground">
+              Finding alternatives{profile?.zip_code ? ` near ${profile.zip_code}` : ''}...
+            </p>
           </motion.div>
         )}
 
@@ -146,11 +165,34 @@ export function AIAlternativeSearch() {
                 className="p-4 bg-muted/50 rounded-xl border border-border/50"
               >
                 <div className="flex items-start justify-between gap-3 mb-2">
-                  <h3 className="font-medium text-success">{alt.name}</h3>
-                  <span className="text-xs px-2 py-1 bg-success/10 text-success rounded-full whitespace-nowrap">
-                    <TrendingDown className="h-3 w-3 inline mr-1" />
-                    {alt.estimated_savings}
-                  </span>
+                  <div>
+                    <h3 className="font-medium text-success">{alt.name}</h3>
+                    {alt.store_name && (
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
+                        <Store className="h-3 w-3" />
+                        <span>{alt.store_name}</span>
+                        {alt.store_location && (
+                          <>
+                            <span className="mx-1">•</span>
+                            <MapPin className="h-3 w-3" />
+                            <span>{alt.store_location}</span>
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex flex-col items-end gap-1">
+                    <span className="text-xs px-2 py-1 bg-success/10 text-success rounded-full whitespace-nowrap">
+                      <TrendingDown className="h-3 w-3 inline mr-1" />
+                      {alt.estimated_savings}
+                    </span>
+                    {alt.estimated_price && (
+                      <span className="text-xs text-muted-foreground flex items-center gap-1">
+                        <DollarSign className="h-3 w-3" />
+                        {alt.estimated_price}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <p className="text-sm text-muted-foreground mb-2">{alt.description}</p>
                 <div className="flex items-start gap-2 text-xs text-primary bg-primary/5 p-2 rounded-lg">
@@ -180,6 +222,11 @@ export function AIAlternativeSearch() {
         <div className="text-center py-4">
           <p className="text-xs text-muted-foreground">
             Type any product or service to discover budget-friendly alternatives
+            {!profile?.zip_code && (
+              <span className="block mt-1 text-primary">
+                Add your zip code in Settings for local store prices
+              </span>
+            )}
           </p>
         </div>
       )}

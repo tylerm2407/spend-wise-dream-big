@@ -20,7 +20,8 @@ import {
   Plus,
   Crown,
   Calendar,
-  ExternalLink
+  ExternalLink,
+  MapPin
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/AppLayout';
@@ -249,6 +250,22 @@ export default function Settings() {
                   />
                   <p className="text-xs text-muted-foreground">
                     Used to calculate goal impact and savings rate
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="zipCode" className="flex items-center gap-2">
+                    <MapPin className="h-4 w-4" />
+                    Zip Code
+                  </Label>
+                  <Input
+                    id="zipCode"
+                    value={profile?.zip_code || ''}
+                    onChange={(e) => updateProfile({ zip_code: e.target.value.replace(/\D/g, '').slice(0, 5) })}
+                    placeholder="10001"
+                    maxLength={5}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Used to find nearby stores with real prices
                   </p>
                 </div>
               </div>

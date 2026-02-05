@@ -1,1 +1,4 @@
 project_id = "djtnimphritsoxtoeouh"
+
+[functions.lookup-stores]
+verify_jwt = false
