@@ -1,10 +1,16 @@
- import { useEffect } from 'react';
- import { useSubscription } from '@/hooks/useSubscription';
- import { Button } from '@/components/ui/button';
- import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
- import { Crown, Sparkles, Clock, CreditCard, Check, X, AlertTriangle } from 'lucide-react';
- import { motion } from 'framer-motion';
- import { useToast } from '@/hooks/use-toast';
+import { useEffect, useState } from 'react';
+import { useSubscription } from '@/hooks/useSubscription';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Crown, Clock, CreditCard, Check, X, AlertTriangle } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
  
  interface SubscriptionGateProps {
    children: React.ReactNode;
@@ -115,82 +121,83 @@
  );
  }
  
- // Trial banner to show remaining days
- export function TrialBanner() {
-   const { isInTrial, trialDaysRemaining, subscribed, openCheckout } = useSubscription();
-   const { toast } = useToast();
- 
-   // Show trial expiration reminders as toasts
-   useEffect(() => {
-     if (subscribed || !isInTrial) return;
-     
-     // Show reminder toasts at key milestones
-     const reminderShownKey = `trial_reminder_${trialDaysRemaining}`;
-     const alreadyShown = sessionStorage.getItem(reminderShownKey);
-     
-     if (!alreadyShown) {
-       if (trialDaysRemaining === 7) {
-         toast({
-           title: "1 Week Left in Your Trial",
-           description: "Subscribe now to keep all your data and continue saving money!",
-           duration: 8000,
-         });
-         sessionStorage.setItem(reminderShownKey, 'true');
-       } else if (trialDaysRemaining === 3) {
-         toast({
-           title: "Only 3 Days Left!",
-           description: "Your trial ends soon. Subscribe to unlock AI suggestions and more.",
-           variant: "destructive",
-           duration: 10000,
-         });
-         sessionStorage.setItem(reminderShownKey, 'true');
-       } else if (trialDaysRemaining === 1) {
-         toast({
-           title: "Last Day of Your Trial!",
-           description: "Subscribe today to avoid losing access to SpendWise.",
-           variant: "destructive",
-           duration: 15000,
-         });
-         sessionStorage.setItem(reminderShownKey, 'true');
-       }
-     }
-   }, [isInTrial, trialDaysRemaining, subscribed, toast]);
- 
-   if (subscribed || !isInTrial) return null;
- 
-   const urgency = trialDaysRemaining <= 7;
-   const critical = trialDaysRemaining <= 3;
- 
-   return (
-     <motion.div 
-       initial={{ opacity: 0, y: -10 }}
-       animate={{ opacity: 1, y: 0 }}
-       className={`px-4 py-2 text-center text-sm ${
-         critical
-           ? 'bg-destructive/10 text-destructive'
-           : urgency 
-             ? 'bg-warning/10 text-warning' 
-             : 'bg-primary/10 text-primary'
-       }`}
-     >
-       <div className="flex items-center justify-center gap-2">
-         {critical ? (
-           <AlertTriangle className="w-4 h-4" />
-         ) : (
-           <Clock className="w-4 h-4" />
-         )}
-         <span>
-           {trialDaysRemaining} day{trialDaysRemaining !== 1 ? 's' : ''} left in your free trial
-         </span>
-         <Button 
-           variant="link" 
-           size="sm" 
-           onClick={openCheckout}
-           className="text-inherit underline p-0 h-auto font-semibold"
-         >
-           Subscribe now
-         </Button>
-       </div>
-     </motion.div>
-   );
- }
+// Trial popup to show when 7 or fewer days remaining
+export function TrialBanner() {
+  const { isInTrial, trialDaysRemaining, subscribed, openCheckout } = useSubscription();
+  const [showPopup, setShowPopup] = useState(false);
+
+  // Show popup when 7 or fewer days left
+  useEffect(() => {
+    if (subscribed || !isInTrial) return;
+    
+    // Only show popup at 7 days or less
+    if (trialDaysRemaining <= 7) {
+      const popupShownKey = `trial_popup_shown_${trialDaysRemaining}`;
+      const alreadyShown = sessionStorage.getItem(popupShownKey);
+      
+      if (!alreadyShown) {
+        setShowPopup(true);
+        sessionStorage.setItem(popupShownKey, 'true');
+      }
+    }
+  }, [isInTrial, trialDaysRemaining, subscribed]);
+
+  if (subscribed || !isInTrial || trialDaysRemaining > 7) return null;
+
+  const critical = trialDaysRemaining <= 3;
+
+  return (
+    <Dialog open={showPopup} onOpenChange={setShowPopup}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader className="text-center">
+          <div className={`mx-auto w-14 h-14 rounded-full flex items-center justify-center mb-2 ${
+            critical ? 'bg-destructive/10' : 'bg-warning/10'
+          }`}>
+            {critical ? (
+              <AlertTriangle className={`w-7 h-7 text-destructive`} />
+            ) : (
+              <Clock className="w-7 h-7 text-warning" />
+            )}
+          </div>
+          <DialogTitle className="text-xl">
+            {trialDaysRemaining === 1 
+              ? "Last Day of Your Trial!" 
+              : `${trialDaysRemaining} Days Left in Your Trial`}
+          </DialogTitle>
+          <DialogDescription className="text-base pt-2">
+            {critical 
+              ? "Subscribe now to keep all your data and continue your savings journey!"
+              : "Your free trial is ending soon. Upgrade to Premium to unlock all features."}
+          </DialogDescription>
+        </DialogHeader>
+        
+        <div className="space-y-4 pt-2">
+          <div className="bg-gradient-primary/10 rounded-lg p-4 text-center border border-primary/20">
+            <div className="text-2xl font-bold text-primary">$5/month</div>
+            <div className="text-xs text-muted-foreground mt-1">Cancel anytime</div>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <Button 
+              onClick={() => {
+                openCheckout();
+                setShowPopup(false);
+              }}
+              className="w-full h-11 bg-gradient-primary glow"
+            >
+              <CreditCard className="w-4 h-4 mr-2" />
+              Subscribe Now
+            </Button>
+            <Button 
+              variant="ghost" 
+              onClick={() => setShowPopup(false)}
+              className="text-muted-foreground"
+            >
+              Maybe later
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
