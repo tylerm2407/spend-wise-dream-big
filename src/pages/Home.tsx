@@ -16,6 +16,7 @@ import { usePurchases } from '@/hooks/usePurchases';
 import { useGoals } from '@/hooks/useGoals';
 import { useHaptics } from '@/hooks/useHaptics';
 import { useWeeklyChallenge } from '@/hooks/useWeeklyChallenge';
+import { useStreaks } from '@/hooks/useStreaks';
 import { AppLayout } from '@/components/AppLayout';
 import { AnimatedButton } from '@/components/ui/AnimatedButton';
 import { AnimatedCard } from '@/components/ui/AnimatedCard';
@@ -25,6 +26,7 @@ import { Progress } from '@/components/ui/progress';
 import { ProgressRing } from '@/components/ui/ProgressRing';
 import { AnimatedCounter } from '@/components/ui/AnimatedCounter';
 import { SmarterSpendingSuggestions } from '@/components/SmarterSpendingSuggestions';
+import { StreakDisplay } from '@/components/StreakDisplay';
 import { formatCurrency, calculateGoalProgress, getGoalStatus } from '@/lib/calculations';
 import { cn } from '@/lib/utils';
 
@@ -36,6 +38,7 @@ export default function Home() {
   const { primaryGoal, activeGoals } = useGoals();
   const { haptic } = useHaptics();
   const { currentChallenge, progressPercent } = useWeeklyChallenge();
+  const { currentStreak, longestStreak, streakFreezesRemaining } = useStreaks();
 
   useEffect(() => {
     if (!profileLoading && profile && !profile.onboarding_completed) {
@@ -87,6 +90,15 @@ export default function Home() {
                 {profile?.name || 'Friend'}
               </h1>
             </div>
+            {currentStreak > 0 && (
+              <StreakDisplay
+                currentStreak={currentStreak}
+                longestStreak={longestStreak}
+                freezesRemaining={streakFreezesRemaining}
+                onClick={() => navigate('/challenges')}
+                compact
+              />
+            )}
           </div>
         </header>
 

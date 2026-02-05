@@ -9,7 +9,8 @@ import {
   Sparkles,
   DollarSign,
   User,
-  Loader2
+   Loader2,
+   Clock
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,11 +18,14 @@ import { Label } from '@/components/ui/label';
 import { useProfile } from '@/hooks/useProfile';
 import { useGoals } from '@/hooks/useGoals';
 import { useToast } from '@/hooks/use-toast';
+import { Switch } from '@/components/ui/switch';
 
 export default function Onboarding() {
   const [step, setStep] = useState(1);
   const [name, setName] = useState('');
   const [monthlyIncome, setMonthlyIncome] = useState('');
+  const [hourlyWage, setHourlyWage] = useState('');
+  const [showWorkHours, setShowWorkHours] = useState(false);
   const [goalName, setGoalName] = useState('');
   const [goalAmount, setGoalAmount] = useState('');
   const navigate = useNavigate();
@@ -33,10 +37,18 @@ export default function Onboarding() {
   const handleComplete = async () => {
     setIsSubmitting(true);
     try {
+      // Calculate hourly wage if not provided but income is
+      let calculatedHourlyWage = hourlyWage ? parseFloat(hourlyWage) : null;
+      if (!calculatedHourlyWage && monthlyIncome && showWorkHours) {
+        // Assume 40 hours/week, 4.33 weeks/month
+        calculatedHourlyWage = parseFloat(monthlyIncome) / (40 * 4.33);
+      }
+      
       // Update profile and wait for completion
       await updateProfileAsync({
         name: name || null,
         monthly_income: monthlyIncome ? parseFloat(monthlyIncome) : null,
+        hourly_wage: calculatedHourlyWage,
         onboarding_completed: true,
       });
 
@@ -201,6 +213,54 @@ export default function Onboarding() {
                   <p className="text-xs text-muted-foreground">
                     This helps calculate how purchases affect your goals
                   </p>
+                </div>
+
+                {/* Work Hours Toggle */}
+                <div className="p-4 rounded-xl bg-secondary/50 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Clock className="h-5 w-5 text-primary" />
+                      <div>
+                        <p className="font-medium text-sm">Show "Work Hours" cost</p>
+                        <p className="text-xs text-muted-foreground">
+                          See purchases as hours you worked
+                        </p>
+                      </div>
+                    </div>
+                    <Switch
+                      checked={showWorkHours}
+                      onCheckedChange={setShowWorkHours}
+                    />
+                  </div>
+                  
+                  <AnimatePresence>
+                    {showWorkHours && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="space-y-2"
+                      >
+                        <Label htmlFor="hourlyWage">Your hourly rate</Label>
+                        <div className="relative">
+                          <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                          <Input
+                            id="hourlyWage"
+                            type="number"
+                            placeholder={monthlyIncome ? `~${(parseFloat(monthlyIncome) / 173).toFixed(0)} (calculated)` : "25"}
+                            value={hourlyWage}
+                            onChange={(e) => setHourlyWage(e.target.value)}
+                            className="pl-10 h-12"
+                          />
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          {!hourlyWage && monthlyIncome 
+                            ? "We'll calculate from your monthly income"
+                            : "Enter your hourly wage or salary/173"}
+                        </p>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
               </div>
 

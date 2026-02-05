@@ -14,6 +14,63 @@ export type Database = {
   }
   public: {
     Tables: {
+      achievements: {
+        Row: {
+          achieved_at: string
+          achievement_type: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          achieved_at?: string
+          achievement_type: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          achieved_at?: string
+          achievement_type?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      favorites: {
+        Row: {
+          amount: number
+          category: string
+          created_at: string
+          frequency: string | null
+          id: string
+          item_name: string
+          last_used_at: string
+          use_count: number | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          category: string
+          created_at?: string
+          frequency?: string | null
+          id?: string
+          item_name: string
+          last_used_at?: string
+          use_count?: number | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          category?: string
+          created_at?: string
+          frequency?: string | null
+          id?: string
+          item_name?: string
+          last_used_at?: string
+          use_count?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       goals: {
         Row: {
           created_at: string
@@ -62,28 +119,43 @@ export type Database = {
       profiles: {
         Row: {
           created_at: string
+          hourly_wage: number | null
           id: string
+          last_login_date: string | null
+          login_streak: number | null
+          longest_streak: number | null
           monthly_income: number | null
           name: string | null
           onboarding_completed: boolean | null
+          streak_freezes_remaining: number | null
           updated_at: string
           user_id: string
         }
         Insert: {
           created_at?: string
+          hourly_wage?: number | null
           id?: string
+          last_login_date?: string | null
+          login_streak?: number | null
+          longest_streak?: number | null
           monthly_income?: number | null
           name?: string | null
           onboarding_completed?: boolean | null
+          streak_freezes_remaining?: number | null
           updated_at?: string
           user_id: string
         }
         Update: {
           created_at?: string
+          hourly_wage?: number | null
           id?: string
+          last_login_date?: string | null
+          login_streak?: number | null
+          longest_streak?: number | null
           monthly_income?: number | null
           name?: string | null
           onboarding_completed?: boolean | null
+          streak_freezes_remaining?: number | null
           updated_at?: string
           user_id?: string
         }
