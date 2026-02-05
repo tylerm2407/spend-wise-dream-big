@@ -129,7 +129,7 @@ export default function Home() {
                   </p>
                 </div>
                 <Link to="/add-purchase">
-                  <AnimatedButton className="bg-gradient-cta hover:opacity-90 glow h-12 px-6" haptic="medium">
+                 <AnimatedButton className="bg-gradient-primary hover:opacity-90 glow h-12 px-6" haptic="medium">
                     <Plus className="h-5 w-5 mr-2" />
                     Add Purchase
                   </AnimatedButton>
@@ -250,7 +250,7 @@ export default function Home() {
                   Log your first purchase in under 30 seconds
                 </p>
                 <Link to="/add-purchase">
-                  <AnimatedButton className="bg-gradient-cta" haptic="medium">
+                 <AnimatedButton className="bg-gradient-primary" haptic="medium">
                     <Plus className="h-4 w-4 mr-2" />
                     Add your first purchase
                   </AnimatedButton>
