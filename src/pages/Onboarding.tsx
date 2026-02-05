@@ -43,8 +43,22 @@ export default function Onboarding() {
         // Assume 40 hours/week, 4.33 weeks/month
         calculatedHourlyWage = parseFloat(monthlyIncome) / (40 * 4.33);
       }
+
+      // Add goal first if provided (so it's ready when home loads)
+      if (goalName && goalAmount) {
+        await new Promise<void>((resolve, reject) => {
+          addGoal({
+            name: goalName,
+            target_amount: parseFloat(goalAmount),
+            is_primary: true,
+          }, {
+            onSuccess: () => resolve(),
+            onError: (error) => reject(error),
+          });
+        });
+      }
       
-      // Update profile and wait for completion
+      // Update profile and mark onboarding complete
       await updateProfileAsync({
         name: name || null,
         monthly_income: monthlyIncome ? parseFloat(monthlyIncome) : null,
@@ -52,16 +66,7 @@ export default function Onboarding() {
         onboarding_completed: true,
       });
 
-      // Add goal if provided
-      if (goalName && goalAmount) {
-        addGoal({
-          name: goalName,
-          target_amount: parseFloat(goalAmount),
-          is_primary: true,
-        });
-      }
-
-      navigate('/dashboard');
+      navigate('/home');
     } catch (error) {
       toast({
         title: 'Error',
