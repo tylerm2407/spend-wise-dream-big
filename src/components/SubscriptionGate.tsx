@@ -1,10 +1,16 @@
- import { useEffect } from 'react';
- import { useSubscription } from '@/hooks/useSubscription';
- import { Button } from '@/components/ui/button';
- import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
- import { Crown, Sparkles, Clock, CreditCard, Check, X, AlertTriangle } from 'lucide-react';
- import { motion } from 'framer-motion';
- import { useToast } from '@/hooks/use-toast';
+import { useEffect, useState } from 'react';
+import { useSubscription } from '@/hooks/useSubscription';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Crown, Clock, CreditCard, Check, X, AlertTriangle } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
  
  interface SubscriptionGateProps {
    children: React.ReactNode;
