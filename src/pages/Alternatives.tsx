@@ -20,30 +20,31 @@ import { cn } from '@/lib/utils';
 // Pre-defined alternatives library
 const ALTERNATIVES_LIBRARY = [
   // Dining
-  { category: 'dining', original: 'Restaurant lunch', alternative: 'Meal prep at home', originalPrice: 15, alternativePrice: 5 },
-  { category: 'dining', original: 'Coffee shop coffee', alternative: 'Brew at home', originalPrice: 5, alternativePrice: 0.50 },
-  { category: 'dining', original: 'Food delivery', alternative: 'Cook & pickup', originalPrice: 30, alternativePrice: 15 },
-  { category: 'dining', original: 'Fancy dinner out', alternative: 'Home date night', originalPrice: 80, alternativePrice: 25 },
+  { category: 'dining', original: 'Chipotle Burrito Bowl', alternative: 'Trader Joe\'s Burrito Bowl (frozen)', originalPrice: 12.50, alternativePrice: 3.99 },
+  { category: 'dining', original: 'Starbucks Iced Latte', alternative: 'Dunkin\' Original Blend Ground Coffee (bag)', originalPrice: 6.45, alternativePrice: 0.35 },
+  { category: 'dining', original: 'DoorDash Delivery Order', alternative: 'Costco Rotisserie Chicken + sides', originalPrice: 35, alternativePrice: 12 },
+  { category: 'dining', original: 'Panera Mac & Cheese Bowl', alternative: 'Stouffer\'s Family Size Mac & Cheese', originalPrice: 10.99, alternativePrice: 4.29 },
   // Shopping
-  { category: 'shopping', original: 'Brand name clothes', alternative: 'Thrift or outlet', originalPrice: 60, alternativePrice: 15 },
-  { category: 'shopping', original: 'New electronics', alternative: 'Refurbished/used', originalPrice: 500, alternativePrice: 300 },
-  { category: 'shopping', original: 'Impulse Amazon buy', alternative: '30-day wait rule', originalPrice: 40, alternativePrice: 0 },
+  { category: 'shopping', original: 'Nike Air Force 1 Sneakers', alternative: 'Puma Carina Sneakers (similar style)', originalPrice: 115, alternativePrice: 45 },
+  { category: 'shopping', original: 'Apple AirPods Pro (2nd Gen)', alternative: 'Anker Soundcore Liberty 4 NC', originalPrice: 249, alternativePrice: 79 },
+  { category: 'shopping', original: 'Lululemon Align Leggings', alternative: 'CRZ Yoga Naked Feeling Leggings', originalPrice: 98, alternativePrice: 28 },
   // Transportation
-  { category: 'transportation', original: 'Uber/Lyft rides', alternative: 'Public transit', originalPrice: 20, alternativePrice: 3 },
-  { category: 'transportation', original: 'Premium gas', alternative: 'Regular gas', originalPrice: 60, alternativePrice: 48 },
-  { category: 'transportation', original: 'Car wash service', alternative: 'DIY wash', originalPrice: 25, alternativePrice: 5 },
+  { category: 'transportation', original: 'Uber XL (5 miles)', alternative: 'City Bus/Metro Day Pass', originalPrice: 22, alternativePrice: 3.50 },
+  { category: 'transportation', original: 'Shell V-Power Premium (15 gal)', alternative: 'Costco Regular Gas (15 gal)', originalPrice: 67.50, alternativePrice: 48 },
+  { category: 'transportation', original: 'Mister Car Wash Unlimited', alternative: 'Chemical Guys Complete Wash Kit', originalPrice: 30, alternativePrice: 8 },
   // Entertainment
-  { category: 'entertainment', original: 'Movie theater', alternative: 'Streaming at home', originalPrice: 30, alternativePrice: 5 },
-  { category: 'entertainment', original: 'Concert tickets', alternative: 'Local free events', originalPrice: 100, alternativePrice: 0 },
-  { category: 'entertainment', original: 'Paid mobile games', alternative: 'Free alternatives', originalPrice: 10, alternativePrice: 0 },
+  { category: 'entertainment', original: 'AMC Movie Ticket + Popcorn Combo', alternative: 'Netflix Standard + microwave popcorn', originalPrice: 28, alternativePrice: 5 },
+  { category: 'entertainment', original: 'Kindle Unlimited Monthly', alternative: 'Libby App (free library access)', originalPrice: 11.99, alternativePrice: 0 },
+  { category: 'entertainment', original: 'PlayStation Plus Premium', alternative: 'Xbox Game Pass Core', originalPrice: 17.99, alternativePrice: 9.99 },
   // Subscriptions
-  { category: 'subscriptions', original: 'Multiple streaming', alternative: 'Rotate services', originalPrice: 50, alternativePrice: 15 },
-  { category: 'subscriptions', original: 'Premium Spotify', alternative: 'Free tier + ads', originalPrice: 11, alternativePrice: 0 },
-  { category: 'subscriptions', original: 'Gym membership', alternative: 'Home workouts', originalPrice: 40, alternativePrice: 0 },
+  { category: 'subscriptions', original: 'Netflix + Hulu + Disney+ Bundle', alternative: 'Netflix Standard with Ads', originalPrice: 45, alternativePrice: 6.99 },
+  { category: 'subscriptions', original: 'Spotify Premium Individual', alternative: 'YouTube Music Free (with ads)', originalPrice: 11.99, alternativePrice: 0 },
+  { category: 'subscriptions', original: 'Equinox Gym Membership', alternative: 'Planet Fitness Classic', originalPrice: 200, alternativePrice: 15 },
   // Groceries
-  { category: 'groceries', original: 'Organic everything', alternative: 'Dirty dozen only', originalPrice: 200, alternativePrice: 150 },
-  { category: 'groceries', original: 'Pre-cut produce', alternative: 'Whole produce', originalPrice: 15, alternativePrice: 8 },
-  { category: 'groceries', original: 'Name brand items', alternative: 'Store brand', originalPrice: 100, alternativePrice: 70 },
+  { category: 'groceries', original: 'Whole Foods Organic Spinach (5oz)', alternative: 'Aldi SimplyNature Organic Spinach (5oz)', originalPrice: 5.99, alternativePrice: 2.99 },
+  { category: 'groceries', original: 'Dole Pre-Cut Fruit Bowl', alternative: 'Whole cantaloupe + grapes (DIY)', originalPrice: 8.99, alternativePrice: 4.50 },
+  { category: 'groceries', original: 'Tide Pods (42 count)', alternative: 'Kirkland Ultra Clean Pods (90 count)', originalPrice: 14.99, alternativePrice: 18.99 },
+  { category: 'groceries', original: 'Oatly Oat Milk (64oz)', alternative: 'Aldi Friendly Farms Oat Milk (64oz)', originalPrice: 5.49, alternativePrice: 2.99 },
 ];
 
 export default function Alternatives() {
