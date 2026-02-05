@@ -62,7 +62,7 @@
          },
        ],
        mode: "subscription",
-       success_url: `${origin}/home?subscription=success`,
+       success_url: `${origin}/subscription-success`,
        cancel_url: `${origin}/settings?subscription=cancelled`,
      });
  

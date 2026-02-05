@@ -21,6 +21,7 @@ import Alternatives from "./pages/Alternatives";
 import Challenges from "./pages/Challenges";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
+import SubscriptionSuccess from "./pages/SubscriptionSuccess";
 
 const queryClient = new QueryClient();
 
@@ -103,6 +104,9 @@ function AppRoutes() {
       <Route path="/alternatives" element={<ProtectedRoute><Alternatives /></ProtectedRoute>} />
       <Route path="/challenges" element={<ProtectedRoute><Challenges /></ProtectedRoute>} />
       <Route path="/settings" element={<ProtectedRoute requireSubscription={false}><Settings /></ProtectedRoute>} />
+      
+      {/* Subscription success page */}
+      <Route path="/subscription-success" element={<ProtectedRoute requireSubscription={false}><SubscriptionSuccess /></ProtectedRoute>} />
       
       {/* Protected routes - Secondary screens (no tab bar) */}
       <Route path="/add-purchase" element={<ProtectedRoute><AddPurchase /></ProtectedRoute>} />
