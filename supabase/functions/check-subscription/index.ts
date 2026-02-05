@@ -45,8 +45,8 @@
  
      // Get user's created_at date to calculate trial status
      const userCreatedAt = new Date(user.created_at);
-     const trialEndDate = new Date(userCreatedAt);
-     trialEndDate.setDate(trialEndDate.getDate() + 30);
+      const trialEndDate = new Date(userCreatedAt);
+      trialEndDate.setDate(trialEndDate.getDate() + 7);
      const now = new Date();
      const isInTrial = now < trialEndDate;
      const trialDaysRemaining = isInTrial 
