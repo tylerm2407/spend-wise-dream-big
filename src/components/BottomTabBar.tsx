@@ -40,7 +40,7 @@ export function BottomTabBar() {
               {isActive && (
                 <motion.div
                   layoutId="tab-indicator"
-                  className="absolute inset-x-4 -top-0.5 h-0.5 bg-cta rounded-full"
+                 className="absolute inset-x-4 -top-0.5 h-0.5 bg-primary rounded-full"
                   transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                 />
               )}
@@ -51,14 +51,14 @@ export function BottomTabBar() {
                 <Icon
                   className={cn(
                     'h-5 w-5 transition-colors',
-                    isActive ? 'text-cta' : 'text-muted-foreground'
+                   isActive ? 'text-primary' : 'text-muted-foreground'
                   )}
                 />
               </motion.div>
               <span
                 className={cn(
                   'text-2xs font-medium transition-colors',
-                  isActive ? 'text-cta' : 'text-muted-foreground'
+                 isActive ? 'text-primary' : 'text-muted-foreground'
                 )}
               >
                 {tab.label}
