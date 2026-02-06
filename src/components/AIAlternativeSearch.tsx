@@ -17,7 +17,7 @@ import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useProfile } from '@/hooks/useProfile';
-import { cn } from '@/lib/utils';
+import { PriceComparisonChart } from './PriceComparisonChart';
 
 interface Alternative {
   name: string;
@@ -153,6 +153,7 @@ export function AIAlternativeSearch() {
             exit={{ opacity: 0, y: -10 }}
             className="space-y-3"
           >
+            <PriceComparisonChart alternatives={alternatives} originalProduct={query} />
             <p className="text-sm text-muted-foreground mb-2">
               Alternatives for "<span className="font-medium text-foreground">{query}</span>"
             </p>
