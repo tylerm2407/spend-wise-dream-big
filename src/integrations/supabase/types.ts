@@ -116,6 +116,45 @@ export type Database = {
         }
         Relationships: []
       }
+      price_alerts: {
+        Row: {
+          created_at: string
+          current_lowest_price: number | null
+          id: string
+          is_active: boolean
+          is_triggered: boolean
+          product_name: string
+          target_price: number
+          triggered_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_lowest_price?: number | null
+          id?: string
+          is_active?: boolean
+          is_triggered?: boolean
+          product_name: string
+          target_price: number
+          triggered_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_lowest_price?: number | null
+          id?: string
+          is_active?: boolean
+          is_triggered?: boolean
+          product_name?: string
+          target_price?: number
+          triggered_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       price_history: {
         Row: {
           id: string
@@ -145,6 +184,66 @@ export type Database = {
           zip_code?: string | null
         }
         Relationships: []
+      }
+      price_notifications: {
+        Row: {
+          alert_id: string | null
+          created_at: string
+          id: string
+          is_read: boolean
+          message: string
+          original_price: number
+          pattern_id: string | null
+          product_name: string
+          sale_price: number
+          savings_percent: number
+          store_name: string | null
+          user_id: string
+        }
+        Insert: {
+          alert_id?: string | null
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message: string
+          original_price: number
+          pattern_id?: string | null
+          product_name: string
+          sale_price: number
+          savings_percent: number
+          store_name?: string | null
+          user_id: string
+        }
+        Update: {
+          alert_id?: string | null
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message?: string
+          original_price?: number
+          pattern_id?: string | null
+          product_name?: string
+          sale_price?: number
+          savings_percent?: number
+          store_name?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "price_notifications_alert_id_fkey"
+            columns: ["alert_id"]
+            isOneToOne: false
+            referencedRelation: "price_alerts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "price_notifications_pattern_id_fkey"
+            columns: ["pattern_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_patterns"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -191,6 +290,48 @@ export type Database = {
           updated_at?: string
           user_id?: string
           zip_code?: string | null
+        }
+        Relationships: []
+      }
+      purchase_patterns: {
+        Row: {
+          alert_threshold_percent: number | null
+          auto_alert_enabled: boolean
+          average_price: number
+          category: string
+          created_at: string
+          id: string
+          last_purchased_at: string
+          product_name: string
+          purchase_count: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          alert_threshold_percent?: number | null
+          auto_alert_enabled?: boolean
+          average_price: number
+          category: string
+          created_at?: string
+          id?: string
+          last_purchased_at?: string
+          product_name: string
+          purchase_count?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          alert_threshold_percent?: number | null
+          auto_alert_enabled?: boolean
+          average_price?: number
+          category?: string
+          created_at?: string
+          id?: string
+          last_purchased_at?: string
+          product_name?: string
+          purchase_count?: number
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }

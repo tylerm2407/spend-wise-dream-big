@@ -9,7 +9,8 @@ import {
   AlertCircle,
   MapPin,
   Store,
-  DollarSign
+  DollarSign,
+  Bell
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -18,6 +19,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useProfile } from '@/hooks/useProfile';
 import { usePriceHistory } from '@/hooks/usePriceHistory';
+import { usePriceAlerts } from '@/hooks/usePriceAlerts';
 import { PriceComparisonChart } from './PriceComparisonChart';
 import { PriceTrendChart } from './PriceTrendChart';
 
@@ -40,6 +42,34 @@ export function AIAlternativeSearch() {
   const { toast } = useToast();
   const { profile } = useProfile();
   const { savePricesAsync } = usePriceHistory();
+  const { createAlertAsync } = usePriceAlerts();
+
+  const handleSetAlert = async (alt: Alternative) => {
+    const priceMatch = alt.estimated_price?.match(/\$?([\d.]+)/);
+    const currentPrice = priceMatch ? parseFloat(priceMatch[1]) : 0;
+    
+    if (currentPrice > 0) {
+      // Set alert for 15% below current price
+      const targetPrice = currentPrice * 0.85;
+      try {
+        await createAlertAsync({
+          productName: alt.name,
+          targetPrice: parseFloat(targetPrice.toFixed(2)),
+          currentLowestPrice: currentPrice,
+        });
+        toast({
+          title: 'Alert set!',
+          description: `You'll be notified when ${alt.name} drops below $${targetPrice.toFixed(2)}`,
+        });
+      } catch {
+        toast({
+          variant: 'destructive',
+          title: 'Failed to set alert',
+          description: 'Please try again.',
+        });
+      }
+    }
+  };
 
   const handleSearch = async () => {
     if (!query.trim()) return;
@@ -221,9 +251,22 @@ export function AIAlternativeSearch() {
                   </div>
                 </div>
                 <p className="text-sm text-muted-foreground mb-2">{alt.description}</p>
-                <div className="flex items-start gap-2 text-xs text-primary bg-primary/5 p-2 rounded-lg">
-                  <Lightbulb className="h-3 w-3 mt-0.5 flex-shrink-0" />
-                  <span>{alt.tip}</span>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 flex items-start gap-2 text-xs text-primary bg-primary/5 p-2 rounded-lg">
+                    <Lightbulb className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                    <span>{alt.tip}</span>
+                  </div>
+                  {alt.estimated_price && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleSetAlert(alt)}
+                      className="gap-1 text-xs h-8"
+                    >
+                      <Bell className="h-3 w-3" />
+                      Alert
+                    </Button>
+                  )}
                 </div>
               </motion.div>
             ))}

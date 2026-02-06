@@ -14,6 +14,8 @@ import { useProfile } from '@/hooks/useProfile';
 import { useGoals } from '@/hooks/useGoals';
 import { useHaptics } from '@/hooks/useHaptics';
 import { AIAlternativeSearch } from '@/components/AIAlternativeSearch';
+import { PriceAlertManager } from '@/components/PriceAlertManager';
+import { PurchasePatternAnalyzer } from '@/components/PurchasePatternAnalyzer';
 import { formatCurrency, calculateInvestmentGrowth } from '@/lib/calculations';
 import { cn } from '@/lib/utils';
 
@@ -128,6 +130,13 @@ export default function Alternatives() {
           <motion.div variants={itemVariants}>
             <AIAlternativeSearch />
           </motion.div>
+
+          {/* Price Alerts & Smart Tracking */}
+          <motion.div variants={itemVariants} className="grid gap-4 md:grid-cols-2">
+            <PriceAlertManager />
+            <PurchasePatternAnalyzer />
+          </motion.div>
+
           {/* My Saved Alternatives Summary */}
           {activeSavedAlternatives.length > 0 && (
             <motion.div variants={itemVariants}>
