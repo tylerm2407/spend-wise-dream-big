@@ -17,7 +17,9 @@ import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useProfile } from '@/hooks/useProfile';
+import { usePriceHistory } from '@/hooks/usePriceHistory';
 import { PriceComparisonChart } from './PriceComparisonChart';
+import { PriceTrendChart } from './PriceTrendChart';
 
 interface Alternative {
   name: string;
@@ -34,8 +36,10 @@ export function AIAlternativeSearch() {
   const [isSearching, setIsSearching] = useState(false);
   const [alternatives, setAlternatives] = useState<Alternative[]>([]);
   const [hasSearched, setHasSearched] = useState(false);
+  const [lastSearchedProduct, setLastSearchedProduct] = useState('');
   const { toast } = useToast();
   const { profile } = useProfile();
+  const { savePricesAsync } = usePriceHistory();
 
   const handleSearch = async () => {
     if (!query.trim()) return;
@@ -67,6 +71,26 @@ export function AIAlternativeSearch() {
 
       if (data?.alternatives) {
         setAlternatives(data.alternatives);
+        setLastSearchedProduct(query.trim());
+        
+        // Save prices to history for trend tracking
+        const priceEntries = data.alternatives
+          .filter((alt: Alternative) => alt.estimated_price && alt.store_name)
+          .map((alt: Alternative) => {
+            const priceMatch = alt.estimated_price?.match(/\$?([\d.]+)/);
+            const price = priceMatch ? parseFloat(priceMatch[1]) : 0;
+            return {
+              productName: query.trim(),
+              storeName: alt.store_name || alt.name,
+              price,
+              zipCode: profile?.zip_code,
+            };
+          })
+          .filter((entry: { price: number }) => entry.price > 0);
+        
+        if (priceEntries.length > 0) {
+          savePricesAsync(priceEntries).catch(console.error);
+        }
       }
     } catch (error) {
       console.error('Error searching for alternatives:', error);
@@ -154,7 +178,8 @@ export function AIAlternativeSearch() {
             className="space-y-3"
           >
             <PriceComparisonChart alternatives={alternatives} originalProduct={query} />
-            <p className="text-sm text-muted-foreground mb-2">
+            <PriceTrendChart productName={lastSearchedProduct} />
+            <p className="text-sm text-muted-foreground mb-2 mt-4">
               Alternatives for "<span className="font-medium text-foreground">{query}</span>"
             </p>
             {alternatives.map((alt, index) => (

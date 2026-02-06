@@ -116,6 +116,36 @@ export type Database = {
         }
         Relationships: []
       }
+      price_history: {
+        Row: {
+          id: string
+          price: number
+          product_name: string
+          recorded_at: string
+          store_name: string
+          user_id: string
+          zip_code: string | null
+        }
+        Insert: {
+          id?: string
+          price: number
+          product_name: string
+          recorded_at?: string
+          store_name: string
+          user_id: string
+          zip_code?: string | null
+        }
+        Update: {
+          id?: string
+          price?: number
+          product_name?: string
+          recorded_at?: string
+          store_name?: string
+          user_id?: string
+          zip_code?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
