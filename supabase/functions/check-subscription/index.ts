@@ -43,22 +43,34 @@
      if (!user?.email) throw new Error("User not authenticated or email not available");
      logStep("User authenticated", { userId: user.id, email: user.email });
  
-     // Get user's created_at date to calculate trial status
-     const userCreatedAt = new Date(user.created_at);
+      // Get user's profile for referral bonus days
+      const { data: profileData } = await supabaseClient
+        .from("profiles")
+        .select("referral_bonus_days")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      const referralBonusDays = profileData?.referral_bonus_days ?? 0;
+      logStep("Referral bonus days", { referralBonusDays });
+
+      // Get user's created_at date to calculate trial status
+      const userCreatedAt = new Date(user.created_at);
       const trialEndDate = new Date(userCreatedAt);
-      trialEndDate.setDate(trialEndDate.getDate() + 7);
-     const now = new Date();
-     const isInTrial = now < trialEndDate;
-     const trialDaysRemaining = isInTrial 
-       ? Math.ceil((trialEndDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
-       : 0;
- 
-     logStep("Trial status calculated", { 
-       userCreatedAt: userCreatedAt.toISOString(), 
-       trialEndDate: trialEndDate.toISOString(),
-       isInTrial,
-       trialDaysRemaining 
-     });
+      // Base 7 day trial + referral bonus days
+      trialEndDate.setDate(trialEndDate.getDate() + 7 + referralBonusDays);
+      const now = new Date();
+      const isInTrial = now < trialEndDate;
+      const trialDaysRemaining = isInTrial 
+        ? Math.ceil((trialEndDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+        : 0;
+
+      logStep("Trial status calculated", { 
+        userCreatedAt: userCreatedAt.toISOString(), 
+        trialEndDate: trialEndDate.toISOString(),
+        isInTrial,
+        trialDaysRemaining,
+        referralBonusDays
+      });
  
      const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
      const customers = await stripe.customers.list({ email: user.email, limit: 1 });
