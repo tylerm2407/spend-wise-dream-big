@@ -256,6 +256,9 @@ export type Database = {
           monthly_income: number | null
           name: string | null
           onboarding_completed: boolean | null
+          referral_bonus_days: number
+          referral_code: string
+          referred_by: string | null
           streak_freezes_remaining: number | null
           updated_at: string
           user_id: string
@@ -271,6 +274,9 @@ export type Database = {
           monthly_income?: number | null
           name?: string | null
           onboarding_completed?: boolean | null
+          referral_bonus_days?: number
+          referral_code: string
+          referred_by?: string | null
           streak_freezes_remaining?: number | null
           updated_at?: string
           user_id: string
@@ -286,12 +292,23 @@ export type Database = {
           monthly_income?: number | null
           name?: string | null
           onboarding_completed?: boolean | null
+          referral_bonus_days?: number
+          referral_code?: string
+          referred_by?: string | null
           streak_freezes_remaining?: number | null
           updated_at?: string
           user_id?: string
           zip_code?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_referred_by_fkey"
+            columns: ["referred_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       purchase_patterns: {
         Row: {
@@ -406,6 +423,38 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      referrals: {
+        Row: {
+          created_at: string
+          id: string
+          referred_user_id: string
+          referrer_id: string
+          rewarded: boolean
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          referred_user_id: string
+          referrer_id: string
+          rewarded?: boolean
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          referred_user_id?: string
+          referrer_id?: string
+          rewarded?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referrals_referrer_id_fkey"
+            columns: ["referrer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       saved_alternatives: {
         Row: {

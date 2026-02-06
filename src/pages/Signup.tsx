@@ -1,7 +1,7 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Mail, Lock, Eye, EyeOff, ArrowRight, Loader2, User } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, ArrowRight, Loader2, User, Gift } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,14 +9,22 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 
 export default function Signup() {
+  const [searchParams] = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [referralCode, setReferralCode] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { signUp, signInWithGoogle } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  // Pre-fill referral code from URL param
+  useEffect(() => {
+    const ref = searchParams.get('ref');
+    if (ref) setReferralCode(ref.toUpperCase());
+  }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,6 +58,10 @@ export default function Signup() {
         variant: 'destructive',
       });
     } else {
+      // Store referral code to apply after email confirmation
+      if (referralCode) {
+        localStorage.setItem('pending_referral_code', referralCode);
+      }
       toast({
         title: 'Check your email',
         description: 'We sent you a confirmation link to verify your account.',
@@ -127,6 +139,27 @@ export default function Signup() {
                   {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
               </div>
+            </div>
+
+            {/* Referral Code */}
+            <div className="space-y-2">
+              <Label htmlFor="referralCode" className="flex items-center gap-2">
+                <Gift className="h-4 w-4 text-primary" />
+                Referral Code (optional)
+              </Label>
+              <Input
+                id="referralCode"
+                value={referralCode}
+                onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+                placeholder="e.g. A1B2C3D4"
+                className="h-12 touch-target font-mono tracking-widest"
+                aria-label="Referral code"
+              />
+              {referralCode && (
+                <p className="text-xs text-success">
+                  🎉 Referral code will be applied after you verify your email
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">

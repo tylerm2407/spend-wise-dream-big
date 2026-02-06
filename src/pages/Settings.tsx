@@ -44,6 +44,7 @@ import { useQuickAdds } from '@/hooks/useQuickAdds';
  import { useSubscription } from '@/hooks/useSubscription';
 import { useToast } from '@/hooks/use-toast';
 import { formatCurrency } from '@/lib/calculations';
+import { ReferralProgram } from '@/components/ReferralProgram';
 
 export default function Settings() {
   const navigate = useNavigate();
@@ -496,6 +497,11 @@ export default function Settings() {
                 </Card>
               </CollapsibleContent>
             </Collapsible>
+          </motion.div>
+
+          {/* Referral Program */}
+          <motion.div variants={itemVariants}>
+            <ReferralProgram />
           </motion.div>
 
           {/* Goals Quick Access */}

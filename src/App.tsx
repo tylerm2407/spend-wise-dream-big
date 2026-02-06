@@ -6,7 +6,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
  import { SubscriptionProvider } from "@/hooks/useSubscription";
- import { SubscriptionGate, TrialBanner } from "@/components/SubscriptionGate";
+import { SubscriptionGate, TrialBanner } from "@/components/SubscriptionGate";
+import { ReferralCodeApplier } from "@/components/ReferralCodeApplier";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
@@ -124,7 +125,8 @@ const App = () => (
     <AuthProvider>
       <SubscriptionProvider>
         <TooltipProvider>
-          <ThemeInitializer />
+         <ThemeInitializer />
+          <ReferralCodeApplier />
           <Toaster />
           <Sonner />
           <BrowserRouter>
