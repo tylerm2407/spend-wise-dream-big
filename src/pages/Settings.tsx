@@ -356,14 +356,46 @@ export default function Settings() {
               </div>
               
               {subscribed ? (
-                <Button 
-                  variant="outline" 
-                  className="w-full"
-                  onClick={openCustomerPortal}
-                >
-                  <ExternalLink className="h-4 w-4 mr-2" />
-                  Manage Subscription
-                </Button>
+                <div className="space-y-2">
+                  <Button 
+                    variant="outline" 
+                    className="w-full"
+                    onClick={openCustomerPortal}
+                  >
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    Manage Subscription
+                  </Button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button 
+                        variant="outline" 
+                        className="w-full text-destructive border-destructive/20 hover:bg-destructive/10"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Cancel Subscription
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Cancel your subscription?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          You'll be redirected to the billing portal where you can cancel your subscription. 
+                          You'll retain access until the end of your current billing period
+                          {subscriptionEnd ? ` (${new Date(subscriptionEnd).toLocaleDateString()})` : ''}.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Keep Subscription</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={openCustomerPortal}
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                          Proceed to Cancel
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
               ) : (
                 <div className="space-y-3">
                   <div className="flex items-center justify-between text-sm">
