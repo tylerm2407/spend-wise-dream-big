@@ -46,6 +46,7 @@ import {
 } from '@/lib/calculations';
 import { cn } from '@/lib/utils';
 import { Database } from '@/integrations/supabase/types';
+import { useBudgetNotifications } from '@/hooks/useBudgetNotifications';
 
 type PurchaseCategory = Database['public']['Enums']['purchase_category'];
 
@@ -78,6 +79,7 @@ export default function AddPurchase() {
   const { profile } = useProfile();
   const { toast } = useToast();
   const { haptic } = useHaptics();
+  const { checkBudgetThresholds } = useBudgetNotifications();
 
   const [amount, setAmount] = useState('');
   const [itemName, setItemName] = useState('');
@@ -178,6 +180,14 @@ export default function AddPurchase() {
             </Button>
           ) : undefined,
         });
+
+        // Check daily budget thresholds for push notifications
+        const today = new Date().toISOString().split('T')[0];
+        const todayTotalAfter = purchases
+          .filter(p => p.purchase_date === today)
+          .reduce((sum, p) => sum + Number(p.amount), 0) + numericAmount;
+        checkBudgetThresholds(todayTotalAfter);
+
         navigate('/home');
       },
       onError: () => {
