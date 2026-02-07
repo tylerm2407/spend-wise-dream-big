@@ -1,14 +1,24 @@
-import { motion } from 'framer-motion';
-import { Trophy, Award } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Trophy, Award, Heart, X } from 'lucide-react';
 import { AppLayout } from '@/components/AppLayout';
 import { WeeklySpendingChallenge } from '@/components/WeeklySpendingChallenge';
 import { StreakDisplay } from '@/components/StreakDisplay';
 import { AchievementBadges } from '@/components/AchievementBadges';
 import { useStreaks } from '@/hooks/useStreaks';
 import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 
 export default function Challenges() {
-  const { currentStreak, longestStreak, streakFreezesRemaining, allAchievements } = useStreaks();
+  const { 
+    currentStreak, 
+    longestStreak, 
+    streakFreezesRemaining, 
+    allAchievements,
+    streakEvent,
+    welcomeMessage,
+    encouragementMessage,
+    dismissStreakEvent,
+  } = useStreaks();
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -44,6 +54,46 @@ export default function Challenges() {
           animate="visible"
           className="px-6 space-y-6 pb-6"
         >
+          {/* Streak Lost — Welcome Back Banner */}
+          <AnimatePresence>
+            {streakEvent?.type === 'streak_lost' && (
+              <motion.div
+                variants={itemVariants}
+                initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -10, scale: 0.95 }}
+              >
+                <Card className="p-5 bg-gradient-to-br from-primary/10 via-background to-accent/10 border-primary/30 relative">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute top-2 right-2 h-7 w-7 text-muted-foreground"
+                    onClick={dismissStreakEvent}
+                    aria-label="Dismiss"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                  <div className="flex items-start gap-3 pr-6">
+                    <div className="p-2 rounded-full bg-primary/10 flex-shrink-0">
+                      <Heart className="h-5 w-5 text-primary" />
+                    </div>
+                    <div className="space-y-2">
+                      <p className="font-semibold text-foreground">
+                        {welcomeMessage}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Your previous streak was {streakEvent.previousStreak} day{streakEvent.previousStreak !== 1 ? 's' : ''}.
+                      </p>
+                      <p className="text-sm text-muted-foreground italic">
+                        {encouragementMessage}
+                      </p>
+                    </div>
+                  </div>
+                </Card>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           {/* Streak Display */}
           <motion.div variants={itemVariants}>
             <StreakDisplay

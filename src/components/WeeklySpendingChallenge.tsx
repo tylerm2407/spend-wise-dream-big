@@ -8,12 +8,22 @@ import {
   CheckCircle2,
   Sparkles,
   ChevronRight,
-  Zap
+  Zap,
+  Pencil,
+  DollarSign
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { useWeeklyChallenge } from '@/hooks/useWeeklyChallenge';
+import { useToast } from '@/hooks/use-toast';
 import { formatCurrency } from '@/lib/calculations';
 import { cn } from '@/lib/utils';
 import confetti from 'canvas-confetti';
@@ -25,17 +35,20 @@ export function WeeklySpendingChallenge() {
     challengeHistory,
     isLoading, 
     claimReward,
+    updateTarget,
     progressPercent 
   } = useWeeklyChallenge();
+  const { toast } = useToast();
   const [showHistory, setShowHistory] = useState(false);
   const [isClaiming, setIsClaiming] = useState(false);
+  const [editTargetOpen, setEditTargetOpen] = useState(false);
+  const [newTarget, setNewTarget] = useState('');
 
   const handleClaimReward = async () => {
     if (!currentChallenge?.is_completed || currentChallenge?.reward_claimed) return;
     
     setIsClaiming(true);
     
-    // Fire confetti!
     confetti({
       particleCount: 100,
       spread: 70,
@@ -44,6 +57,28 @@ export function WeeklySpendingChallenge() {
     
     await claimReward();
     setIsClaiming(false);
+  };
+
+  const handleOpenEditTarget = () => {
+    if (currentChallenge) {
+      setNewTarget(String(Number(currentChallenge.target_savings)));
+    }
+    setEditTargetOpen(true);
+  };
+
+  const handleSaveTarget = async () => {
+    const parsed = parseFloat(newTarget);
+    if (!parsed || parsed <= 0) {
+      toast({
+        title: 'Invalid amount',
+        description: 'Please enter a positive savings target.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    await updateTarget(parsed);
+    setEditTargetOpen(false);
+    toast({ title: 'Target updated', description: `Weekly goal set to ${formatCurrency(parsed)}` });
   };
 
   if (isLoading || !currentChallenge) {
@@ -104,10 +139,14 @@ export function WeeklySpendingChallenge() {
         )}
 
         <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
+          <button
+            onClick={handleOpenEditTarget}
+            className="flex items-center gap-2 group"
+          >
             <Target className="h-5 w-5 text-primary" />
             <span className="font-medium">Save {formatCurrency(targetSavings)}</span>
-          </div>
+            <Pencil className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+          </button>
           <span className={cn(
             "text-2xl font-bold",
             isCompleted ? "text-success" : "text-foreground"
@@ -243,6 +282,56 @@ export function WeeklySpendingChallenge() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Edit Target Dialog */}
+      <Dialog open={editTargetOpen} onOpenChange={setEditTargetOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Set Your Weekly Goal</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
+            <p className="text-sm text-muted-foreground">
+              Choose a savings target that challenges you but feels achievable.
+            </p>
+            <div className="relative">
+              <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+              <Input
+                type="number"
+                placeholder="50"
+                value={newTarget}
+                onChange={(e) => setNewTarget(e.target.value)}
+                className="pl-10 h-12 text-lg"
+                step="5"
+                min="1"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleSaveTarget();
+                }}
+              />
+            </div>
+            <div className="flex gap-2">
+              {[25, 50, 100, 200].map((preset) => (
+                <button
+                  key={preset}
+                  type="button"
+                  onClick={() => setNewTarget(String(preset))}
+                  className={cn(
+                    "flex-1 py-2 rounded-lg text-sm font-medium transition-all border",
+                    newTarget === String(preset)
+                      ? "bg-primary/10 border-primary text-primary"
+                      : "bg-muted/50 border-border hover:border-primary/50"
+                  )}
+                >
+                  ${preset}
+                </button>
+              ))}
+            </div>
+            <Button onClick={handleSaveTarget} className="w-full bg-gradient-primary">
+              Save Goal
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </motion.div>
   );
 }

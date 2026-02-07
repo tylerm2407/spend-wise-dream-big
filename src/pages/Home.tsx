@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Plus, 
   TrendingUp, 
@@ -8,8 +8,11 @@ import {
   Target,
   DollarSign,
   ChevronRight,
-  Trophy
+  Trophy,
+  Heart,
+  X
 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
 import { usePurchases } from '@/hooks/usePurchases';
@@ -38,7 +41,7 @@ export default function Home() {
   const { primaryGoal, activeGoals } = useGoals();
   const { haptic } = useHaptics();
   const { currentChallenge, progressPercent } = useWeeklyChallenge();
-  const { currentStreak, longestStreak, streakFreezesRemaining } = useStreaks();
+  const { currentStreak, longestStreak, streakFreezesRemaining, streakEvent, welcomeMessage, encouragementMessage, dismissStreakEvent } = useStreaks();
 
   useEffect(() => {
     if (!profileLoading && profile && !profile.onboarding_completed) {
@@ -108,6 +111,42 @@ export default function Home() {
           animate="visible"
           className="px-6 space-y-6 pb-6"
         >
+          {/* Streak Lost — Welcome Back Banner */}
+          <AnimatePresence>
+            {streakEvent?.type === 'streak_lost' && (
+              <motion.div
+                initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -10, scale: 0.95 }}
+              >
+                <Card className="p-5 bg-gradient-to-br from-primary/10 via-background to-accent/10 border-primary/30 relative">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute top-2 right-2 h-7 w-7 text-muted-foreground"
+                    onClick={dismissStreakEvent}
+                    aria-label="Dismiss"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                  <div className="flex items-start gap-3 pr-6">
+                    <div className="p-2 rounded-full bg-primary/10 flex-shrink-0">
+                      <Heart className="h-5 w-5 text-primary" />
+                    </div>
+                    <div className="space-y-1">
+                      <p className="font-semibold text-foreground">
+                        {welcomeMessage}
+                      </p>
+                      <p className="text-sm text-muted-foreground italic">
+                        {encouragementMessage}
+                      </p>
+                    </div>
+                  </div>
+                </Card>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           {/* Today's Summary */}
           <motion.div variants={itemVariants}>
             <AnimatedCard className="p-6 glass-card" interactive={false}>

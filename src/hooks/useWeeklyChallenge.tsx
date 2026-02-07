@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
+import { useProfile } from './useProfile';
 import { startOfWeek, endOfWeek, format } from 'date-fns';
 
 interface WeeklyChallenge {
@@ -20,11 +21,22 @@ interface WeeklyChallenge {
 
 export function useWeeklyChallenge() {
   const { user } = useAuth();
+  const { profile } = useProfile();
   const queryClient = useQueryClient();
 
   const today = new Date();
   const weekStart = format(startOfWeek(today, { weekStartsOn: 1 }), 'yyyy-MM-dd');
   const weekEnd = format(endOfWeek(today, { weekStartsOn: 1 }), 'yyyy-MM-dd');
+
+  // Compute a smart default based on income
+  const defaultTarget = (() => {
+    if (profile?.monthly_income) {
+      // ~5% of monthly income, rounded to nearest 5
+      const suggested = Math.round((Number(profile.monthly_income) * 0.05) / 5) * 5;
+      return Math.max(10, Math.min(suggested, 500));
+    }
+    return 50;
+  })();
 
   const { data: currentChallenge, isLoading } = useQuery({
     queryKey: ['weekly-challenge', user?.id, weekStart],
@@ -46,7 +58,7 @@ export function useWeeklyChallenge() {
       // Create new challenge if doesn't exist
       const { data: lastChallenge } = await supabase
         .from('weekly_challenges')
-        .select('streak_count, is_completed')
+        .select('streak_count, is_completed, target_savings')
         .eq('user_id', user.id)
         .order('week_start', { ascending: false })
         .limit(1)
@@ -54,13 +66,16 @@ export function useWeeklyChallenge() {
       
       const streakCount = lastChallenge?.is_completed ? (lastChallenge.streak_count || 0) + 1 : 0;
       
+      // Use previous user-set target if available, otherwise use smart default
+      const target = lastChallenge?.target_savings ? Number(lastChallenge.target_savings) : defaultTarget;
+      
       const { data: newChallenge, error: createError } = await supabase
         .from('weekly_challenges')
         .insert({
           user_id: user.id,
           week_start: weekStart,
           week_end: weekEnd,
-          target_savings: 50,
+          target_savings: target,
           streak_count: streakCount,
         })
         .select()
@@ -124,6 +139,17 @@ export function useWeeklyChallenge() {
     });
   };
 
+  const updateTarget = async (newTarget: number) => {
+    if (!currentChallenge) return;
+    
+    const isCompleted = Number(currentChallenge.actual_savings) >= newTarget;
+    
+    await updateChallenge.mutateAsync({
+      target_savings: newTarget,
+      is_completed: isCompleted,
+    });
+  };
+
   const claimReward = async () => {
     if (!currentChallenge || !currentChallenge.is_completed) return;
     
@@ -141,9 +167,11 @@ export function useWeeklyChallenge() {
     challengeHistory,
     isLoading,
     recordSavings,
+    updateTarget,
     claimReward,
     progressPercent,
     weekStart,
     weekEnd,
+    defaultTarget,
   };
 }
