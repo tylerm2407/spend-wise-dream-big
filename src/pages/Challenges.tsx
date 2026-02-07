@@ -4,6 +4,7 @@ import { AppLayout } from '@/components/AppLayout';
 import { WeeklySpendingChallenge } from '@/components/WeeklySpendingChallenge';
 import { StreakDisplay } from '@/components/StreakDisplay';
 import { AchievementBadges } from '@/components/AchievementBadges';
+import { CommunityStats } from '@/components/CommunityStats';
 import { useStreaks } from '@/hooks/useStreaks';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -105,6 +106,11 @@ export default function Challenges() {
 
           <motion.div variants={itemVariants}>
             <WeeklySpendingChallenge />
+          </motion.div>
+
+          {/* Community Stats */}
+          <motion.div variants={itemVariants}>
+            <CommunityStats />
           </motion.div>
 
           {/* Achievements */}

@@ -30,6 +30,7 @@ import { ProgressRing } from '@/components/ui/ProgressRing';
 import { AnimatedCounter } from '@/components/ui/AnimatedCounter';
 import { SmarterSpendingSuggestions } from '@/components/SmarterSpendingSuggestions';
 import { StreakDisplay } from '@/components/StreakDisplay';
+import { DailyBudgetTracker } from '@/components/DailyBudgetTracker';
 import { formatCurrency, calculateGoalProgress, getGoalStatus } from '@/lib/calculations';
 import { cn } from '@/lib/utils';
 
@@ -175,6 +176,11 @@ export default function Home() {
                 </Link>
               </div>
             </AnimatedCard>
+          </motion.div>
+
+          {/* Daily Budget Tracker */}
+          <motion.div variants={itemVariants}>
+            <DailyBudgetTracker todayTotal={todayTotal} />
           </motion.div>
 
           {/* Primary Goal Card */}

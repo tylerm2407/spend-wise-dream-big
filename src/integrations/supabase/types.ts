@@ -248,6 +248,7 @@ export type Database = {
       profiles: {
         Row: {
           created_at: string
+          daily_budget: number | null
           hourly_wage: number | null
           id: string
           last_login_date: string | null
@@ -266,6 +267,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          daily_budget?: number | null
           hourly_wage?: number | null
           id?: string
           last_login_date?: string | null
@@ -284,6 +286,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          daily_budget?: number | null
           hourly_wage?: number | null
           id?: string
           last_login_date?: string | null
@@ -553,7 +556,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_community_challenge_stats: { Args: never; Returns: Json }
     }
     Enums: {
       goal_priority: "low" | "medium" | "high"

@@ -19,6 +19,7 @@ import { useProfile } from '@/hooks/useProfile';
 import { SpendingCharts } from '@/components/SpendingCharts';
 import { OpportunityCostCalculator } from '@/components/OpportunityCostCalculator';
 import { CreditCardLinking } from '@/components/CreditCardLinking';
+import { WhatIfSimulator } from '@/components/WhatIfSimulator';
 import { formatCurrency, calculateInvestmentGrowth } from '@/lib/calculations';
 import { cn } from '@/lib/utils';
 import { Database } from '@/integrations/supabase/types';
@@ -197,6 +198,16 @@ export default function Insights() {
                   "Small changes compound."
                 </p>
               </Card>
+            </motion.div>
+          )}
+
+          {/* What-If Simulator */}
+          {Object.keys(categoryTotals).length > 0 && (
+            <motion.div variants={itemVariants}>
+              <WhatIfSimulator
+                categoryTotals={categoryTotals}
+                monthlyTotal={monthlyTotal}
+              />
             </motion.div>
           )}
 

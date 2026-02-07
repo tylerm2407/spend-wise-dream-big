@@ -9,16 +9,36 @@ import {
   Sparkles,
   DollarSign,
   User,
-   Loader2,
-   Clock
+  Loader2,
+  Clock,
+  ShoppingBag,
+  CheckCircle2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useProfile } from '@/hooks/useProfile';
 import { useGoals } from '@/hooks/useGoals';
+import { usePurchases } from '@/hooks/usePurchases';
 import { useToast } from '@/hooks/use-toast';
 import { Switch } from '@/components/ui/switch';
+import { Constants } from '@/integrations/supabase/types';
+
+const TOTAL_STEPS = 4;
+
+const CATEGORY_ICONS: Record<string, string> = {
+  dining: '🍽️',
+  shopping: '🛍️',
+  transportation: '🚗',
+  entertainment: '🎬',
+  subscriptions: '📱',
+  groceries: '🛒',
+  health: '💊',
+  utilities: '💡',
+  travel: '✈️',
+  other: '📦',
+};
 
 export default function Onboarding() {
   const [step, setStep] = useState(1);
@@ -28,23 +48,26 @@ export default function Onboarding() {
   const [showWorkHours, setShowWorkHours] = useState(false);
   const [goalName, setGoalName] = useState('');
   const [goalAmount, setGoalAmount] = useState('');
+  // First purchase fields
+  const [firstPurchaseName, setFirstPurchaseName] = useState('');
+  const [firstPurchaseAmount, setFirstPurchaseAmount] = useState('');
+  const [firstPurchaseCategory, setFirstPurchaseCategory] = useState('dining');
+  const [firstPurchaseLogged, setFirstPurchaseLogged] = useState(false);
   const navigate = useNavigate();
   const { updateProfileAsync } = useProfile();
   const { addGoal } = useGoals();
+  const { addPurchase } = usePurchases();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
-  const handleComplete = async () => {
+  const handleSaveProfileAndGoal = async () => {
     setIsSubmitting(true);
     try {
-      // Calculate hourly wage if not provided but income is
       let calculatedHourlyWage = hourlyWage ? parseFloat(hourlyWage) : null;
       if (!calculatedHourlyWage && monthlyIncome && showWorkHours) {
-        // Assume 40 hours/week, 4.33 weeks/month
         calculatedHourlyWage = parseFloat(monthlyIncome) / (40 * 4.33);
       }
 
-      // Add goal first if provided (so it's ready when home loads)
       if (goalName && goalAmount) {
         await new Promise<void>((resolve, reject) => {
           addGoal({
@@ -58,7 +81,6 @@ export default function Onboarding() {
         });
       }
       
-      // Update profile and mark onboarding complete
       await updateProfileAsync({
         name: name || null,
         monthly_income: monthlyIncome ? parseFloat(monthlyIncome) : null,
@@ -66,7 +88,8 @@ export default function Onboarding() {
         onboarding_completed: true,
       });
 
-      navigate('/home');
+      setIsSubmitting(false);
+      setStep(4);
     } catch (error) {
       toast({
         title: 'Error',
@@ -77,6 +100,23 @@ export default function Onboarding() {
     }
   };
 
+  const handleLogFirstPurchase = () => {
+    if (!firstPurchaseName || !firstPurchaseAmount) return;
+    addPurchase({
+      item_name: firstPurchaseName,
+      amount: parseFloat(firstPurchaseAmount),
+      category: firstPurchaseCategory as any,
+    }, {
+      onSuccess: () => {
+        setFirstPurchaseLogged(true);
+        toast({ title: '🎉 First purchase logged!' });
+      },
+    });
+  };
+
+  const handleFinish = () => {
+    navigate('/home');
+  };
   const stepVariants = {
     enter: { opacity: 0, x: 50 },
     center: { opacity: 1, x: 0 },
@@ -91,12 +131,12 @@ export default function Onboarding() {
           <motion.div
             className="h-full bg-gradient-primary"
             initial={{ width: '0%' }}
-            animate={{ width: `${(step / 3) * 100}%` }}
+            animate={{ width: `${(step / TOTAL_STEPS) * 100}%` }}
             transition={{ duration: 0.3 }}
           />
         </div>
         <p className="text-sm text-muted-foreground mt-2 text-center">
-          Step {step} of 3
+          Step {step} of {TOTAL_STEPS}
         </p>
       </div>
 
@@ -345,7 +385,7 @@ export default function Onboarding() {
                   <ArrowLeft className="h-5 w-5" />
                 </Button>
                 <Button
-                  onClick={handleComplete}
+                  onClick={handleSaveProfileAndGoal}
                   className="flex-1 h-12 bg-gradient-primary hover:opacity-90"
                   disabled={isSubmitting}
                 >
@@ -353,7 +393,7 @@ export default function Onboarding() {
                     <Loader2 className="h-5 w-5 animate-spin" />
                   ) : (
                     <>
-                      Start Using True Cost
+                      Continue
                       <ArrowRight className="ml-2 h-5 w-5" />
                     </>
                   )}
@@ -361,12 +401,123 @@ export default function Onboarding() {
               </div>
 
               <button
-                onClick={handleComplete}
+                onClick={handleSaveProfileAndGoal}
                 disabled={isSubmitting}
                 className="w-full mt-4 text-sm text-muted-foreground hover:text-foreground disabled:opacity-50"
               >
                 Skip for now
               </button>
+            </motion.div>
+          )}
+
+          {step === 4 && (
+            <motion.div
+              key="step4"
+              variants={stepVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{ duration: 0.3 }}
+              className="mx-auto w-full max-w-sm"
+            >
+              <div className="text-center mb-8">
+                <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-primary flex items-center justify-center">
+                  <ShoppingBag className="h-10 w-10 text-primary-foreground" />
+                </div>
+                <h1 className="text-2xl font-bold mb-3">Log Your First Purchase</h1>
+                <p className="text-muted-foreground">
+                  Start building awareness — it only takes 10 seconds
+                </p>
+              </div>
+
+              {!firstPurchaseLogged ? (
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="purchaseName">What did you buy?</Label>
+                    <Input
+                      id="purchaseName"
+                      placeholder="e.g., Morning coffee"
+                      value={firstPurchaseName}
+                      onChange={(e) => setFirstPurchaseName(e.target.value)}
+                      className="h-12"
+                      autoFocus
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="purchaseAmount">How much?</Label>
+                    <div className="relative">
+                      <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                      <Input
+                        id="purchaseAmount"
+                        type="number"
+                        placeholder="5.00"
+                        value={firstPurchaseAmount}
+                        onChange={(e) => setFirstPurchaseAmount(e.target.value)}
+                        className="pl-10 h-12"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Category</Label>
+                    <Select value={firstPurchaseCategory} onValueChange={setFirstPurchaseCategory}>
+                      <SelectTrigger className="h-12">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Constants.public.Enums.purchase_category.map((cat) => (
+                          <SelectItem key={cat} value={cat}>
+                            <span className="flex items-center gap-2">
+                              <span>{CATEGORY_ICONS[cat] || '📦'}</span>
+                              <span className="capitalize">{cat}</span>
+                            </span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <Button
+                    onClick={handleLogFirstPurchase}
+                    className="w-full h-12 bg-gradient-primary hover:opacity-90"
+                    disabled={!firstPurchaseName || !firstPurchaseAmount}
+                  >
+                    Log Purchase
+                    <ArrowRight className="ml-2 h-5 w-5" />
+                  </Button>
+
+                  <button
+                    onClick={handleFinish}
+                    className="w-full mt-2 text-sm text-muted-foreground hover:text-foreground"
+                  >
+                    Skip — I'll log later
+                  </button>
+                </div>
+              ) : (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="text-center space-y-6"
+                >
+                  <div className="w-16 h-16 mx-auto rounded-full bg-success/10 flex items-center justify-center">
+                    <CheckCircle2 className="h-8 w-8 text-success" />
+                  </div>
+                  <div>
+                    <p className="text-lg font-semibold">Purchase logged! 🎉</p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      You just took the first step toward smarter spending.
+                    </p>
+                  </div>
+                  <Button
+                    onClick={handleFinish}
+                    className="w-full h-12 bg-gradient-primary hover:opacity-90"
+                  >
+                    Go to Dashboard
+                    <ArrowRight className="ml-2 h-5 w-5" />
+                  </Button>
+                </motion.div>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
