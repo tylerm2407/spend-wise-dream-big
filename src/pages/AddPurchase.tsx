@@ -71,7 +71,7 @@ const FREQUENCIES: { value: Frequency; label: string }[] = [
 
 export default function AddPurchase() {
   const navigate = useNavigate();
-  const { addPurchase, isAdding, purchases } = usePurchases();
+  const { addPurchase, deletePurchase, isAdding, purchases } = usePurchases();
   const { quickAdds } = useQuickAdds();
   const { topFavorites, incrementFavorite } = useFavorites();
   const { primaryGoal } = useGoals();
@@ -152,7 +152,7 @@ export default function AddPurchase() {
       category,
       frequency,
     }, {
-      onSuccess: () => {
+      onSuccess: (data) => {
         haptic('success');
         // Track as favorite
         incrementFavorite({
@@ -161,22 +161,26 @@ export default function AddPurchase() {
           category,
           frequency,
         });
+        const purchaseId = data?.id;
         toast({
           title: 'Purchase added',
           description: `${itemName} - ${formatCurrency(numericAmount)}`,
-          action: (
+          action: purchaseId ? (
             <Button 
               variant="outline" 
               size="sm" 
-              onClick={() => toast({ title: 'Undo coming soon' })}
+              onClick={() => {
+                deletePurchase(purchaseId);
+                toast({ title: 'Purchase undone' });
+              }}
             >
               <Undo2 className="h-4 w-4 mr-1" /> Undo
             </Button>
-          ),
+          ) : undefined,
         });
         navigate('/home');
       },
-      onError: (error) => {
+      onError: () => {
         haptic('error');
         toast({
           title: 'Error',

@@ -59,6 +59,23 @@ export function usePurchases() {
     },
   });
 
+  const updatePurchase = useMutation({
+    mutationFn: async ({ id, ...updates }: { id: string; amount?: number; category?: Database['public']['Enums']['purchase_category']; item_name?: string; frequency?: Database['public']['Enums']['purchase_frequency'] }) => {
+      const { data, error } = await supabase
+        .from('purchases')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['purchases', user?.id] });
+    },
+  });
+
   // Calculate monthly stats
   const currentMonth = new Date().getMonth();
   const currentYear = new Date().getFullYear();
@@ -93,6 +110,7 @@ export function usePurchases() {
     error,
     addPurchase: addPurchase.mutate,
     deletePurchase: deletePurchase.mutate,
+    updatePurchase: updatePurchase.mutate,
     isAdding: addPurchase.isPending,
     monthlyTotal,
     lastMonthTotal,

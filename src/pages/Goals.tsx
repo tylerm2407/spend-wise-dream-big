@@ -51,6 +51,16 @@ export default function Goals() {
   const [targetDate, setTargetDate] = useState('');
   const [priority, setPriority] = useState<GoalPriority>('medium');
 
+  // Progress dialog state
+  const [progressDialogOpen, setProgressDialogOpen] = useState(false);
+  const [progressAmount, setProgressAmount] = useState('');
+  const [progressGoal, setProgressGoal] = useState<{
+    id: string;
+    currentAmount: number;
+    targetAmount: number;
+    name: string;
+  } | null>(null);
+
   const handleAddGoal = () => {
     if (!name || !amount) {
       toast({
@@ -79,24 +89,44 @@ export default function Goals() {
     });
   };
 
-  const handleAddProgress = (goalId: string, currentAmount: number, targetAmount: number) => {
-    const addAmount = parseFloat(prompt('How much did you save?') || '0');
-    if (addAmount > 0) {
-      const newAmount = currentAmount + addAmount;
-      updateGoal({ id: goalId, current_amount: newAmount });
-      
-      // Check if goal completed
-      if (newAmount >= targetAmount) {
-        confetti({
-          particleCount: 100,
-          spread: 70,
-          origin: { y: 0.6 }
-        });
-        toast({
-          title: '🎉 Goal completed!',
-          description: 'Congratulations on reaching your goal!',
-        });
-      }
+  const openProgressDialog = (goalId: string, currentAmount: number, targetAmount: number, goalName: string) => {
+    setProgressGoal({ id: goalId, currentAmount, targetAmount, name: goalName });
+    setProgressAmount('');
+    setProgressDialogOpen(true);
+  };
+
+  const handleSubmitProgress = () => {
+    if (!progressGoal) return;
+    const addAmount = parseFloat(progressAmount) || 0;
+    if (addAmount <= 0) {
+      toast({
+        title: 'Invalid amount',
+        description: 'Please enter an amount greater than zero.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const newAmount = progressGoal.currentAmount + addAmount;
+    updateGoal({ id: progressGoal.id, current_amount: newAmount });
+    setProgressDialogOpen(false);
+    
+    // Check if goal completed
+    if (newAmount >= progressGoal.targetAmount) {
+      confetti({
+        particleCount: 100,
+        spread: 70,
+        origin: { y: 0.6 }
+      });
+      toast({
+        title: '🎉 Goal completed!',
+        description: 'Congratulations on reaching your goal!',
+      });
+    } else {
+      toast({
+        title: 'Progress updated',
+        description: `Added ${formatCurrency(addAmount)} to "${progressGoal.name}"`,
+      });
     }
   };
 
@@ -299,10 +329,11 @@ export default function Goals() {
                           variant="outline"
                           size="sm"
                           className="mt-3"
-                          onClick={() => handleAddProgress(
+                          onClick={() => openProgressDialog(
                             goal.id,
                             Number(goal.current_amount),
-                            Number(goal.target_amount)
+                            Number(goal.target_amount),
+                            goal.name
                           )}
                         >
                           <Plus className="h-3 w-3 mr-1" />
@@ -317,6 +348,48 @@ export default function Goals() {
           })
         )}
       </main>
+
+      {/* Add Progress Dialog */}
+      <Dialog open={progressDialogOpen} onOpenChange={setProgressDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Progress</DialogTitle>
+          </DialogHeader>
+          {progressGoal && (
+            <div className="space-y-4 pt-4">
+              <p className="text-sm text-muted-foreground">
+                How much did you save towards <span className="font-medium text-foreground">"{progressGoal.name}"</span>?
+              </p>
+              <div className="relative">
+                <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                <Input
+                  type="number"
+                  placeholder="0.00"
+                  value={progressAmount}
+                  onChange={(e) => setProgressAmount(e.target.value)}
+                  className="pl-10 h-12 text-lg"
+                  step="0.01"
+                  min="0"
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleSubmitProgress();
+                  }}
+                />
+              </div>
+              <div className="flex items-center justify-between text-sm text-muted-foreground">
+                <span>Current: {formatCurrency(progressGoal.currentAmount)}</span>
+                <span>Goal: {formatCurrency(progressGoal.targetAmount)}</span>
+              </div>
+              <Button
+                onClick={handleSubmitProgress}
+                className="w-full bg-gradient-primary"
+              >
+                Save Progress
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
