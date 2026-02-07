@@ -21,7 +21,9 @@ import {
   Crown,
   Calendar,
   ExternalLink,
-  MapPin
+  MapPin,
+  FileText,
+  UserX
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/AppLayout';
@@ -36,16 +38,28 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
 import { useGoals } from '@/hooks/useGoals';
 import { usePurchases } from '@/hooks/usePurchases';
 import { useQuickAdds } from '@/hooks/useQuickAdds';
- import { useSubscription } from '@/hooks/useSubscription';
+import { useSubscription } from '@/hooks/useSubscription';
 import { useToast } from '@/hooks/use-toast';
 import { formatCurrency } from '@/lib/calculations';
 import { ReferralProgram } from '@/components/ReferralProgram';
 import { useBudgetNotifications } from '@/hooks/useBudgetNotifications';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function Settings() {
   const navigate = useNavigate();
@@ -189,6 +203,48 @@ export default function Settings() {
   const handleSignOut = async () => {
     await signOut();
     navigate('/');
+  };
+
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+
+  const handleDeleteAccount = async () => {
+    setIsDeletingAccount(true);
+    try {
+      // Delete user data from all tables
+      const userId = user?.id;
+      if (!userId) throw new Error('No user found');
+
+      // Delete in order to respect foreign keys
+      await supabase.from('price_notifications').delete().eq('user_id', userId);
+      await supabase.from('price_alerts').delete().eq('user_id', userId);
+      await supabase.from('purchase_patterns').delete().eq('user_id', userId);
+      await supabase.from('price_history').delete().eq('user_id', userId);
+      await supabase.from('saved_alternatives').delete().eq('user_id', userId);
+      await supabase.from('weekly_challenges').delete().eq('user_id', userId);
+      await supabase.from('achievements').delete().eq('user_id', userId);
+      await supabase.from('favorites').delete().eq('user_id', userId);
+      await supabase.from('quick_adds').delete().eq('user_id', userId);
+      await supabase.from('purchases').delete().eq('user_id', userId);
+      await supabase.from('goals').delete().eq('user_id', userId);
+      await supabase.from('referrals').delete().eq('referrer_id', userId);
+      await supabase.from('profiles').delete().eq('user_id', userId);
+
+      // Sign out (account deletion from auth handled server-side)
+      await signOut();
+      toast({
+        title: 'Account deleted',
+        description: 'Your account and all data have been permanently removed.',
+      });
+      navigate('/');
+    } catch (error) {
+      toast({
+        title: 'Failed to delete account',
+        description: 'Please try again or contact support.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsDeletingAccount(false);
+    }
   };
 
   const containerVariants = {
@@ -730,6 +786,70 @@ export default function Settings() {
                 </div>
               </div>
             </Card>
+          </motion.div>
+
+          {/* Legal Links */}
+          <motion.div variants={itemVariants}>
+            <Card className="p-4 glass-card">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+                  <FileText className="h-5 w-5 text-muted-foreground" />
+                </div>
+                <div>
+                  <h3 className="font-medium">Legal</h3>
+                  <p className="text-sm text-muted-foreground">Privacy & terms</p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => navigate('/privacy-policy')}>
+                  Privacy Policy
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => navigate('/terms-of-service')}>
+                  Terms of Service
+                </Button>
+              </div>
+            </Card>
+          </motion.div>
+
+          {/* Delete Account */}
+          <motion.div variants={itemVariants}>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Card className="p-4 glass-card cursor-pointer hover:bg-destructive/5 transition-colors border-destructive/10">
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-full bg-destructive/10 flex items-center justify-center">
+                      <UserX className="h-5 w-5 text-destructive" />
+                    </div>
+                    <div>
+                      <h3 className="font-medium text-destructive">Delete Account</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Permanently remove your account and data
+                      </p>
+                    </div>
+                  </div>
+                </Card>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This action cannot be undone. This will permanently delete your account and
+                    remove all your data including purchases, goals, favorites, and settings.
+                    Any active subscription will be cancelled.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleDeleteAccount}
+                    disabled={isDeletingAccount}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    {isDeletingAccount ? 'Deleting...' : 'Delete my account'}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </motion.div>
 
           {/* Sign Out */}

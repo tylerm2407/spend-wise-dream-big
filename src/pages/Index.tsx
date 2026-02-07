@@ -211,6 +211,15 @@ export default function Index() {
               <PiggyBank className="h-3 w-3" /> Free to use
             </span>
           </div>
+          <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
+            <Link to="/privacy-policy" className="hover:text-primary hover:underline">
+              Privacy Policy
+            </Link>
+            <span>•</span>
+            <Link to="/terms-of-service" className="hover:text-primary hover:underline">
+              Terms of Service
+            </Link>
+          </div>
         </motion.div>
       </motion.main>
     </div>

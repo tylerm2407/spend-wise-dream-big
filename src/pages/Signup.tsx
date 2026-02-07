@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
+import { lovable } from '@/integrations/lovable/index';
 
 export default function Signup() {
   const [searchParams] = useSearchParams();
@@ -73,11 +74,26 @@ export default function Signup() {
   };
 
   const handleGoogleSignIn = async () => {
-    const { error } = await signInWithGoogle();
-    if (error) {
+    const result = await lovable.auth.signInWithOAuth('google', {
+      redirect_uri: window.location.origin,
+    });
+    if (result.error) {
       toast({
         title: 'Google sign in failed',
-        description: error.message,
+        description: result.error.message,
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleAppleSignIn = async () => {
+    const result = await lovable.auth.signInWithOAuth('apple', {
+      redirect_uri: window.location.origin,
+    });
+    if (result.error) {
+      toast({
+        title: 'Apple sign in failed',
+        description: result.error.message,
         variant: 'destructive',
       });
     }
@@ -235,12 +251,33 @@ export default function Signup() {
             Continue with Google
           </Button>
 
+          {/* Apple Sign In */}
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full h-12 touch-target mt-3"
+            onClick={handleAppleSignIn}
+          >
+            <svg className="h-5 w-5 mr-2" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/>
+            </svg>
+            Continue with Apple
+          </Button>
+
           {/* Login link */}
           <p className="mt-6 text-center text-sm text-muted-foreground">
             Already have an account?{' '}
             <Link to="/login" className="text-primary font-medium hover:underline">
               Sign in
             </Link>
+          </p>
+
+          {/* Legal links */}
+          <p className="mt-4 text-center text-xs text-muted-foreground">
+            By signing up, you agree to our{' '}
+            <Link to="/terms-of-service" className="text-primary hover:underline">Terms</Link>
+            {' '}and{' '}
+            <Link to="/privacy-policy" className="text-primary hover:underline">Privacy Policy</Link>
           </p>
         </motion.div>
       </div>
