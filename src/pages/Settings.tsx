@@ -45,6 +45,7 @@ import { useQuickAdds } from '@/hooks/useQuickAdds';
 import { useToast } from '@/hooks/use-toast';
 import { formatCurrency } from '@/lib/calculations';
 import { ReferralProgram } from '@/components/ReferralProgram';
+import { useBudgetNotifications } from '@/hooks/useBudgetNotifications';
 
 export default function Settings() {
   const navigate = useNavigate();
@@ -64,13 +65,12 @@ export default function Settings() {
     loading: subscriptionLoading 
   } = useSubscription();
   const { toast } = useToast();
-
+  const { enabled: budgetAlertsEnabled, toggleAlerts, permission, isSupported } = useBudgetNotifications();
   const [isDarkMode, setIsDarkMode] = useState(
     document.documentElement.classList.contains('dark')
   );
   const [returnRate, setReturnRate] = useState(7);
   const [includeInflation, setIncludeInflation] = useState(false);
-  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
   const [isPlaidConnecting, setIsPlaidConnecting] = useState(false);
   const [isQuickAddsOpen, setIsQuickAddsOpen] = useState(false);
@@ -587,7 +587,7 @@ export default function Settings() {
             </Card>
           </motion.div>
 
-          {/* Notifications */}
+          {/* Budget Alerts */}
           <motion.div variants={itemVariants}>
             <Card className="p-4 glass-card">
               <div className="flex items-center justify-between">
@@ -596,16 +596,34 @@ export default function Settings() {
                     <Bell className="h-5 w-5 text-muted-foreground" />
                   </div>
                   <div>
-                    <h3 className="font-medium">Daily Reminder</h3>
+                    <h3 className="font-medium">Budget Alerts</h3>
                     <p className="text-sm text-muted-foreground">
-                      "Log today's purchases?"
+                      {!isSupported
+                        ? 'Not supported in this browser'
+                        : permission === 'denied'
+                          ? 'Blocked — enable in browser settings'
+                          : budgetAlertsEnabled
+                            ? 'Alerts at 80% and 100% of daily budget'
+                            : 'Get notified when approaching your limit'}
                     </p>
                   </div>
                 </div>
                 <Switch
-                  checked={notificationsEnabled}
-                  onCheckedChange={setNotificationsEnabled}
-                  aria-label="Toggle notifications"
+                  checked={budgetAlertsEnabled}
+                  disabled={!isSupported || permission === 'denied'}
+                  onCheckedChange={async (val) => {
+                    const success = await toggleAlerts(val);
+                    if (!success) {
+                      toast({
+                        title: 'Permission denied',
+                        description: 'Please allow notifications in your browser settings.',
+                        variant: 'destructive',
+                      });
+                    } else if (val) {
+                      toast({ title: 'Budget alerts enabled', description: 'You\'ll be notified at 80% and 100% of your daily budget.' });
+                    }
+                  }}
+                  aria-label="Toggle budget alerts"
                 />
               </div>
             </Card>
