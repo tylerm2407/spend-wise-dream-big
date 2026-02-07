@@ -1,7 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
+import { useOnlineStatus } from './useOnlineStatus';
+import { addToOfflineQueue } from './useOfflineQueue';
 import { Database } from '@/integrations/supabase/types';
+import { toast } from 'sonner';
 
 type Purchase = Database['public']['Tables']['purchases']['Row'];
 type PurchaseInsert = Database['public']['Tables']['purchases']['Insert'];
@@ -9,6 +12,7 @@ type PurchaseInsert = Database['public']['Tables']['purchases']['Insert'];
 export function usePurchases() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const isOnline = useOnlineStatus();
 
   const { data: purchases = [], isLoading, error } = useQuery({
     queryKey: ['purchases', user?.id],
@@ -30,6 +34,13 @@ export function usePurchases() {
   const addPurchase = useMutation({
     mutationFn: async (purchase: Omit<PurchaseInsert, 'user_id'>) => {
       if (!user) throw new Error('Not authenticated');
+
+      // Queue for later if offline
+      if (!isOnline) {
+        addToOfflineQueue(purchase);
+        toast.info('Saved offline — will sync when you reconnect');
+        return null;
+      }
       
       const { data, error } = await supabase
         .from('purchases')
