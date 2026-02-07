@@ -7,11 +7,20 @@ import {
   Trash2,
   Filter,
   TrendingUp,
-  Calendar
+  Calendar,
+  Pencil,
+  DollarSign
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import {
   Select,
   SelectContent,
@@ -20,6 +29,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { usePurchases } from '@/hooks/usePurchases';
+import { useToast } from '@/hooks/use-toast';
 import { formatCurrency, calculateCostBreakdown } from '@/lib/calculations';
 import { cn } from '@/lib/utils';
 import { Database } from '@/integrations/supabase/types';
@@ -39,12 +49,70 @@ const CATEGORY_ICONS: Record<PurchaseCategory, string> = {
   other: '📦',
 };
 
+const CATEGORIES: { value: PurchaseCategory; label: string }[] = [
+  { value: 'dining', label: 'Dining' },
+  { value: 'shopping', label: 'Shopping' },
+  { value: 'transportation', label: 'Transportation' },
+  { value: 'entertainment', label: 'Entertainment' },
+  { value: 'subscriptions', label: 'Subscriptions' },
+  { value: 'groceries', label: 'Groceries' },
+  { value: 'health', label: 'Health' },
+  { value: 'utilities', label: 'Utilities' },
+  { value: 'travel', label: 'Travel' },
+  { value: 'other', label: 'Other' },
+];
+
 export default function History() {
   const navigate = useNavigate();
-  const { purchases, deletePurchase, categoryTotals } = usePurchases();
+  const { purchases, deletePurchase, updatePurchase, categoryTotals } = usePurchases();
+  const { toast } = useToast();
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [showStats, setShowStats] = useState(false);
+
+  // Edit dialog state
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingPurchase, setEditingPurchase] = useState<{
+    id: string;
+    item_name: string;
+    amount: string;
+    category: PurchaseCategory;
+  } | null>(null);
+
+  const openEditDialog = (purchase: typeof purchases[0]) => {
+    setEditingPurchase({
+      id: purchase.id,
+      item_name: purchase.item_name,
+      amount: String(purchase.amount),
+      category: purchase.category,
+    });
+    setEditDialogOpen(true);
+  };
+
+  const handleSaveEdit = () => {
+    if (!editingPurchase) return;
+    const numAmount = parseFloat(editingPurchase.amount);
+    if (!numAmount || numAmount <= 0 || !editingPurchase.item_name.trim()) {
+      toast({
+        title: 'Invalid input',
+        description: 'Please enter a valid name and amount.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    updatePurchase({
+      id: editingPurchase.id,
+      item_name: editingPurchase.item_name.trim(),
+      amount: numAmount,
+      category: editingPurchase.category,
+    }, {
+      onSuccess: () => {
+        toast({ title: 'Purchase updated' });
+        setEditDialogOpen(false);
+      },
+    });
+  };
 
   const filteredPurchases = purchases.filter((p) => {
     const matchesSearch = p.item_name.toLowerCase().includes(search.toLowerCase());
@@ -225,15 +293,26 @@ export default function History() {
                               </div>
                             </div>
                           </div>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-destructive hover:text-destructive hover:bg-destructive/10 flex-shrink-0"
-                            onClick={() => deletePurchase(purchase.id)}
-                            aria-label="Delete purchase"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          <div className="flex flex-col gap-1 flex-shrink-0">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                              onClick={() => openEditDialog(purchase)}
+                              aria-label="Edit purchase"
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                              onClick={() => deletePurchase(purchase.id)}
+                              aria-label="Delete purchase"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </div>
                       </Card>
                     </motion.div>
@@ -244,6 +323,66 @@ export default function History() {
           ))
         )}
       </main>
+
+      {/* Edit Purchase Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Purchase</DialogTitle>
+          </DialogHeader>
+          {editingPurchase && (
+            <div className="space-y-4 pt-4">
+              <div className="space-y-2">
+                <Label htmlFor="editItemName">Item Name</Label>
+                <Input
+                  id="editItemName"
+                  value={editingPurchase.item_name}
+                  onChange={(e) => setEditingPurchase({ ...editingPurchase, item_name: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="editAmount">Amount</Label>
+                <div className="relative">
+                  <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                  <Input
+                    id="editAmount"
+                    type="number"
+                    value={editingPurchase.amount}
+                    onChange={(e) => setEditingPurchase({ ...editingPurchase, amount: e.target.value })}
+                    className="pl-10"
+                    step="0.01"
+                    min="0"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Category</Label>
+                <Select
+                  value={editingPurchase.category}
+                  onValueChange={(v) => setEditingPurchase({ ...editingPurchase, category: v as PurchaseCategory })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CATEGORIES.map((cat) => (
+                      <SelectItem key={cat.value} value={cat.value}>
+                        {CATEGORY_ICONS[cat.value]} {cat.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button
+                onClick={handleSaveEdit}
+                className="w-full bg-gradient-primary"
+              >
+                Save Changes
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
