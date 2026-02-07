@@ -95,8 +95,8 @@ export function usePurchases() {
   const monthlyTotal = monthlyPurchases.reduce((sum, p) => sum + Number(p.amount), 0);
   const lastMonthTotal = lastMonthPurchases.reduce((sum, p) => sum + Number(p.amount), 0);
 
-  // Category breakdown
-  const categoryTotals = purchases.reduce((acc, p) => {
+  // Category breakdown — current month only
+  const categoryTotals = monthlyPurchases.reduce((acc, p) => {
     acc[p.category] = (acc[p.category] || 0) + Number(p.amount);
     return acc;
   }, {} as Record<string, number>);
