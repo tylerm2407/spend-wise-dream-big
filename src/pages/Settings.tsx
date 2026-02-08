@@ -12,7 +12,6 @@ import {
   Bell,
   ChevronRight,
   LogOut,
-  Link as LinkIcon,
   Clock,
   DollarSign,
   Zap,
@@ -83,10 +82,24 @@ export default function Settings() {
   const [isDarkMode, setIsDarkMode] = useState(
     document.documentElement.classList.contains('dark')
   );
-  const [returnRate, setReturnRate] = useState(7);
-  const [includeInflation, setIncludeInflation] = useState(false);
+  const [returnRate, setReturnRate] = useState(() => {
+    const saved = localStorage.getItem('truecost_return_rate');
+    return saved ? Number(saved) : 7;
+  });
+  const [includeInflation, setIncludeInflation] = useState(() => {
+    return localStorage.getItem('truecost_include_inflation') === 'true';
+  });
+
+  const handleReturnRateChange = (v: number[]) => {
+    setReturnRate(v[0]);
+    localStorage.setItem('truecost_return_rate', String(v[0]));
+  };
+
+  const handleInflationChange = (checked: boolean) => {
+    setIncludeInflation(checked);
+    localStorage.setItem('truecost_include_inflation', String(checked));
+  };
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
-  const [isPlaidConnecting, setIsPlaidConnecting] = useState(false);
   const [isQuickAddsOpen, setIsQuickAddsOpen] = useState(false);
   const [newQuickAdd, setNewQuickAdd] = useState({ item_name: '', amount: '' });
   const [wageInputMode, setWageInputMode] = useState<'hourly' | 'yearly'>('hourly');
@@ -190,15 +203,7 @@ export default function Settings() {
     });
   };
 
-  const handleConnectPlaid = async () => {
-    setIsPlaidConnecting(true);
-    // Placeholder for Plaid integration
-    toast({
-      title: 'Connect Card',
-      description: 'Card linking feature is being set up. Please configure your Plaid API key.',
-    });
-    setIsPlaidConnecting(false);
-  };
+
 
   const handleSignOut = async () => {
     await signOut();
@@ -210,26 +215,12 @@ export default function Settings() {
   const handleDeleteAccount = async () => {
     setIsDeletingAccount(true);
     try {
-      // Delete user data from all tables
-      const userId = user?.id;
-      if (!userId) throw new Error('No user found');
+      const { data, error: fnError } = await supabase.functions.invoke('delete-account');
+      
+      if (fnError || data?.error) {
+        throw new Error(fnError?.message || data?.error);
+      }
 
-      // Delete in order to respect foreign keys
-      await supabase.from('price_notifications').delete().eq('user_id', userId);
-      await supabase.from('price_alerts').delete().eq('user_id', userId);
-      await supabase.from('purchase_patterns').delete().eq('user_id', userId);
-      await supabase.from('price_history').delete().eq('user_id', userId);
-      await supabase.from('saved_alternatives').delete().eq('user_id', userId);
-      await supabase.from('weekly_challenges').delete().eq('user_id', userId);
-      await supabase.from('achievements').delete().eq('user_id', userId);
-      await supabase.from('favorites').delete().eq('user_id', userId);
-      await supabase.from('quick_adds').delete().eq('user_id', userId);
-      await supabase.from('purchases').delete().eq('user_id', userId);
-      await supabase.from('goals').delete().eq('user_id', userId);
-      await supabase.from('referrals').delete().eq('referrer_id', userId);
-      await supabase.from('profiles').delete().eq('user_id', userId);
-
-      // Sign out (account deletion from auth handled server-side)
       await signOut();
       toast({
         title: 'Account deleted',
@@ -349,7 +340,7 @@ export default function Settings() {
                       ? `Renews ${new Date(subscriptionEnd).toLocaleDateString()}`
                       : isInTrial 
                         ? `${trialDaysRemaining} days remaining`
-                        : 'Subscribe to continue using SpendWise'
+                        : 'Subscribe to continue using True Cost'
                     }
                   </p>
                 </div>
@@ -399,7 +390,7 @@ export default function Settings() {
               ) : (
                 <div className="space-y-3">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">SpendWise Premium</span>
+                    <span className="text-muted-foreground">True Cost Premium</span>
                     <span className="font-semibold">$5/month</span>
                   </div>
                   <Button 
@@ -619,34 +610,6 @@ export default function Settings() {
             </Card>
           </motion.div>
 
-          {/* Connect Card (Plaid) */}
-          <motion.div variants={itemVariants}>
-            <Card className="p-4 glass-card">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-full bg-cta/10 flex items-center justify-center">
-                    <CreditCard className="h-5 w-5 text-cta" />
-                  </div>
-                  <div>
-                    <h3 className="font-medium">Link Credit Card</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Auto-import purchases
-                    </p>
-                  </div>
-                </div>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={handleConnectPlaid}
-                  disabled={isPlaidConnecting}
-                >
-                  <LinkIcon className="h-4 w-4 mr-2" />
-                  Connect
-                </Button>
-              </div>
-            </Card>
-          </motion.div>
-
           {/* Appearance */}
           <motion.div variants={itemVariants}>
             <Card className="p-4 glass-card">
@@ -748,7 +711,7 @@ export default function Settings() {
                       </div>
                       <Slider
                         value={[returnRate]}
-                        onValueChange={(v) => setReturnRate(v[0])}
+                        onValueChange={handleReturnRateChange}
                         min={3}
                         max={12}
                         step={1}
@@ -768,7 +731,7 @@ export default function Settings() {
                       </div>
                       <Switch
                         checked={includeInflation}
-                        onCheckedChange={setIncludeInflation}
+                        onCheckedChange={handleInflationChange}
                         aria-label="Toggle inflation adjustment"
                       />
                     </div>

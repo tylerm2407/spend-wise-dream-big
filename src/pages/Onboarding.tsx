@@ -85,7 +85,7 @@ export default function Onboarding() {
         name: name || null,
         monthly_income: monthlyIncome ? parseFloat(monthlyIncome) : null,
         hourly_wage: calculatedHourlyWage,
-        onboarding_completed: true,
+        // Don't mark onboarding complete until step 4 is done
       });
 
       setIsSubmitting(false);
@@ -110,11 +110,15 @@ export default function Onboarding() {
       onSuccess: () => {
         setFirstPurchaseLogged(true);
         toast({ title: '🎉 First purchase logged!' });
+        // Mark onboarding as completed after first purchase
+        updateProfileAsync({ onboarding_completed: true });
       },
     });
   };
 
   const handleFinish = () => {
+    // Also mark as complete when skipping / finishing step 4
+    updateProfileAsync({ onboarding_completed: true });
     navigate('/home');
   };
   const stepVariants = {

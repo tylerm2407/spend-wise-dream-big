@@ -66,7 +66,7 @@ import {
            </div>
            <CardTitle className="text-2xl">Your Free Trial Has Ended</CardTitle>
            <CardDescription className="text-base mt-2">
-             Continue your journey to financial wellness with SpendWise Premium
+             Continue your journey to financial wellness with True Cost Premium
            </CardDescription>
          </CardHeader>
          <CardContent className="space-y-6">
