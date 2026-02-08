@@ -32,6 +32,7 @@ import { SmarterSpendingSuggestions } from '@/components/SmarterSpendingSuggesti
 import { StreakDisplay } from '@/components/StreakDisplay';
 import { DailyBudgetTracker } from '@/components/DailyBudgetTracker';
 import { WeeklyRecapCard } from '@/components/WeeklyRecapCard';
+import { MonthlyRecapCard } from '@/components/MonthlyRecapCard';
 import { formatCurrency, calculateGoalProgress, getGoalStatus } from '@/lib/calculations';
 import { cn } from '@/lib/utils';
 
@@ -148,6 +149,9 @@ export default function Home() {
               </motion.div>
             )}
           </AnimatePresence>
+          {/* Monthly Recap */}
+          <MonthlyRecapCard />
+
           {/* Weekly Recap */}
           <WeeklyRecapCard />
 
