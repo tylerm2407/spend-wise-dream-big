@@ -42,6 +42,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useGoals } from '@/hooks/useGoals';
+import { useGoalMilestones } from '@/hooks/useGoalMilestones';
 import { useToast } from '@/hooks/use-toast';
 import { ProgressRing } from '@/components/ui/ProgressRing';
 import { formatCurrency, calculateGoalProgress } from '@/lib/calculations';
@@ -53,6 +54,7 @@ type GoalPriority = Database['public']['Enums']['goal_priority'];
 export default function Goals() {
   const navigate = useNavigate();
   const { goals, addGoal, updateGoal, deleteGoal, setPrimaryGoal, isAdding } = useGoals();
+  const { checkAndCelebrateMilestones } = useGoalMilestones();
   const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   
@@ -118,7 +120,10 @@ export default function Goals() {
       return;
     }
 
+    const previousProgress = calculateGoalProgress(progressGoal.currentAmount, progressGoal.targetAmount);
     const newAmount = progressGoal.currentAmount + addAmount;
+    const newProgress = calculateGoalProgress(newAmount, progressGoal.targetAmount);
+
     updateGoal({ id: progressGoal.id, current_amount: newAmount });
     setProgressDialogOpen(false);
     
@@ -134,6 +139,8 @@ export default function Goals() {
         description: 'Congratulations on reaching your goal!',
       });
     } else {
+      // Check for milestone celebrations (25%, 50%, 75%)
+      checkAndCelebrateMilestones(progressGoal.id, progressGoal.name, previousProgress, newProgress);
       toast({
         title: 'Progress updated',
         description: `Added ${formatCurrency(addAmount)} to "${progressGoal.name}"`,
