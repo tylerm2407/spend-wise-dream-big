@@ -112,10 +112,6 @@ export function useMonthlyRecap() {
   }, [purchases, profile?.monthly_income, goals]);
 
   const currentMonthId = getMonthId(new Date());
-  // Reset any previous dismiss so the card is visible again
-  if (typeof window !== 'undefined') {
-    localStorage.removeItem(RECAP_DISMISSED_KEY);
-  }
   const dismissedMonth = localStorage.getItem(RECAP_DISMISSED_KEY);
   const shouldShow = recap !== null && dismissedMonth !== currentMonthId;
 
