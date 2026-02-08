@@ -157,27 +157,6 @@ export default function Signup() {
               </div>
             </div>
 
-            {/* Referral Code */}
-            <div className="space-y-2">
-              <Label htmlFor="referralCode" className="flex items-center gap-2">
-                <Gift className="h-4 w-4 text-primary" />
-                Referral Code (optional)
-              </Label>
-              <Input
-                id="referralCode"
-                value={referralCode}
-                onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
-                placeholder="e.g. A1B2C3D4"
-                className="h-12 touch-target font-mono tracking-widest"
-                aria-label="Referral code"
-              />
-              {referralCode && (
-                <p className="text-xs text-success">
-                  🎉 Referral code will be applied after you verify your email
-                </p>
-              )}
-            </div>
-
             <div className="space-y-2">
               <Label htmlFor="confirmPassword">Confirm Password</Label>
               <div className="relative">
@@ -209,6 +188,27 @@ export default function Signup() {
                 </>
               )}
             </Button>
+
+            {/* Referral Code */}
+            <div className="space-y-2 mt-4">
+              <Label htmlFor="referralCode" className="flex items-center gap-2">
+                <Gift className="h-4 w-4 text-primary" />
+                Referral Code (optional)
+              </Label>
+              <Input
+                id="referralCode"
+                value={referralCode}
+                onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+                placeholder="e.g. A1B2C3D4"
+                className="h-12 touch-target font-mono tracking-widest"
+                aria-label="Referral code"
+              />
+              {referralCode && (
+                <p className="text-xs text-success">
+                  🎉 Referral code will be applied after you verify your email
+                </p>
+              )}
+            </div>
           </form>
 
           {/* Divider */}

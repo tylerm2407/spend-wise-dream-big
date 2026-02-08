@@ -18,7 +18,6 @@ import { useGoals } from '@/hooks/useGoals';
 import { useProfile } from '@/hooks/useProfile';
 import { SpendingCharts } from '@/components/SpendingCharts';
 import { OpportunityCostCalculator } from '@/components/OpportunityCostCalculator';
-import { CreditCardLinking } from '@/components/CreditCardLinking';
 import { WhatIfSimulator } from '@/components/WhatIfSimulator';
 import { formatCurrency, calculateInvestmentGrowth } from '@/lib/calculations';
 import { cn } from '@/lib/utils';
@@ -93,6 +92,23 @@ export default function Insights() {
           </p>
         </header>
 
+        {purchases.length === 0 ? (
+          <div className="px-6 py-12 text-center">
+            <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-primary/10 flex items-center justify-center">
+              <PieChart className="h-10 w-10 text-primary" />
+            </div>
+            <h2 className="text-xl font-semibold mb-2">No spending data yet</h2>
+            <p className="text-muted-foreground mb-6 max-w-xs mx-auto">
+              Start logging purchases to unlock insights about your spending patterns.
+            </p>
+            <Link to="/add-purchase">
+              <Button className="bg-gradient-primary">
+                <ArrowRight className="h-4 w-4 mr-2" />
+                Log Your First Purchase
+              </Button>
+            </Link>
+          </div>
+        ) : (
         <motion.main
           variants={containerVariants}
           initial="hidden"
@@ -123,11 +139,6 @@ export default function Insights() {
                 vs {formatCurrency(lastMonthTotal, 0)} last month
               </p>
             </Card>
-          </motion.div>
-
-          {/* Credit Card Linking */}
-          <motion.div variants={itemVariants}>
-            <CreditCardLinking />
           </motion.div>
 
           {/* Opportunity Cost Calculator */}
@@ -235,6 +246,7 @@ export default function Insights() {
             </Link>
           </motion.div>
         </motion.main>
+        )}
       </div>
     </AppLayout>
   );
