@@ -46,26 +46,21 @@ serve(async (req) => {
       )
       .join("; ");
 
-    const prompt = `Here is a user's monthly spending recap for ${monthLabel}:
+    const prompt = `Monthly spending recap for ${monthLabel}:
 
-- Total spent: $${totalSpent.toFixed(2)}
-- Monthly income: ${monthlyIncome ? `$${monthlyIncome.toFixed(2)}` : "not set"}
-- Savings rate: ${savingsRate !== null ? `${savingsRate}%` : "unknown"}
-- Number of purchases: ${purchaseCount}
-- Daily average: $${dailyAverage.toFixed(2)}
-- No-spend days: ${daysWithNoPurchases}
-- Compared to last month: ${comparedToLastMonth !== null ? `${comparedToLastMonth > 0 ? "+" : ""}${comparedToLastMonth}% (last month was $${lastMonthTotal.toFixed(2)})` : "no previous data"}
-- Category breakdown: ${categorySummary || "none"}
-- Active goals: ${goalSummary || "none set"}
+- Total: $${totalSpent.toFixed(2)} | Daily avg: $${dailyAverage.toFixed(2)} | Purchases: ${purchaseCount} | No-spend days: ${daysWithNoPurchases}
+- Income: ${monthlyIncome ? `$${monthlyIncome.toFixed(2)}` : "not set"} | Savings rate: ${savingsRate !== null ? `${savingsRate}%` : "unknown"}
+- vs Last month: ${comparedToLastMonth !== null ? `${comparedToLastMonth > 0 ? "+" : ""}${comparedToLastMonth}% ($${lastMonthTotal.toFixed(2)})` : "no data"}
+- Categories: ${categorySummary || "none"}
+- Goals: ${goalSummary || "none set"}
 
-Write a brief, personalized monthly spending summary (3-5 short paragraphs, use markdown). Be encouraging but honest. Include:
-1. A quick overview of their month
-2. One specific area where they're doing well
-3. One or two concrete, actionable suggestions to save more money (reference their actual categories and amounts)
-4. If they have goals, mention how their spending habits affect goal progress and what they could change
-5. End with a motivating one-liner
+Write a short, punchy monthly summary (2-3 paragraphs max, use markdown). Structure it as:
 
-Keep it friendly, concise, and specific to THEIR data. Don't be generic. Use dollar amounts from their data.`;
+1. **Quick month overview** (1-2 sentences with their actual numbers)
+2. **Cheaper alternatives for their top spending categories** — For each of their top 2-3 categories, suggest 1-2 specific, actionable swaps (e.g. "Your $${(categoryBreakdown?.[0]?.amount || 0).toFixed(0)} on dining — try meal-prepping lunches or switching from Starbucks to brewing at home to save ~40%"). Be brand-specific and practical.
+3. **Goal acceleration** — If they have goals, calculate how much faster they'd reach them by adopting your suggested swaps. Be specific: "Switching to home coffee alone could add ~$X/month toward your [goal name], getting you there Y weeks sooner." If no goals, skip this.
+
+Keep it under 150 words total. Be direct, specific to THEIR data, and reference actual dollar amounts.`;
 
     const response = await fetch(
       "https://ai.gateway.lovable.dev/v1/chat/completions",
