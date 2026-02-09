@@ -42,6 +42,7 @@ import {
 import { usePurchases } from '@/hooks/usePurchases';
 import { useToast } from '@/hooks/use-toast';
 import { formatCurrency, calculateCostBreakdown } from '@/lib/calculations';
+import { ExportCSVDialog } from '@/components/ExportCSVDialog';
 import { cn } from '@/lib/utils';
 import { Database } from '@/integrations/supabase/types';
 
@@ -158,7 +159,8 @@ export default function History() {
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <h1 className="text-xl font-bold">Purchase History</h1>
+          <h1 className="text-xl font-bold flex-1">Purchase History</h1>
+          <ExportCSVDialog purchases={purchases} />
         </div>
 
         {/* Search & Filter */}
