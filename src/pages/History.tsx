@@ -43,6 +43,7 @@ import { usePurchases } from '@/hooks/usePurchases';
 import { useToast } from '@/hooks/use-toast';
 import { formatCurrency, calculateCostBreakdown } from '@/lib/calculations';
 import { ExportCSVDialog } from '@/components/ExportCSVDialog';
+import { HistorySkeleton, ErrorState } from '@/components/PageSkeletons';
 import { cn } from '@/lib/utils';
 import { Database } from '@/integrations/supabase/types';
 
@@ -76,7 +77,7 @@ const CATEGORIES: { value: PurchaseCategory; label: string }[] = [
 
 export default function History() {
   const navigate = useNavigate();
-  const { purchases, deletePurchase, updatePurchase, categoryTotals } = usePurchases();
+  const { purchases, deletePurchase, updatePurchase, categoryTotals, isLoading, error } = usePurchases();
   const { toast } = useToast();
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
@@ -146,10 +147,42 @@ export default function History() {
     return acc;
   }, {} as Record<string, typeof purchases>);
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-hero pb-6">
+        <header className="sticky top-0 z-10 bg-background/80 backdrop-blur-lg px-6 py-4 border-b border-border pt-[env(safe-area-inset-top)]">
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="icon" onClick={() => navigate('/home')} className="rounded-full">
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <h1 className="text-xl font-bold flex-1">Purchase History</h1>
+          </div>
+        </header>
+        <HistorySkeleton />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-hero pb-6">
+        <header className="sticky top-0 z-10 bg-background/80 backdrop-blur-lg px-6 py-4 border-b border-border pt-[env(safe-area-inset-top)]">
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="icon" onClick={() => navigate('/home')} className="rounded-full">
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <h1 className="text-xl font-bold flex-1">Purchase History</h1>
+          </div>
+        </header>
+        <ErrorState onRetry={() => window.location.reload()} />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-hero pb-6">
       {/* Header */}
-      <header className="sticky top-0 z-10 bg-background/80 backdrop-blur-lg px-6 py-4 border-b border-border">
+      <header className="sticky top-0 z-10 bg-background/80 backdrop-blur-lg px-6 py-4 border-b border-border pt-[env(safe-area-inset-top)]">
         <div className="flex items-center gap-4 mb-4">
           <Button
             variant="ghost"

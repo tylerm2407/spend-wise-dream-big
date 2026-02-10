@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -33,18 +33,33 @@ import { StreakDisplay } from '@/components/StreakDisplay';
 import { DailyBudgetTracker } from '@/components/DailyBudgetTracker';
 import { WeeklyRecapCard } from '@/components/WeeklyRecapCard';
 import { MonthlyRecapCard } from '@/components/MonthlyRecapCard';
+import { PullToRefresh } from '@/components/PullToRefresh';
+import { HomeSkeleton, ErrorState } from '@/components/PageSkeletons';
 import { formatCurrency, calculateGoalProgress, getGoalStatus } from '@/lib/calculations';
 import { cn } from '@/lib/utils';
+import { useQueryClient } from '@tanstack/react-query';
 
 export default function Home() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { profile, isLoading: profileLoading } = useProfile();
-  const { purchases, monthlyTotal, monthlyChange, topCategory, recentPurchases } = usePurchases();
-  const { primaryGoal, activeGoals } = useGoals();
+  const { profile, isLoading: profileLoading, error: profileError } = useProfile();
+  const { purchases, monthlyTotal, monthlyChange, topCategory, recentPurchases, isLoading: purchasesLoading, error: purchasesError } = usePurchases();
+  const { primaryGoal, activeGoals, isLoading: goalsLoading, error: goalsError } = useGoals();
   const { haptic } = useHaptics();
   const { currentChallenge, progressPercent } = useWeeklyChallenge();
   const { currentStreak, longestStreak, streakFreezesRemaining, streakEvent, welcomeMessage, encouragementMessage, dismissStreakEvent } = useStreaks();
+  const queryClient = useQueryClient();
+
+  const isLoading = profileLoading || purchasesLoading || goalsLoading;
+  const hasError = profileError || purchasesError || goalsError;
+
+  const handleRefresh = useCallback(async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['purchases', user?.id] }),
+      queryClient.invalidateQueries({ queryKey: ['profile', user?.id] }),
+      queryClient.invalidateQueries({ queryKey: ['goals', user?.id] }),
+    ]);
+  }, [queryClient, user?.id]);
 
   useEffect(() => {
     if (!profileLoading && profile && !profile.onboarding_completed) {
@@ -84,8 +99,29 @@ export default function Home() {
     visible: { opacity: 1, y: 0 },
   };
 
+  if (isLoading) {
+    return (
+      <AppLayout>
+        <div className="min-h-screen bg-gradient-hero">
+          <HomeSkeleton />
+        </div>
+      </AppLayout>
+    );
+  }
+
+  if (hasError) {
+    return (
+      <AppLayout>
+        <div className="min-h-screen bg-gradient-hero">
+          <ErrorState onRetry={handleRefresh} />
+        </div>
+      </AppLayout>
+    );
+  }
+
   return (
     <AppLayout>
+      <PullToRefresh onRefresh={handleRefresh}>
       <div className="min-h-screen bg-gradient-hero">
         {/* Header */}
         <header className="px-6 pt-6 pb-4">
@@ -389,6 +425,7 @@ export default function Home() {
           )}
         </motion.main>
       </div>
+      </PullToRefresh>
     </AppLayout>
   );
 }

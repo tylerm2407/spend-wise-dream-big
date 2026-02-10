@@ -14,7 +14,7 @@ export function AppLayout({ children, showTabBar = true }: AppLayoutProps) {
   useOfflineSync();
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pt-[env(safe-area-inset-top)]">
       <OfflineBanner />
       {/* Notification bell - fixed position */}
       <div className="fixed top-4 right-4 z-50">

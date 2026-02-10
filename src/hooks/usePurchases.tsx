@@ -51,7 +51,34 @@ export function usePurchases() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onMutate: async (newPurchase) => {
+      await queryClient.cancelQueries({ queryKey: ['purchases', user?.id] });
+      const previous = queryClient.getQueryData<Purchase[]>(['purchases', user?.id]);
+      
+      // Optimistically add the purchase
+      const optimistic: Purchase = {
+        id: `temp-${Date.now()}`,
+        user_id: user?.id ?? '',
+        item_name: newPurchase.item_name,
+        amount: newPurchase.amount,
+        category: newPurchase.category,
+        frequency: newPurchase.frequency ?? 'one-time',
+        purchase_date: newPurchase.purchase_date ?? new Date().toISOString().split('T')[0],
+        notes: newPurchase.notes ?? null,
+        custom_frequency_days: newPurchase.custom_frequency_days ?? null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      
+      queryClient.setQueryData<Purchase[]>(['purchases', user?.id], (old = []) => [optimistic, ...old]);
+      return { previous };
+    },
+    onError: (_err, _newPurchase, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(['purchases', user?.id], context.previous);
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['purchases', user?.id] });
     },
   });

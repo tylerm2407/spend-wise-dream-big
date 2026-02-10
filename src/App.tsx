@@ -30,7 +30,15 @@ const SubscriptionSuccess = lazy(() => import("./pages/SubscriptionSuccess"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const TermsOfService = lazy(() => import("./pages/TermsOfService"));
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 2,
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
+      staleTime: 1000 * 60 * 2, // 2 minutes
+    },
+  },
+});
 
 // Initialize theme from localStorage
 function ThemeInitializer() {

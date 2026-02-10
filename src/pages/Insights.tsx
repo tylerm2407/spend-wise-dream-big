@@ -19,6 +19,7 @@ import { useProfile } from '@/hooks/useProfile';
 import { SpendingCharts } from '@/components/SpendingCharts';
 import { OpportunityCostCalculator } from '@/components/OpportunityCostCalculator';
 import { WhatIfSimulator } from '@/components/WhatIfSimulator';
+import { InsightsSkeleton, ErrorState } from '@/components/PageSkeletons';
 import { formatCurrency, calculateInvestmentGrowth } from '@/lib/calculations';
 import { cn } from '@/lib/utils';
 import { Database } from '@/integrations/supabase/types';
@@ -39,7 +40,7 @@ const CATEGORY_ICONS: Record<PurchaseCategory, string> = {
 };
 
 export default function Insights() {
-  const { purchases, monthlyTotal, lastMonthTotal, monthlyChange, categoryTotals, topCategory } = usePurchases();
+  const { purchases, monthlyTotal, lastMonthTotal, monthlyChange, categoryTotals, topCategory, isLoading, error } = usePurchases();
   const { primaryGoal } = useGoals();
   const { profile } = useProfile();
   const [selectedTimeframe, setSelectedTimeframe] = useState<'week' | 'month' | 'year'>('month');
@@ -80,6 +81,33 @@ export default function Insights() {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0 },
   };
+
+  if (isLoading) {
+    return (
+      <AppLayout>
+        <div className="min-h-screen bg-gradient-hero">
+          <header className="px-6 pt-6 pb-4">
+            <h1 className="text-2xl font-bold">Insights</h1>
+            <p className="text-muted-foreground text-sm mt-1">Understand your spending patterns</p>
+          </header>
+          <InsightsSkeleton />
+        </div>
+      </AppLayout>
+    );
+  }
+
+  if (error) {
+    return (
+      <AppLayout>
+        <div className="min-h-screen bg-gradient-hero">
+          <header className="px-6 pt-6 pb-4">
+            <h1 className="text-2xl font-bold">Insights</h1>
+          </header>
+          <ErrorState onRetry={() => window.location.reload()} />
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>

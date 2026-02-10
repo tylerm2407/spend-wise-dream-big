@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, useRef, ReactNode } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -20,10 +20,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const hadSession = useRef(false);
+
   useEffect(() => {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        // Detect session expiry: had a session before, now signed out
+        if (event === 'SIGNED_OUT' && hadSession.current) {
+          hadSession.current = false;
+          // Use setTimeout to avoid state update conflicts
+          setTimeout(() => {
+            import('sonner').then(({ toast }) => {
+              toast.info('Your session has expired. Please sign in again.');
+            });
+          }, 100);
+        }
+        if (session) hadSession.current = true;
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);

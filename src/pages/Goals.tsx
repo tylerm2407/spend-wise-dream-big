@@ -45,6 +45,7 @@ import { useGoals } from '@/hooks/useGoals';
 import { useGoalMilestones } from '@/hooks/useGoalMilestones';
 import { useToast } from '@/hooks/use-toast';
 import { ProgressRing } from '@/components/ui/ProgressRing';
+import { GoalsSkeleton, ErrorState } from '@/components/PageSkeletons';
 import { formatCurrency, calculateGoalProgress } from '@/lib/calculations';
 import { cn } from '@/lib/utils';
 import { Database } from '@/integrations/supabase/types';
@@ -53,7 +54,7 @@ type GoalPriority = Database['public']['Enums']['goal_priority'];
 
 export default function Goals() {
   const navigate = useNavigate();
-  const { goals, addGoal, updateGoal, deleteGoal, setPrimaryGoal, isAdding } = useGoals();
+  const { goals, addGoal, updateGoal, deleteGoal, setPrimaryGoal, isAdding, isLoading, error } = useGoals();
   const { checkAndCelebrateMilestones } = useGoalMilestones();
   const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -155,10 +156,42 @@ export default function Goals() {
     setPriority('medium');
   };
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-hero pb-6">
+        <header className="sticky top-0 z-10 bg-background/80 backdrop-blur-lg px-6 py-4 border-b border-border pt-[env(safe-area-inset-top)]">
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="icon" onClick={() => navigate('/home')} className="rounded-full">
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <h1 className="text-xl font-bold">Goals</h1>
+          </div>
+        </header>
+        <GoalsSkeleton />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-hero pb-6">
+        <header className="sticky top-0 z-10 bg-background/80 backdrop-blur-lg px-6 py-4 border-b border-border pt-[env(safe-area-inset-top)]">
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="icon" onClick={() => navigate('/home')} className="rounded-full">
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <h1 className="text-xl font-bold">Goals</h1>
+          </div>
+        </header>
+        <ErrorState onRetry={() => window.location.reload()} />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-hero pb-6">
       {/* Header */}
-      <header className="sticky top-0 z-10 bg-background/80 backdrop-blur-lg px-6 py-4 border-b border-border">
+      <header className="sticky top-0 z-10 bg-background/80 backdrop-blur-lg px-6 py-4 border-b border-border pt-[env(safe-area-inset-top)]">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Button
