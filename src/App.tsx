@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, lazy, Suspense } from 'react';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -9,24 +9,26 @@ import { SubscriptionProvider } from "@/hooks/useSubscription";
 import { SubscriptionGate, TrialBanner } from "@/components/SubscriptionGate";
 import { ReferralCodeApplier } from "@/components/ReferralCodeApplier";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import Index from "./pages/Index";
-import Login from "./pages/Login";
-import Signup from "./pages/Signup";
-import ForgotPassword from "./pages/ForgotPassword";
-import ResetPassword from "./pages/ResetPassword";
-import Onboarding from "./pages/Onboarding";
-import Home from "./pages/Home";
-import AddPurchase from "./pages/AddPurchase";
-import History from "./pages/History";
-import Goals from "./pages/Goals";
-import Insights from "./pages/Insights";
-import Alternatives from "./pages/Alternatives";
-import Challenges from "./pages/Challenges";
-import Settings from "./pages/Settings";
-import NotFound from "./pages/NotFound";
-import SubscriptionSuccess from "./pages/SubscriptionSuccess";
-import PrivacyPolicy from "./pages/PrivacyPolicy";
-import TermsOfService from "./pages/TermsOfService";
+
+// Lazy-loaded route components
+const Index = lazy(() => import("./pages/Index"));
+const Login = lazy(() => import("./pages/Login"));
+const Signup = lazy(() => import("./pages/Signup"));
+const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
+const Onboarding = lazy(() => import("./pages/Onboarding"));
+const Home = lazy(() => import("./pages/Home"));
+const AddPurchase = lazy(() => import("./pages/AddPurchase"));
+const History = lazy(() => import("./pages/History"));
+const Goals = lazy(() => import("./pages/Goals"));
+const Insights = lazy(() => import("./pages/Insights"));
+const Alternatives = lazy(() => import("./pages/Alternatives"));
+const Challenges = lazy(() => import("./pages/Challenges"));
+const Settings = lazy(() => import("./pages/Settings"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const SubscriptionSuccess = lazy(() => import("./pages/SubscriptionSuccess"));
+const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
+const TermsOfService = lazy(() => import("./pages/TermsOfService"));
 
 const queryClient = new QueryClient();
 
@@ -92,38 +94,48 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+function RouteFallback() {
+  return (
+    <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+    </div>
+  );
+}
+
 function AppRoutes() {
   return (
-    <Routes>
-      {/* Public routes */}
-      <Route path="/" element={<PublicRoute><Index /></PublicRoute>} />
-      <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
-      <Route path="/signup" element={<PublicRoute><Signup /></PublicRoute>} />
-      <Route path="/forgot-password" element={<ForgotPassword />} />
-      <Route path="/reset-password" element={<ResetPassword />} />
-      <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-      <Route path="/terms-of-service" element={<TermsOfService />} />
-      
-      {/* Protected routes - Main app with tab bar */}
-      <Route path="/onboarding" element={<ProtectedRoute requireSubscription={false}><Onboarding /></ProtectedRoute>} />
-      <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
-      <Route path="/dashboard" element={<Navigate to="/home" replace />} />
-      <Route path="/insights" element={<ProtectedRoute><Insights /></ProtectedRoute>} />
-      <Route path="/alternatives" element={<ProtectedRoute><Alternatives /></ProtectedRoute>} />
-      <Route path="/challenges" element={<ProtectedRoute><Challenges /></ProtectedRoute>} />
-      <Route path="/settings" element={<ProtectedRoute requireSubscription={false}><Settings /></ProtectedRoute>} />
-      
-      {/* Subscription success page */}
-      <Route path="/subscription-success" element={<ProtectedRoute requireSubscription={false}><SubscriptionSuccess /></ProtectedRoute>} />
-      
-      {/* Protected routes - Secondary screens (no tab bar) */}
-      <Route path="/add-purchase" element={<ProtectedRoute><AddPurchase /></ProtectedRoute>} />
-      <Route path="/history" element={<ProtectedRoute><History /></ProtectedRoute>} />
-      <Route path="/goals" element={<ProtectedRoute><Goals /></ProtectedRoute>} />
-      
-      {/* Catch-all */}
-      <Route path="*" element={<NotFound />} />
-    </Routes>
+    <Suspense fallback={<RouteFallback />}>
+      <Routes>
+        {/* Public routes */}
+        <Route path="/" element={<PublicRoute><Index /></PublicRoute>} />
+        <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+        <Route path="/signup" element={<PublicRoute><Signup /></PublicRoute>} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+        <Route path="/terms-of-service" element={<TermsOfService />} />
+        
+        {/* Protected routes - Main app with tab bar */}
+        <Route path="/onboarding" element={<ProtectedRoute requireSubscription={false}><Onboarding /></ProtectedRoute>} />
+        <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+        <Route path="/dashboard" element={<Navigate to="/home" replace />} />
+        <Route path="/insights" element={<ProtectedRoute><Insights /></ProtectedRoute>} />
+        <Route path="/alternatives" element={<ProtectedRoute><Alternatives /></ProtectedRoute>} />
+        <Route path="/challenges" element={<ProtectedRoute><Challenges /></ProtectedRoute>} />
+        <Route path="/settings" element={<ProtectedRoute requireSubscription={false}><Settings /></ProtectedRoute>} />
+        
+        {/* Subscription success page */}
+        <Route path="/subscription-success" element={<ProtectedRoute requireSubscription={false}><SubscriptionSuccess /></ProtectedRoute>} />
+        
+        {/* Protected routes - Secondary screens (no tab bar) */}
+        <Route path="/add-purchase" element={<ProtectedRoute><AddPurchase /></ProtectedRoute>} />
+        <Route path="/history" element={<ProtectedRoute><History /></ProtectedRoute>} />
+        <Route path="/goals" element={<ProtectedRoute><Goals /></ProtectedRoute>} />
+        
+        {/* Catch-all */}
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </Suspense>
   );
 }
 
