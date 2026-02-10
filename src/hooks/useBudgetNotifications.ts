@@ -1,12 +1,16 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useProfile } from './useProfile';
 import { formatCurrency } from '@/lib/calculations';
+import { Capacitor } from '@capacitor/core';
+import { LocalNotifications } from '@capacitor/local-notifications';
 
 const STORAGE_KEY = 'budget_alerts_enabled';
 const LAST_WARNING_KEY = 'budget_last_warning_date';
 const LAST_EXCEEDED_KEY = 'budget_last_exceeded_date';
 
 type NotificationPermissionState = 'default' | 'granted' | 'denied';
+
+const isNative = Capacitor.isNativePlatform();
 
 export function useBudgetNotifications() {
   const { profile } = useProfile();
@@ -15,28 +19,37 @@ export function useBudgetNotifications() {
     return localStorage.getItem(STORAGE_KEY) === 'true';
   });
 
-  const [permission, setPermission] = useState<NotificationPermissionState>(() => {
-    if (typeof Notification === 'undefined') return 'denied';
-    return Notification.permission as NotificationPermissionState;
-  });
+  const [permission, setPermission] = useState<NotificationPermissionState>('default');
 
-  // Sync enabled state with localStorage
+  // Check permission on mount
+  useEffect(() => {
+    (async () => {
+      if (isNative) {
+        const result = await LocalNotifications.checkPermissions();
+        setPermission(result.display === 'granted' ? 'granted' : result.display === 'denied' ? 'denied' : 'default');
+      } else if (typeof Notification !== 'undefined') {
+        setPermission(Notification.permission as NotificationPermissionState);
+      } else {
+        setPermission('denied');
+      }
+    })();
+  }, []);
+
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, String(enabled));
   }, [enabled]);
 
   const requestPermission = useCallback(async (): Promise<boolean> => {
+    if (isNative) {
+      const result = await LocalNotifications.requestPermissions();
+      const granted = result.display === 'granted';
+      setPermission(granted ? 'granted' : 'denied');
+      return granted;
+    }
+
     if (typeof Notification === 'undefined') return false;
-
-    if (Notification.permission === 'granted') {
-      setPermission('granted');
-      return true;
-    }
-
-    if (Notification.permission === 'denied') {
-      setPermission('denied');
-      return false;
-    }
+    if (Notification.permission === 'granted') { setPermission('granted'); return true; }
+    if (Notification.permission === 'denied') { setPermission('denied'); return false; }
 
     const result = await Notification.requestPermission();
     setPermission(result as NotificationPermissionState);
@@ -46,35 +59,38 @@ export function useBudgetNotifications() {
   const toggleAlerts = useCallback(async (newValue: boolean) => {
     if (newValue) {
       const granted = await requestPermission();
-      if (!granted) {
-        setEnabled(false);
-        return false;
-      }
+      if (!granted) { setEnabled(false); return false; }
     }
     setEnabled(newValue);
     return true;
   }, [requestPermission]);
 
-  const sendNotification = useCallback((title: string, body: string, tag: string) => {
-    if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
+  const sendNotification = useCallback(async (title: string, body: string, tag: string) => {
+    if (isNative) {
+      try {
+        await LocalNotifications.schedule({
+          notifications: [{
+            title,
+            body,
+            id: Math.floor(Math.random() * 2147483647),
+            extra: { tag },
+          }],
+        });
+      } catch {
+        console.warn('Local notification failed');
+      }
+      return;
+    }
 
+    // Web fallback
+    if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
     try {
-      new Notification(title, {
-        body,
-        icon: '/favicon.ico',
-        tag, // prevents duplicate notifications
-        silent: false,
-      });
+      new Notification(title, { body, icon: '/favicon.ico', tag, silent: false });
     } catch {
-      // Fallback: some mobile browsers don't support Notification constructor
       console.warn('Browser notifications not supported');
     }
   }, []);
 
-  /**
-   * Check if the current spending has crossed budget thresholds.
-   * Call this after adding a purchase.
-   */
   const checkBudgetThresholds = useCallback((todayTotal: number) => {
     if (!enabled || !profile?.daily_budget) return;
 
@@ -84,7 +100,6 @@ export function useBudgetNotifications() {
     const today = new Date().toISOString().split('T')[0];
     const pct = (todayTotal / dailyBudget) * 100;
 
-    // Check if already notified today for each threshold
     const lastWarningDate = localStorage.getItem(LAST_WARNING_KEY);
     const lastExceededDate = localStorage.getItem(LAST_EXCEEDED_KEY);
 
@@ -96,7 +111,7 @@ export function useBudgetNotifications() {
         'budget-exceeded'
       );
       localStorage.setItem(LAST_EXCEEDED_KEY, today);
-      localStorage.setItem(LAST_WARNING_KEY, today); // also mark warning as sent
+      localStorage.setItem(LAST_WARNING_KEY, today);
     } else if (pct >= 80 && pct < 100 && lastWarningDate !== today) {
       const remaining = dailyBudget - todayTotal;
       sendNotification(
@@ -113,6 +128,6 @@ export function useBudgetNotifications() {
     permission,
     toggleAlerts,
     checkBudgetThresholds,
-    isSupported: typeof Notification !== 'undefined',
+    isSupported: isNative || typeof Notification !== 'undefined',
   };
 }
