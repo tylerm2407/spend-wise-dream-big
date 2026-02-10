@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { Database } from '@/integrations/supabase/types';
+import { useRef, useCallback } from 'react';
 
 type Profile = Database['public']['Tables']['profiles']['Row'];
 type ProfileUpdate = Database['public']['Tables']['profiles']['Update'];
@@ -27,7 +28,7 @@ export function useProfile() {
     enabled: !!user,
   });
 
-  const updateProfile = useMutation({
+  const updateProfileMutation = useMutation({
     mutationFn: async (updates: ProfileUpdate) => {
       if (!user) throw new Error('Not authenticated');
       
@@ -46,12 +47,21 @@ export function useProfile() {
     },
   });
 
+  // Debounced profile update
+  const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const debouncedUpdateProfile = useCallback((updates: ProfileUpdate) => {
+    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    debounceTimer.current = setTimeout(() => {
+      updateProfileMutation.mutate(updates);
+    }, 400);
+  }, []);
+
   return {
     profile,
     isLoading,
     error,
-    updateProfile: updateProfile.mutate,
-    updateProfileAsync: updateProfile.mutateAsync,
-    isUpdating: updateProfile.isPending,
+    updateProfile: debouncedUpdateProfile,
+    updateProfileAsync: updateProfileMutation.mutateAsync,
+    isUpdating: updateProfileMutation.isPending,
   };
 }
