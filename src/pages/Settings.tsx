@@ -340,7 +340,7 @@ export default function Settings() {
                       ? `Renews ${new Date(subscriptionEnd).toLocaleDateString()}`
                       : isInTrial 
                         ? `${trialDaysRemaining} days remaining`
-                        : 'Subscribe to continue using True Cost'
+                        : 'Subscribe to continue using Cost Clarity'
                     }
                   </p>
                 </div>
@@ -390,7 +390,7 @@ export default function Settings() {
               ) : (
                 <div className="space-y-3">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">True Cost Premium</span>
+                    <span className="text-muted-foreground">Cost Clarity Premium</span>
                     <span className="font-semibold">$5/month</span>
                   </div>
                   <Button 

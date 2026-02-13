@@ -73,7 +73,7 @@ export default function Login() {
         >
           {/* Logo */}
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-gradient-primary">True Cost</h1>
+            <h1 className="text-3xl font-bold text-gradient-primary">Cost Clarity</h1>
             <p className="text-muted-foreground mt-2">Welcome back</p>
           </div>
 

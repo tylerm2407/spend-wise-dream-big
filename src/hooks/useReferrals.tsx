@@ -58,8 +58,8 @@ export function useReferrals() {
 
   const shareReferral = async () => {
     const shareData = {
-      title: 'Join SpendWise - True Cost',
-      text: `Use my referral code ${referralCode} to join SpendWise and start saving smarter!`,
+      title: 'Join Cost Clarity',
+      text: `Use my referral code ${referralCode} to join Cost Clarity and start saving smarter!`,
       url: shareUrl,
     };
 

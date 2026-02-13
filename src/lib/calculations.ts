@@ -1,5 +1,5 @@
 /**
- * Financial calculation utilities for True Cost app
+ * Financial calculation utilities for Cost Clarity app
  */
 
 export type Frequency = 'one-time' | 'daily' | 'weekly' | 'monthly' | 'custom';

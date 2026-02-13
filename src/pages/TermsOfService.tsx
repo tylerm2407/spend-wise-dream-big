@@ -19,27 +19,27 @@ export default function TermsOfService() {
 
         <h2>1. Acceptance of Terms</h2>
         <p>
-          By accessing or using True Cost ("the App"), you agree to be bound by these Terms of
+          By accessing or using Cost Clarity ("the App"), you agree to be bound by these Terms of
           Service. If you do not agree to these terms, do not use the App.
         </p>
 
         <h2>2. Description of Service</h2>
         <p>
-          True Cost is a personal finance tracking application that helps users understand the
-          true cost of their purchases through spending analysis, alternative suggestions, and
+          Cost Clarity is a personal finance tracking application that helps users understand the
+          real cost of their purchases through spending analysis, alternative suggestions, and
           goal tracking.
         </p>
 
         <h2>3. Account Registration</h2>
         <p>
-          You must create an account to use True Cost. You are responsible for maintaining the
+          You must create an account to use Cost Clarity. You are responsible for maintaining the
           confidentiality of your account credentials and for all activities under your account.
           You must provide accurate and complete information.
         </p>
 
         <h2>4. Subscription & Payments</h2>
         <ul>
-          <li>True Cost offers a free 7-day trial period.</li>
+          <li>Cost Clarity offers a free 7-day trial period.</li>
           <li>After the trial, a premium subscription ($5/month) is required for continued access to all features.</li>
           <li>Subscriptions are billed monthly through Stripe.</li>
           <li>You may cancel your subscription at any time through the Settings page.</li>
@@ -57,21 +57,21 @@ export default function TermsOfService() {
 
         <h2>6. Intellectual Property</h2>
         <p>
-          The App and its original content, features, and functionality are owned by True Cost
+          The App and its original content, features, and functionality are owned by Cost Clarity
           and are protected by international copyright, trademark, and other intellectual property
           laws.
         </p>
 
         <h2>7. Disclaimer of Warranties</h2>
         <p>
-          The App is provided "as is" without warranties of any kind. True Cost does not guarantee
+          The App is provided "as is" without warranties of any kind. Cost Clarity does not guarantee
           that the App will be error-free or uninterrupted. Financial information provided by the
           App is for informational purposes only and should not be considered financial advice.
         </p>
 
         <h2>8. Limitation of Liability</h2>
         <p>
-          True Cost shall not be liable for any indirect, incidental, special, consequential, or
+          Cost Clarity shall not be liable for any indirect, incidental, special, consequential, or
           punitive damages resulting from your use of the App, including any financial decisions
           made based on information provided by the App.
         </p>
