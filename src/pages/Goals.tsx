@@ -21,7 +21,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
 import {
   AlertDialog,
@@ -44,8 +43,10 @@ import {
 import { useGoals } from '@/hooks/useGoals';
 import { useGoalMilestones } from '@/hooks/useGoalMilestones';
 import { useToast } from '@/hooks/use-toast';
+import { useSubscriptionGate } from '@/hooks/useSubscriptionGate';
 import { ProgressRing } from '@/components/ui/ProgressRing';
 import { GoalsSkeleton, ErrorState } from '@/components/PageSkeletons';
+import { PaywallDialog } from '@/components/PaywallDialog';
 import { formatCurrency, calculateGoalProgress } from '@/lib/calculations';
 import { cn } from '@/lib/utils';
 import { Database } from '@/integrations/supabase/types';
@@ -57,6 +58,7 @@ export default function Goals() {
   const { goals, addGoal, updateGoal, deleteGoal, setPrimaryGoal, isAdding, isLoading, error } = useGoals();
   const { checkAndCelebrateMilestones } = useGoalMilestones();
   const { toast } = useToast();
+  const { guardAction, showPaywall, dismissPaywall } = useSubscriptionGate();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   
   // Form state
@@ -205,12 +207,10 @@ export default function Goals() {
             <h1 className="text-xl font-bold">Goals</h1>
           </div>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="bg-gradient-primary">
-                <Plus className="h-4 w-4 mr-2" />
-                Add Goal
-              </Button>
-            </DialogTrigger>
+            <Button className="bg-gradient-primary" onClick={() => guardAction(() => setIsDialogOpen(true))}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Goal
+            </Button>
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Create New Goal</DialogTitle>
@@ -461,6 +461,7 @@ export default function Goals() {
           )}
         </DialogContent>
       </Dialog>
+      <PaywallDialog open={showPaywall} onOpenChange={dismissPaywall} />
     </div>
   );
 }

@@ -65,8 +65,8 @@ import {
              <Crown className="w-8 h-8 text-primary-foreground" />
            </div>
            <CardTitle className="text-2xl">Your Free Trial Has Ended</CardTitle>
-           <CardDescription className="text-base mt-2">
-             Continue your journey to financial wellness with True Cost Premium
+            <CardDescription className="text-base mt-2">
+              Continue your journey to financial wellness with Cost Clarity Premium
            </CardDescription>
          </CardHeader>
          <CardContent className="space-y-6">
