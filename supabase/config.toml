@@ -11,3 +11,9 @@ verify_jwt = false
 
 [functions.monthly-recap-ai]
 verify_jwt = false
+
+[functions.scan-receipt]
+verify_jwt = false
+
+[functions.suggest-alternatives]
+verify_jwt = false
