@@ -34,10 +34,12 @@ import { useProfile } from '@/hooks/useProfile';
 import { useToast } from '@/hooks/use-toast';
 import { useHaptics } from '@/hooks/useHaptics';
  import { useRecurringDetection } from '@/hooks/useRecurringDetection';
+import { useSubscriptionGate } from '@/hooks/useSubscriptionGate';
 import { AnimatedCounter } from '@/components/ui/AnimatedCounter';
  import { VoiceInput } from '@/components/VoiceInput';
  import { ReceiptScanner } from '@/components/ReceiptScanner';
  import { RecurringPurchasePrompt } from '@/components/RecurringPurchasePrompt';
+import { PaywallDialog } from '@/components/PaywallDialog';
 import { 
   calculateCostBreakdown, 
   calculateGoalDelay,
@@ -80,6 +82,7 @@ export default function AddPurchase() {
   const { toast } = useToast();
   const { haptic } = useHaptics();
   const { checkBudgetThresholds } = useBudgetNotifications();
+  const { guardAction, showPaywall, dismissPaywall } = useSubscriptionGate();
 
   const [amount, setAmount] = useState('');
   const [itemName, setItemName] = useState('');
@@ -136,8 +139,8 @@ export default function AddPurchase() {
     setShowImpact(true);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.FormEvent) => {
+    e?.preventDefault();
     
     if (!numericAmount || !itemName || !category) {
       toast({
@@ -273,7 +276,7 @@ export default function AddPurchase() {
         )}
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={(e) => { e.preventDefault(); guardAction(() => handleSubmit()); }} className="space-y-6">
           {/* Amount */}
           <div className="space-y-2">
             <Label htmlFor="amount">Amount</Label>
@@ -566,7 +569,7 @@ export default function AddPurchase() {
       {/* Submit Button */}
       <div className="fixed bottom-0 left-0 right-0 p-6 bg-background/80 backdrop-blur-lg border-t border-border safe-area-inset-bottom">
         <AnimatedButton
-          onClick={handleSubmit}
+          onClick={(e: React.FormEvent) => { e.preventDefault(); guardAction(() => handleSubmit()); }}
           className="w-full h-14 text-lg bg-gradient-primary glow hover:opacity-90"
           disabled={isAdding || !numericAmount || !itemName}
           haptic="success"
@@ -580,6 +583,7 @@ export default function AddPurchase() {
           )}
         </AnimatedButton>
       </div>
+      <PaywallDialog open={showPaywall} onOpenChange={dismissPaywall} />
     </div>
   );
 }

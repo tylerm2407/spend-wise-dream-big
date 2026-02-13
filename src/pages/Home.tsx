@@ -20,6 +20,7 @@ import { useGoals } from '@/hooks/useGoals';
 import { useHaptics } from '@/hooks/useHaptics';
 import { useWeeklyChallenge } from '@/hooks/useWeeklyChallenge';
 import { useStreaks } from '@/hooks/useStreaks';
+import { useSubscriptionGate } from '@/hooks/useSubscriptionGate';
 import { AppLayout } from '@/components/AppLayout';
 import { AnimatedButton } from '@/components/ui/AnimatedButton';
 import { AnimatedCard } from '@/components/ui/AnimatedCard';
@@ -35,6 +36,7 @@ import { WeeklyRecapCard } from '@/components/WeeklyRecapCard';
 import { MonthlyRecapCard } from '@/components/MonthlyRecapCard';
 import { PullToRefresh } from '@/components/PullToRefresh';
 import { HomeSkeleton, ErrorState } from '@/components/PageSkeletons';
+import { PaywallDialog } from '@/components/PaywallDialog';
 import { formatCurrency, calculateGoalProgress, getGoalStatus } from '@/lib/calculations';
 import { cn } from '@/lib/utils';
 import { useQueryClient } from '@tanstack/react-query';
@@ -48,6 +50,7 @@ export default function Home() {
   const { haptic } = useHaptics();
   const { currentChallenge, progressPercent } = useWeeklyChallenge();
   const { currentStreak, longestStreak, streakFreezesRemaining, streakEvent, welcomeMessage, encouragementMessage, dismissStreakEvent } = useStreaks();
+  const { guardAction, showPaywall, dismissPaywall } = useSubscriptionGate();
   const queryClient = useQueryClient();
 
   const isLoading = profileLoading || purchasesLoading || goalsLoading;
@@ -211,12 +214,14 @@ export default function Home() {
                     spent today
                   </p>
                 </div>
-                <Link to="/add-purchase">
-                 <AnimatedButton className="bg-gradient-primary hover:opacity-90 glow h-12 px-6" haptic="medium">
-                    <Plus className="h-5 w-5 mr-2" />
-                    Add Purchase
-                  </AnimatedButton>
-                </Link>
+                <AnimatedButton 
+                  className="bg-gradient-primary hover:opacity-90 glow h-12 px-6" 
+                  haptic="medium"
+                  onClick={() => guardAction(() => navigate('/add-purchase'))}
+                >
+                  <Plus className="h-5 w-5 mr-2" />
+                  Add Purchase
+                </AnimatedButton>
               </div>
             </AnimatedCard>
           </motion.div>
@@ -337,12 +342,14 @@ export default function Home() {
                 <p className="text-sm text-muted-foreground mb-4">
                   Log your first purchase in under 30 seconds
                 </p>
-                <Link to="/add-purchase">
-                 <AnimatedButton className="bg-gradient-primary" haptic="medium">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add your first purchase
-                  </AnimatedButton>
-                </Link>
+                <AnimatedButton 
+                  className="bg-gradient-primary" 
+                  haptic="medium"
+                  onClick={() => guardAction(() => navigate('/add-purchase'))}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add your first purchase
+                </AnimatedButton>
               </Card>
             ) : (
               <div className="space-y-3">
@@ -426,6 +433,7 @@ export default function Home() {
         </motion.main>
       </div>
       </PullToRefresh>
+      <PaywallDialog open={showPaywall} onOpenChange={dismissPaywall} />
     </AppLayout>
   );
 }

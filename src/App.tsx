@@ -6,7 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { SubscriptionProvider } from "@/hooks/useSubscription";
-import { SubscriptionGate, TrialBanner } from "@/components/SubscriptionGate";
+import { TrialBanner } from "@/components/SubscriptionGate";
 import { ReferralCodeApplier } from "@/components/ReferralCodeApplier";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
@@ -55,8 +55,8 @@ function ThemeInitializer() {
   return null;
 }
 
-// Protected route wrapper with subscription check
-function ProtectedRoute({ children, requireSubscription = true }: { children: React.ReactNode; requireSubscription?: boolean }) {
+// Protected route wrapper — all authenticated users can view pages
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   
   if (loading) {
@@ -71,16 +71,12 @@ function ProtectedRoute({ children, requireSubscription = true }: { children: Re
     return <Navigate to="/login" replace />;
   }
   
-   if (requireSubscription) {
-     return (
-       <SubscriptionGate>
-         <TrialBanner />
-         {children}
-       </SubscriptionGate>
-     );
-   }
- 
-  return <>{children}</>;
+  return (
+    <>
+      <TrialBanner />
+      {children}
+    </>
+  );
 }
 
 // Public route wrapper (redirects if already logged in)
@@ -124,16 +120,16 @@ function AppRoutes() {
         <Route path="/terms-of-service" element={<TermsOfService />} />
         
         {/* Protected routes - Main app with tab bar */}
-        <Route path="/onboarding" element={<ProtectedRoute requireSubscription={false}><Onboarding /></ProtectedRoute>} />
+        <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
         <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
         <Route path="/dashboard" element={<Navigate to="/home" replace />} />
         <Route path="/insights" element={<ProtectedRoute><Insights /></ProtectedRoute>} />
         <Route path="/alternatives" element={<ProtectedRoute><Alternatives /></ProtectedRoute>} />
         <Route path="/challenges" element={<ProtectedRoute><Challenges /></ProtectedRoute>} />
-        <Route path="/settings" element={<ProtectedRoute requireSubscription={false}><Settings /></ProtectedRoute>} />
+        <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
         
         {/* Subscription success page */}
-        <Route path="/subscription-success" element={<ProtectedRoute requireSubscription={false}><SubscriptionSuccess /></ProtectedRoute>} />
+        <Route path="/subscription-success" element={<ProtectedRoute><SubscriptionSuccess /></ProtectedRoute>} />
         
         {/* Protected routes - Secondary screens (no tab bar) */}
         <Route path="/add-purchase" element={<ProtectedRoute><AddPurchase /></ProtectedRoute>} />
