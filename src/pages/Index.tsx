@@ -26,7 +26,7 @@ export default function Index() {
     },
     {
       icon: <TrendingUp className="h-5 w-5" />,
-      title: 'See the true opportunity cost',
+      title: 'See the real opportunity cost',
       description: 'Visualize how $5 today becomes $25,000 over your lifetime',
     },
     {
@@ -81,7 +81,7 @@ export default function Index() {
         {/* Value Proposition - App Store Ready */}
         <motion.div variants={itemVariants} className="text-center mb-8">
           <h1 className="text-3xl font-bold mb-3 tracking-tight text-foreground">
-            True Cost
+            Cost Clarity
           </h1>
           <p className="text-lg font-medium text-foreground mb-2">
             See what your spending <span className="text-primary">really</span> costs you
@@ -141,7 +141,7 @@ export default function Index() {
         {/* 5 Key Features - App Store Bullets */}
         <motion.div variants={itemVariants} className="mb-8">
           <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-4 text-center">
-            Why True Cost?
+            Why Cost Clarity?
           </h2>
           <div className="space-y-3">
             {features.map((feature, index) => (

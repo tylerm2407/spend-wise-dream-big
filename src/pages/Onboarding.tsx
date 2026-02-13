@@ -161,7 +161,7 @@ export default function Onboarding() {
                   <Sparkles className="h-10 w-10 text-primary-foreground" />
                 </div>
                 <h1 className="text-2xl font-bold mb-3">
-                  See the True Cost of Your Purchases
+                  See the Real Cost of Your Purchases
                 </h1>
                 <p className="text-muted-foreground">
                   Understand how daily spending affects your long-term goals through emotional, relatable visualizations.

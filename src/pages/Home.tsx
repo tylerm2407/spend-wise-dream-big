@@ -370,7 +370,7 @@ export default function Home() {
                               to="/insights" 
                               className="text-xs text-primary hover:underline"
                             >
-                              See true cost →
+                              See real cost →
                             </Link>
                           </div>
                         </div>

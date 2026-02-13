@@ -19,7 +19,7 @@ export default function PrivacyPolicy() {
 
         <h2>1. Information We Collect</h2>
         <p>
-          True Cost collects the following information to provide our services:
+          Cost Clarity collects the following information to provide our services:
         </p>
         <ul>
           <li><strong>Account Information:</strong> Email address and display name when you create an account.</li>
@@ -77,7 +77,7 @@ export default function PrivacyPolicy() {
 
         <h2>8. Children's Privacy</h2>
         <p>
-          True Cost is not intended for children under 13. We do not knowingly collect personal
+          Cost Clarity is not intended for children under 13. We do not knowingly collect personal
           information from children under 13.
         </p>
 
