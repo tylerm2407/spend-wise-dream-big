@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useSubscription } from '@/hooks/useSubscription';
 import { 
   CreditCard, 
   Plus, 
@@ -62,11 +63,16 @@ const CARD_TYPE_LOGOS: Record<string, string> = {
 };
 
 export function CreditCardLinking() {
+  const { hasProAccess, openCheckout } = useSubscription();
   const [linkedCards, setLinkedCards] = useState<LinkedCard[]>([]);
   const [isLinking, setIsLinking] = useState(false);
   const [showDemo, setShowDemo] = useState(false);
 
   const handleLinkCard = () => {
+    if (!hasProAccess) {
+      openCheckout();
+      return;
+    }
     setIsLinking(true);
     // Simulate Plaid flow - in real implementation, this would open Plaid Link
     setTimeout(() => {

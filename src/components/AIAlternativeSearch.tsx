@@ -22,6 +22,7 @@ import { usePriceHistory } from '@/hooks/usePriceHistory';
 import { usePriceAlerts } from '@/hooks/usePriceAlerts';
 import { PriceComparisonChart } from './PriceComparisonChart';
 import { PriceTrendChart } from './PriceTrendChart';
+import { useSubscription } from '@/hooks/useSubscription';
 
 interface Alternative {
   name: string;
@@ -43,6 +44,7 @@ export function AIAlternativeSearch() {
   const { profile } = useProfile();
   const { savePricesAsync } = usePriceHistory();
   const { createAlertAsync } = usePriceAlerts();
+  const { hasProAccess } = useSubscription();
 
   const handleSetAlert = async (alt: Alternative) => {
     const priceMatch = alt.estimated_price?.match(/\$?([\d.]+)/);
@@ -100,7 +102,10 @@ export function AIAlternativeSearch() {
       }
 
       if (data?.alternatives) {
-        setAlternatives(data.alternatives);
+        // Free tier: limit to 1 alternative; Pro: unlimited
+        const allAlts = data.alternatives;
+        const limitedAlts = hasProAccess ? allAlts : allAlts.slice(0, 1);
+        setAlternatives(limitedAlts);
         setLastSearchedProduct(query.trim());
         
         // Save prices to history for trend tracking

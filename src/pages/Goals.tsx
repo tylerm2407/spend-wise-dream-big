@@ -44,6 +44,7 @@ import { useGoals } from '@/hooks/useGoals';
 import { useGoalMilestones } from '@/hooks/useGoalMilestones';
 import { useToast } from '@/hooks/use-toast';
 import { useSubscriptionGate } from '@/hooks/useSubscriptionGate';
+import { useSubscription } from '@/hooks/useSubscription';
 import { ProgressRing } from '@/components/ui/ProgressRing';
 import { GoalsSkeleton, ErrorState } from '@/components/PageSkeletons';
 import { PaywallDialog } from '@/components/PaywallDialog';
@@ -76,6 +77,12 @@ export default function Goals() {
     targetAmount: number;
     name: string;
   } | null>(null);
+
+  const { hasProAccess } = useSubscription();
+
+  const FREE_GOAL_LIMIT = 2;
+  const activeGoals = goals.filter(g => !g.is_completed);
+  const canAddGoal = hasProAccess || activeGoals.length < FREE_GOAL_LIMIT;
 
   const handleAddGoal = () => {
     if (!name || !amount) {
@@ -207,7 +214,13 @@ export default function Goals() {
             <h1 className="text-xl font-bold">Goals</h1>
           </div>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <Button className="bg-gradient-primary" onClick={() => guardAction(() => setIsDialogOpen(true))}>
+            <Button className="bg-gradient-primary" onClick={() => {
+              if (!canAddGoal) {
+                guardAction(() => {}); // triggers paywall
+              } else {
+                setIsDialogOpen(true);
+              }
+            }}>
               <Plus className="h-4 w-4 mr-2" />
               Add Goal
             </Button>

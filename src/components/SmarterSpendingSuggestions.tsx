@@ -17,6 +17,7 @@ import { cn } from '@/lib/utils';
 import { Database } from '@/integrations/supabase/types';
 import { useSavedAlternatives } from '@/hooks/useSavedAlternatives';
 import { useWeeklyChallenge } from '@/hooks/useWeeklyChallenge';
+import { useSubscription } from '@/hooks/useSubscription';
 import { toast } from 'sonner';
 
 type Purchase = Database['public']['Tables']['purchases']['Row'];
@@ -341,7 +342,7 @@ const ALTERNATIVES_DB: Record<string, (price: number, itemName: string) => Alter
   },
 };
 
-function getAlternativesForPurchase(purchase: Purchase): Alternative[] {
+function getAlternativesForPurchase(purchase: Purchase, maxAlternatives: number = 3): Alternative[] {
   const category = purchase.category;
   const price = Number(purchase.amount);
   const itemName = purchase.item_name;
@@ -354,7 +355,7 @@ function getAlternativesForPurchase(purchase: Purchase): Alternative[] {
     return ALTERNATIVES_DB.other(price, itemName);
   }
   
-  return alternatives.slice(0, 3);
+  return alternatives.slice(0, maxAlternatives);
 }
 
 interface SmarterSpendingSuggestionsProps {
@@ -375,15 +376,18 @@ export function SmarterSpendingSuggestions({
     isAlternativeSaved 
   } = useSavedAlternatives();
   const { recordSavings } = useWeeklyChallenge();
+  const { hasProAccess } = useSubscription();
   const [dismissedLocally, setDismissedLocally] = useState<Set<string>>(new Set());
   const [savedLocally, setSavedLocally] = useState<Set<string>>(new Set());
+
+  const maxAlternatives = hasProAccess ? 3 : 1;
 
   const suggestionData = useMemo(() => {
     if (purchases.length === 0) return null;
     
     // Get the most recent purchase
     const recentPurchase = purchases[0];
-    const alternatives = getAlternativesForPurchase(recentPurchase);
+    const alternatives = getAlternativesForPurchase(recentPurchase, maxAlternatives);
     
     if (alternatives.length === 0) return null;
     

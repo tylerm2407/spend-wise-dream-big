@@ -333,14 +333,14 @@ export default function Settings() {
                 </div>
                 <div className="flex-1">
                   <h3 className="font-medium">
-                    {subscribed ? 'Premium Subscriber' : isInTrial ? 'Free Trial' : 'Trial Expired'}
+                    {subscribed ? 'Pro Subscriber' : isInTrial ? 'Pro Trial' : 'Free Plan'}
                   </h3>
                   <p className="text-sm text-muted-foreground">
                     {subscribed && subscriptionEnd 
                       ? `Renews ${new Date(subscriptionEnd).toLocaleDateString()}`
                       : isInTrial 
-                        ? `${trialDaysRemaining} days remaining`
-                        : 'Subscribe to continue using Cost Clarity'
+                        ? `Pro trial — ${trialDaysRemaining} days remaining`
+                        : 'Upgrade to Pro for unlimited features'
                     }
                   </p>
                 </div>
@@ -390,8 +390,8 @@ export default function Settings() {
               ) : (
                 <div className="space-y-3">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Cost Clarity Premium</span>
-                    <span className="font-semibold">$5/month</span>
+                    <span className="text-muted-foreground">SpendWise Pro</span>
+                    <span className="font-semibold">$4.99/month</span>
                   </div>
                   <Button 
                     className="w-full bg-gradient-primary glow"
