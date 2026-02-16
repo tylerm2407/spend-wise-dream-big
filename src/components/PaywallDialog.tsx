@@ -15,14 +15,16 @@ interface PaywallDialogProps {
 }
 
 const features = [
-  { name: 'Track purchases', free: true, premium: true },
-  { name: 'Set savings goals', free: true, premium: true },
-  { name: 'Basic spending insights', free: true, premium: true },
-  { name: 'AI-powered alternatives', free: false, premium: true },
-  { name: 'Weekly savings challenges', free: false, premium: true },
-  { name: 'Advanced analytics', free: false, premium: true },
-  { name: 'Receipt scanning', free: false, premium: true },
-  { name: 'Unlimited history', free: false, premium: true },
+  { name: 'Unlimited manual entries', free: true, pro: true },
+  { name: 'Basic opportunity costs', free: true, pro: true },
+  { name: 'Max 2 goals', free: true, pro: false },
+  { name: 'Unlimited goals', free: false, pro: true },
+  { name: '1 alternative per search', free: true, pro: false },
+  { name: 'Unlimited AI alternatives', free: false, pro: true },
+  { name: 'Credit card connection', free: false, pro: true },
+  { name: 'Receipt scanning', free: false, pro: true },
+  { name: 'Advanced analytics', free: false, pro: true },
+  { name: 'Weekly savings challenges', free: false, pro: true },
 ];
 
 export function PaywallDialog({ open, onOpenChange }: PaywallDialogProps) {
@@ -40,9 +42,9 @@ export function PaywallDialog({ open, onOpenChange }: PaywallDialogProps) {
           <div className="mx-auto w-14 h-14 rounded-full bg-gradient-primary flex items-center justify-center mb-2">
             <Crown className="w-7 h-7 text-primary-foreground" />
           </div>
-          <DialogTitle className="text-xl">Unlock Cost Clarity Premium</DialogTitle>
+          <DialogTitle className="text-xl">Upgrade to SpendWise Pro</DialogTitle>
           <DialogDescription className="text-base pt-1">
-            Subscribe to access all features and take control of your spending
+            Unlock unlimited goals, AI alternatives, and all premium features
           </DialogDescription>
         </DialogHeader>
 
@@ -51,7 +53,7 @@ export function PaywallDialog({ open, onOpenChange }: PaywallDialogProps) {
           <div className="grid grid-cols-3 bg-muted/50 p-3 text-sm font-medium">
             <span>Feature</span>
             <span className="text-center">Free</span>
-            <span className="text-center text-primary">Premium</span>
+            <span className="text-center text-primary">Pro</span>
           </div>
           <div className="divide-y divide-border">
             {features.map((feature) => (
@@ -65,7 +67,11 @@ export function PaywallDialog({ open, onOpenChange }: PaywallDialogProps) {
                   )}
                 </div>
                 <div className="flex justify-center">
-                  <Check className="w-4 h-4 text-primary" />
+                  {feature.pro ? (
+                    <Check className="w-4 h-4 text-primary" />
+                  ) : (
+                    <span className="text-xs text-muted-foreground">—</span>
+                  )}
                 </div>
               </div>
             ))}
@@ -73,7 +79,7 @@ export function PaywallDialog({ open, onOpenChange }: PaywallDialogProps) {
         </div>
 
         <div className="bg-gradient-primary/10 rounded-lg p-4 text-center border border-primary/20">
-          <div className="text-3xl font-bold text-primary">$5</div>
+          <div className="text-3xl font-bold text-primary">$4.99</div>
           <div className="text-muted-foreground text-sm">per month</div>
           <div className="text-xs text-muted-foreground mt-1">Cancel anytime</div>
         </div>
@@ -84,7 +90,7 @@ export function PaywallDialog({ open, onOpenChange }: PaywallDialogProps) {
           size="lg"
         >
           <CreditCard className="w-5 h-5 mr-2" />
-          Subscribe Now
+          Subscribe to Pro
         </Button>
 
         <p className="text-xs text-center text-muted-foreground">
