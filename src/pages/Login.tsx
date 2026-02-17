@@ -205,7 +205,7 @@ export default function Login() {
             className="w-full h-12 touch-target mt-3 border-amber-500/30 text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/20"
             onClick={() => {
               // Redirect to Nova Wealth for authentication
-              // Nova Wealth will redirect back with ?nw_token=...
+              // Nova Wealth will redirect back with ?auth_token=...
               const returnUrl = encodeURIComponent(window.location.origin);
               window.location.href = `https://nova-wealth.app/sso?redirect=${returnUrl}`;
             }}
