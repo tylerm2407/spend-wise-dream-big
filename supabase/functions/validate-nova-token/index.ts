@@ -6,83 +6,52 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const logStep = (step: string, details?: unknown) => {
-  const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
-  console.log(`[VALIDATE-NOVA-TOKEN] ${step}${detailsStr}`);
-};
+const NW_VALIDATE_URL = "https://dbwuegchdysuocbpsprd.supabase.co/functions/v1/validate-auth-token";
+const NW_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRid3VlZ2NoZHlzdW9jYnBzcHJkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExNzYyMTAsImV4cCI6MjA4Njc1MjIxMH0.6LEKjLXhaxeRublNoAITpVVueHwpUPuLxS0sbgcTUlE";
 
-async function hmacSign(message: string, secret: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const key = await crypto.subtle.importKey(
-    "raw",
-    encoder.encode(secret),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"]
-  );
-  const signature = await crypto.subtle.sign("HMAC", key, encoder.encode(message));
-  return Array.from(new Uint8Array(signature))
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
-}
+const log = (step: string, details?: unknown) => {
+  const d = details ? ` - ${JSON.stringify(details)}` : "";
+  console.log(`[VALIDATE-NOVA-TOKEN] ${step}${d}`);
+};
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const localAdmin = createClient(
+    Deno.env.get("SUPABASE_URL") ?? "",
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+    { auth: { persistSession: false } }
+  );
+
   try {
-    logStep("Function started");
-
-    const crossAppSecret = Deno.env.get("CROSS_APP_SECRET");
-    if (!crossAppSecret) throw new Error("CROSS_APP_SECRET is not set");
-
     const { token } = await req.json();
     if (!token) throw new Error("No token provided");
-    logStep("Token received");
+    log("Token received, validating against NovaWealth");
 
-    // Decode token
-    let decoded: { email: string; timestamp: number; signature: string };
-    try {
-      decoded = JSON.parse(atob(token));
-    } catch {
-      throw new Error("Invalid token format");
+    // Step 1: Call NovaWealth's validate-auth-token endpoint
+    const validateRes = await fetch(NW_VALIDATE_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        apikey: NW_ANON_KEY,
+        Authorization: `Bearer ${NW_ANON_KEY}`,
+      },
+      body: JSON.stringify({ token }),
+    });
+
+    const validateData = await validateRes.json();
+    if (!validateData.valid) {
+      throw new Error(validateData.error || "Invalid or expired token");
     }
 
-    const { email, timestamp, signature } = decoded;
-    if (!email || !timestamp || !signature) {
-      throw new Error("Token missing required fields");
-    }
-    logStep("Token decoded", { email, timestamp });
+    const email = validateData.email;
+    log("NovaWealth token valid", { email });
 
-    // Check expiry (5 minutes)
-    const now = Date.now();
-    const age = now - timestamp;
-    if (age > 5 * 60 * 1000) {
-      throw new Error("Token expired");
-    }
-    if (age < 0) {
-      throw new Error("Token timestamp is in the future");
-    }
-    logStep("Token age valid", { ageMs: age });
-
-    // Verify HMAC signature
-    const expectedSignature = await hmacSign(email + timestamp, crossAppSecret);
-    if (signature !== expectedSignature) {
-      throw new Error("Invalid token signature");
-    }
-    logStep("Signature verified");
-
-    // Create Supabase admin client
-    const supabaseAdmin = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-      { auth: { persistSession: false } }
-    );
-
-    // Check if user exists
-    const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
-    const existingUser = existingUsers?.users?.find(
+    // Step 2: Find or create local user
+    const { data: allUsers } = await localAdmin.auth.admin.listUsers();
+    const existingUser = allUsers?.users?.find(
       (u) => u.email?.toLowerCase() === email.toLowerCase()
     );
 
@@ -90,11 +59,10 @@ serve(async (req) => {
 
     if (existingUser) {
       userId = existingUser.id;
-      logStep("Existing user found", { userId });
+      log("Existing local user found", { userId });
     } else {
-      // Auto-create account with random password
       const randomPassword = crypto.randomUUID() + crypto.randomUUID();
-      const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
+      const { data: newUser, error: createError } = await localAdmin.auth.admin.createUser({
         email,
         password: randomPassword,
         email_confirm: true,
@@ -103,34 +71,28 @@ serve(async (req) => {
         throw new Error(`Failed to create user: ${createError?.message}`);
       }
       userId = newUser.user.id;
-      logStep("New user created", { userId });
+      log("New local user created", { userId });
     }
 
-    // Mark as Nova Wealth user
-    const { error: profileError } = await supabaseAdmin
+    // Step 3: Mark as Nova Wealth user with Pro access
+    await localAdmin
       .from("profiles")
       .update({ nova_wealth_user: true })
       .eq("user_id", userId);
+    log("Profile updated with nova_wealth_user flag");
 
-    if (profileError) {
-      logStep("Warning: failed to update profile", { error: profileError.message });
-    }
-
-    // Generate a magic link to sign the user in
-    const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+    // Step 4: Generate magic link for local sign-in
+    const { data: linkData, error: linkError } = await localAdmin.auth.admin.generateLink({
       type: "magiclink",
       email,
     });
-
     if (linkError || !linkData) {
       throw new Error(`Failed to generate session: ${linkError?.message}`);
     }
 
-    logStep("Magic link generated successfully");
-
-    // Extract the token hash from the link properties
     const tokenHash = linkData.properties?.hashed_token;
-    
+    log("Magic link generated successfully");
+
     return new Response(JSON.stringify({
       success: true,
       email,
@@ -142,7 +104,7 @@ serve(async (req) => {
     });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    logStep("ERROR", { message: errorMessage });
+    log("ERROR", { message: errorMessage });
     return new Response(JSON.stringify({ error: errorMessage }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 400,
