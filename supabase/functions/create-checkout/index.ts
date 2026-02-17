@@ -8,7 +8,7 @@ const corsHeaders = {
 };
 
 const PRICE_ID = "price_1T1WqDAmUZkn8na4hChXph3w";
-const NW_REFERRAL_COUPON = "p8NAz3nu";
+const NW_REFERRAL_COUPON = "jPSNu7Zh";
 
 const logStep = (step: string, details?: unknown) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';

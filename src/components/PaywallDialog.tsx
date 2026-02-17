@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useRevenueCat } from '@/hooks/useRevenueCat';
 import { useAuth } from '@/hooks/useAuth';
@@ -61,9 +62,17 @@ export function PaywallDialog({ open, onOpenChange }: PaywallDialogProps) {
     setReferralResult(null);
 
     try {
+      const { data: secretData } = await supabase.functions.invoke('validate-nova-token', {
+        body: { action: 'get-cross-app-secret' },
+      });
+      const crossAppSecret = secretData?.secret || '';
+
       const res = await fetch('https://dbwuegchdysuocbpsprd.supabase.co/functions/v1/validate-referral', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-secret': crossAppSecret,
+        },
         body: JSON.stringify({
           referral_code: referralCode.trim(),
           user_email: user?.email || '',
@@ -130,7 +139,7 @@ export function PaywallDialog({ open, onOpenChange }: PaywallDialogProps) {
 
   const nativePriceString = offerings.length > 0 ? offerings[0].product.priceString : '$4.99/mo';
   const showDiscount = !!referralResult;
-  const discountedPrice = showDiscount ? '$3.74' : null;
+  const discountedPrice = showDiscount ? '$3.99' : null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -180,7 +189,7 @@ export function PaywallDialog({ open, onOpenChange }: PaywallDialogProps) {
             <>
               <div className="text-lg line-through text-muted-foreground">$4.99</div>
               <div className="text-3xl font-bold text-primary">{discountedPrice}</div>
-              <div className="text-muted-foreground text-sm">first month (25% off!)</div>
+              <div className="text-muted-foreground text-sm">per month for first 3 months (20% off!)</div>
             </>
           ) : (
             <>
@@ -225,7 +234,7 @@ export function PaywallDialog({ open, onOpenChange }: PaywallDialogProps) {
               {referralResult && (
                 <div className="flex items-center gap-2 text-sm text-primary">
                   <CheckCircle2 className="w-4 h-4" />
-                  <span>25% discount will be applied!</span>
+                  <span>20% off your first 3 paid months!</span>
                 </div>
               )}
               {referralError && (

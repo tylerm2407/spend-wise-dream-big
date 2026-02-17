@@ -26,7 +26,19 @@ serve(async (req) => {
   );
 
   try {
-    const { token } = await req.json();
+    const body = await req.json();
+
+    // Action: return cross-app secret for referral calls
+    if (body.action === 'get-cross-app-secret') {
+      const secret = Deno.env.get("CROSS_APP_SECRET") || "";
+      log("Returning cross-app secret");
+      return new Response(JSON.stringify({ secret }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
+
+    const { token } = body;
     if (!token) throw new Error("No token provided");
     log("Token received, validating against NovaWealth");
 

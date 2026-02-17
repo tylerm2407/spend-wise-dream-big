@@ -56,21 +56,40 @@ export default function SubscriptionSuccess() {
 
     try {
       const referralData = JSON.parse(raw);
-      fetch('https://dbwuegchdysuocbpsprd.supabase.co/functions/v1/track-referral', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          referral_code: referralData.referral_code,
-          referrer_id: referralData.referrer_id,
-          referred_email: referralData.referred_email,
-          app_name: 'CostClarity',
-          subscription_amount: 499,
-          discount_amount: 125,
-        }),
-      })
-        .then(() => console.log('Referral tracked successfully'))
-        .catch((err) => console.error('Failed to track referral:', err))
-        .finally(() => sessionStorage.removeItem('nw_referral'));
+
+      (async () => {
+        try {
+          const secretRes = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/validate-nova-token`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            },
+            body: JSON.stringify({ action: 'get-cross-app-secret' }),
+          });
+          const secretJson = await secretRes.json();
+          const crossAppSecret = secretJson?.secret || '';
+
+          await fetch('https://dbwuegchdysuocbpsprd.supabase.co/functions/v1/track-referral', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-api-secret': crossAppSecret,
+            },
+            body: JSON.stringify({
+              referral_code: referralData.referral_code,
+              referrer_id: referralData.referrer_id,
+              referred_email: referralData.referred_email,
+              app_name: 'CostClarity',
+            }),
+          });
+          console.log('Referral tracked successfully');
+        } catch (err) {
+          console.error('Failed to track referral:', err);
+        } finally {
+          sessionStorage.removeItem('nw_referral');
+        }
+      })();
     } catch {
       sessionStorage.removeItem('nw_referral');
     }
