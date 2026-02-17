@@ -18,7 +18,7 @@ interface SubscriptionContextType extends SubscriptionStatus {
   loading: boolean;
   error: string | null;
   checkSubscription: () => Promise<void>;
-  openCheckout: () => Promise<void>;
+  openCheckout: (referralData?: { referral_code: string; referrer_id: string }) => Promise<void>;
   openCustomerPortal: () => Promise<void>;
   /** @deprecated Use hasProAccess instead */
   hasAccess: boolean;
@@ -86,12 +86,14 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     }
   }, [session?.access_token]);
 
-  const openCheckout = async () => {
+  const openCheckout = async (referralData?: { referral_code: string; referrer_id: string }) => {
     if (!session?.access_token) {
       throw new Error('Not authenticated');
     }
 
-    const { data, error: fnError } = await supabase.functions.invoke('create-checkout');
+    const { data, error: fnError } = await supabase.functions.invoke('create-checkout', {
+      body: referralData ? { referral_code: referralData.referral_code, referrer_id: referralData.referrer_id } : {},
+    });
     
     if (fnError || data.error) {
       throw new Error(fnError?.message || data.error);

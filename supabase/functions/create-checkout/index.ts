@@ -8,6 +8,7 @@ const corsHeaders = {
 };
 
 const PRICE_ID = "price_1T1WqDAmUZkn8na4hChXph3w";
+const NW_REFERRAL_COUPON = "p8NAz3nu";
 
 const logStep = (step: string, details?: unknown) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
@@ -40,6 +41,18 @@ serve(async (req) => {
     if (!user?.email) throw new Error("User not authenticated or email not available");
     logStep("User authenticated", { userId: user.id, email: user.email });
 
+    // Parse optional referral data from request body
+    let referralCode: string | null = null;
+    let referrerId: string | null = null;
+    try {
+      const body = await req.json();
+      referralCode = body.referral_code || null;
+      referrerId = body.referrer_id || null;
+    } catch {
+      // No body or invalid JSON — proceed without referral
+    }
+    logStep("Referral data", { referralCode, referrerId });
+
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
     
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
@@ -51,19 +64,27 @@ serve(async (req) => {
 
     const origin = req.headers.get("origin") || "https://spend-wise-dream-big.lovable.app";
 
-    const session = await stripe.checkout.sessions.create({
+    // Build session params
+    const sessionParams: Stripe.Checkout.SessionCreateParams = {
       customer: customerId,
       customer_email: customerId ? undefined : user.email,
-      line_items: [
-        {
-          price: PRICE_ID,
-          quantity: 1,
-        },
-      ],
+      line_items: [{ price: PRICE_ID, quantity: 1 }],
       mode: "subscription",
       success_url: `${origin}/subscription-success`,
       cancel_url: `${origin}/settings?subscription=cancelled`,
-    });
+    };
+
+    // Apply referral coupon if valid referral data provided
+    if (referralCode && referrerId) {
+      sessionParams.discounts = [{ coupon: NW_REFERRAL_COUPON }];
+      sessionParams.metadata = {
+        referrer_id: referrerId,
+        referral_code: referralCode,
+      };
+      logStep("Applying referral coupon", { coupon: NW_REFERRAL_COUPON, referralCode });
+    }
+
+    const session = await stripe.checkout.sessions.create(sessionParams);
 
     logStep("Checkout session created", { sessionId: session.id });
 

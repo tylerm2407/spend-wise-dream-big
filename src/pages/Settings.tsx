@@ -398,7 +398,7 @@ export default function Settings() {
                   </div>
                   <Button 
                     className="w-full bg-gradient-primary glow"
-                    onClick={openCheckout}
+                    onClick={() => openCheckout()}
                     disabled={subscriptionLoading}
                   >
                     <CreditCard className="h-4 w-4 mr-2" />

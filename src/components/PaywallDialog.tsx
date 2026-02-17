@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useRevenueCat } from '@/hooks/useRevenueCat';
+import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { Crown, CreditCard, Check, X, Apple } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Crown, CreditCard, Check, X, Apple, ChevronDown, ChevronUp, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -10,6 +12,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useToast } from '@/hooks/use-toast';
 
 interface PaywallDialogProps {
@@ -30,14 +33,69 @@ const features = [
   { name: 'Weekly savings challenges', free: false, pro: true },
 ];
 
+interface ReferralValidation {
+  valid: boolean;
+  referrer_id: string;
+  code: string;
+  discount_percent: number;
+}
+
 export function PaywallDialog({ open, onOpenChange }: PaywallDialogProps) {
   const { openCheckout } = useSubscription();
   const { isNative, offerings, purchasePackage, loading: rcLoading } = useRevenueCat();
+  const { user } = useAuth();
   const { toast } = useToast();
   const [purchasing, setPurchasing] = useState(false);
 
+  // Referral state
+  const [referralOpen, setReferralOpen] = useState(false);
+  const [referralCode, setReferralCode] = useState('');
+  const [referralValidating, setReferralValidating] = useState(false);
+  const [referralResult, setReferralResult] = useState<ReferralValidation | null>(null);
+  const [referralError, setReferralError] = useState('');
+
+  const validateReferralCode = async () => {
+    if (!referralCode.trim()) return;
+    setReferralValidating(true);
+    setReferralError('');
+    setReferralResult(null);
+
+    try {
+      const res = await fetch('https://dbwuegchdysuocbpsprd.supabase.co/functions/v1/validate-referral', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          referral_code: referralCode.trim(),
+          user_email: user?.email || '',
+        }),
+      });
+      const data = await res.json();
+      if (data.valid) {
+        setReferralResult(data);
+      } else {
+        setReferralError('Invalid referral code. Please check and try again.');
+      }
+    } catch {
+      setReferralError('Could not validate code. Please try again.');
+    } finally {
+      setReferralValidating(false);
+    }
+  };
+
   const handleStripeSubscribe = async () => {
-    await openCheckout();
+    // Store referral data before checkout so success page can track it
+    if (referralResult) {
+      sessionStorage.setItem('nw_referral', JSON.stringify({
+        referral_code: referralResult.code,
+        referrer_id: referralResult.referrer_id,
+        referred_email: user?.email || '',
+      }));
+    }
+
+    await openCheckout(referralResult ? {
+      referral_code: referralResult.code,
+      referrer_id: referralResult.referrer_id,
+    } : undefined);
     onOpenChange(false);
   };
 
@@ -70,8 +128,9 @@ export function PaywallDialog({ open, onOpenChange }: PaywallDialogProps) {
     }
   };
 
-  // Get native price string if available
   const nativePriceString = offerings.length > 0 ? offerings[0].product.priceString : '$4.99/mo';
+  const showDiscount = !!referralResult;
+  const discountedPrice = showDiscount ? '$3.74' : null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -117,12 +176,67 @@ export function PaywallDialog({ open, onOpenChange }: PaywallDialogProps) {
         </div>
 
         <div className="bg-gradient-primary/10 rounded-lg p-4 text-center border border-primary/20">
-          <div className="text-3xl font-bold text-primary">
-            {isNative ? nativePriceString : '$4.99'}
-          </div>
-          <div className="text-muted-foreground text-sm">per month</div>
+          {showDiscount ? (
+            <>
+              <div className="text-lg line-through text-muted-foreground">$4.99</div>
+              <div className="text-3xl font-bold text-primary">{discountedPrice}</div>
+              <div className="text-muted-foreground text-sm">first month (25% off!)</div>
+            </>
+          ) : (
+            <>
+              <div className="text-3xl font-bold text-primary">
+                {isNative ? nativePriceString : '$4.99'}
+              </div>
+              <div className="text-muted-foreground text-sm">per month</div>
+            </>
+          )}
           <div className="text-xs text-muted-foreground mt-1">Cancel anytime</div>
         </div>
+
+        {/* Referral Code Section - web only */}
+        {!isNative && (
+          <Collapsible open={referralOpen} onOpenChange={setReferralOpen}>
+            <CollapsibleTrigger className="flex items-center justify-center gap-1 w-full text-sm text-muted-foreground hover:text-foreground transition-colors py-1">
+              Have a referral code?
+              {referralOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            </CollapsibleTrigger>
+            <CollapsibleContent className="space-y-2 pt-1">
+              <div className="flex gap-2">
+                <Input
+                  placeholder="NW-XXXXXXXX"
+                  value={referralCode}
+                  onChange={(e) => {
+                    setReferralCode(e.target.value);
+                    setReferralResult(null);
+                    setReferralError('');
+                  }}
+                  className="flex-1"
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={validateReferralCode}
+                  disabled={!referralCode.trim() || referralValidating}
+                  className="shrink-0"
+                >
+                  {referralValidating ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Apply'}
+                </Button>
+              </div>
+              {referralResult && (
+                <div className="flex items-center gap-2 text-sm text-primary">
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>25% discount will be applied!</span>
+                </div>
+              )}
+              {referralError && (
+                <div className="flex items-center gap-2 text-sm text-destructive">
+                  <AlertCircle className="w-4 h-4" />
+                  <span>{referralError}</span>
+                </div>
+              )}
+            </CollapsibleContent>
+          </Collapsible>
+        )}
 
         {isNative ? (
           <>
