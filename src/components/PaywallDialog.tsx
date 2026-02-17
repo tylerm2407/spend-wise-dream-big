@@ -22,16 +22,17 @@ interface PaywallDialogProps {
 }
 
 const features = [
-  { name: 'Unlimited manual entries', free: true, pro: true },
-  { name: 'Basic opportunity costs', free: true, pro: true },
-  { name: 'Max 2 goals', free: true, pro: false },
-  { name: 'Unlimited goals', free: false, pro: true },
+  { name: 'Manual expense tracking', free: true, pro: true },
+  { name: 'Work-hours cost view', free: true, pro: true },
+  { name: 'Up to 2 savings goals', free: true, pro: false },
+  { name: 'Unlimited savings goals', free: false, pro: true },
   { name: '1 alternative per search', free: true, pro: false },
   { name: 'Unlimited AI alternatives', free: false, pro: true },
-  { name: 'Credit card connection', free: false, pro: true },
-  { name: 'Receipt scanning', free: false, pro: true },
-  { name: 'Advanced analytics', free: false, pro: true },
+  { name: 'AI receipt scanning', free: false, pro: true },
+  { name: 'Monthly AI spending recap', free: false, pro: true },
   { name: 'Weekly savings challenges', free: false, pro: true },
+  { name: 'Advanced analytics & trends', free: false, pro: true },
+  { name: 'Price alerts & patterns', free: false, pro: true },
 ];
 
 interface ReferralValidation {
