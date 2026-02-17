@@ -198,6 +198,24 @@ export default function Login() {
             Continue with Apple
           </Button>
 
+          {/* Nova Wealth SSO */}
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full h-12 touch-target mt-3 border-amber-500/30 text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/20"
+            onClick={() => {
+              // Redirect to Nova Wealth for authentication
+              // Nova Wealth will redirect back with ?nw_token=...
+              const returnUrl = encodeURIComponent(window.location.origin);
+              window.location.href = `https://nova-wealth.app/sso?redirect=${returnUrl}`;
+            }}
+          >
+            <svg className="h-5 w-5 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+            </svg>
+            Login via Nova Wealth
+          </Button>
+
           {/* Sign up link */}
           <p className="mt-6 text-center text-sm text-muted-foreground">
             Don't have an account?{' '}

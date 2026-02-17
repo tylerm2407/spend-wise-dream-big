@@ -3,12 +3,14 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useSearchParams, useNavigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { SubscriptionProvider } from "@/hooks/useSubscription";
 import { TrialBanner } from "@/components/SubscriptionGate";
 import { ReferralCodeApplier } from "@/components/ReferralCodeApplier";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 // Lazy-loaded route components
 const Index = lazy(() => import("./pages/Index"));
@@ -106,9 +108,65 @@ function RouteFallback() {
   );
 }
 
+// Nova Wealth SSO token handler
+function NovaWealthTokenHandler() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+
+  useEffect(() => {
+    const token = searchParams.get('nw_token');
+    if (!token) return;
+
+    // Remove token from URL immediately
+    searchParams.delete('nw_token');
+    setSearchParams(searchParams, { replace: true });
+
+    (async () => {
+      try {
+        const res = await supabase.functions.invoke('validate-nova-token', {
+          body: { token },
+        });
+
+        if (res.error || res.data?.error) {
+          throw new Error(res.data?.error || res.error?.message || 'Token validation failed');
+        }
+
+        const { token_hash, email } = res.data;
+
+        // Use the token hash to verify OTP and establish session
+        const { error: otpError } = await supabase.auth.verifyOtp({
+          token_hash,
+          type: 'magiclink',
+        });
+
+        if (otpError) {
+          throw new Error(otpError.message);
+        }
+
+        toast({
+          title: 'Welcome from Nova Wealth!',
+          description: `Signed in as ${email} with Pro access.`,
+        });
+        navigate('/home', { replace: true });
+      } catch (err: any) {
+        console.error('[NovaWealth SSO]', err);
+        toast({
+          title: 'SSO Login Failed',
+          description: err.message || 'Could not verify Nova Wealth token.',
+          variant: 'destructive',
+        });
+      }
+    })();
+  }, [searchParams, setSearchParams, navigate, toast]);
+
+  return null;
+}
+
 function AppRoutes() {
   return (
     <Suspense fallback={<RouteFallback />}>
+      <NovaWealthTokenHandler />
       <Routes>
         {/* Public routes */}
         <Route path="/" element={<PublicRoute><Index /></PublicRoute>} />

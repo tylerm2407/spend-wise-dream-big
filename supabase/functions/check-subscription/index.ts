@@ -46,12 +46,28 @@ serve(async (req) => {
     // Get user's profile for referral bonus days
     const { data: profileData } = await supabaseClient
       .from("profiles")
-      .select("referral_bonus_days")
+      .select("referral_bonus_days, nova_wealth_user")
       .eq("user_id", user.id)
       .maybeSingle();
 
     const referralBonusDays = profileData?.referral_bonus_days ?? 0;
-    logStep("Referral bonus days", { referralBonusDays });
+    const isNovaWealthUser = profileData?.nova_wealth_user ?? false;
+    logStep("Profile flags", { referralBonusDays, isNovaWealthUser });
+
+    // Nova Wealth users always get Pro access
+    if (isNovaWealthUser) {
+      logStep("Nova Wealth user - granting Pro access");
+      return new Response(JSON.stringify({
+        subscribed: false,
+        is_in_trial: false,
+        trial_days_remaining: 0,
+        has_pro_access: true,
+        is_nova_wealth: true,
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
 
     // Calculate 30-day Pro trial from account creation
     const userCreatedAt = new Date(user.created_at);
