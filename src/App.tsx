@@ -115,11 +115,11 @@ function NovaWealthTokenHandler() {
   const { toast } = useToast();
 
   useEffect(() => {
-    const token = searchParams.get('nw_token');
+    const token = searchParams.get('auth_token');
     if (!token) return;
 
     // Remove token from URL immediately
-    searchParams.delete('nw_token');
+    searchParams.delete('auth_token');
     setSearchParams(searchParams, { replace: true });
 
     (async () => {
