@@ -126,8 +126,45 @@ serve(async (req) => {
       logStep("No active subscription found");
     }
 
-    // Pro access = subscribed OR in trial
-    const hasProAccess = hasActiveSub || isInTrial;
+    // Check RevenueCat for IAP subscription
+    let hasActiveIAP = false;
+    let iapExpiresDate: string | null = null;
+    const rcApiKey = Deno.env.get("REVENUECAT_API_KEY");
+    if (rcApiKey) {
+      try {
+        const rcRes = await fetch(
+          `https://api.revenuecat.com/v1/subscribers/${user.id}`,
+          {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${rcApiKey}`,
+            },
+          }
+        );
+        if (rcRes.ok) {
+          const rcData = await rcRes.json();
+          const entitlements = rcData.subscriber?.entitlements || {};
+          const proEnt = entitlements["pro"] || entitlements["Pro"] || entitlements["premium"] || entitlements["Premium"];
+          if (proEnt) {
+            const expires = proEnt.expires_date;
+            if (expires) {
+              hasActiveIAP = new Date(expires) > new Date();
+              iapExpiresDate = expires;
+            } else {
+              hasActiveIAP = true; // lifetime
+            }
+          }
+          logStep("RevenueCat check", { hasActiveIAP, iapExpiresDate });
+        } else {
+          logStep("RevenueCat subscriber not found (normal for web-only users)");
+        }
+      } catch (rcErr) {
+        logStep("RevenueCat check skipped", { error: String(rcErr) });
+      }
+    }
+
+    // Pro access = Stripe subscribed OR in trial OR IAP active
+    const hasProAccess = hasActiveSub || isInTrial || hasActiveIAP;
 
     return new Response(JSON.stringify({
       subscribed: hasActiveSub,
@@ -137,6 +174,8 @@ serve(async (req) => {
       trial_days_remaining: trialDaysRemaining,
       trial_end_date: trialEndDate.toISOString(),
       has_pro_access: hasProAccess,
+      has_active_iap: hasActiveIAP,
+      iap_expires_date: iapExpiresDate,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
