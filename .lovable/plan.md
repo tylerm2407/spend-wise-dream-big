@@ -1,113 +1,79 @@
 
 
-# App Store Launch Optimization Checklist
+# Nova Wealth SSO Integration
 
-Here's a prioritized list of remaining improvements to ensure a seamless user experience before launch.
+## Overview
+Allow Nova Wealth subscribers to authenticate into Cost Clarity and receive Pro tier access automatically. This uses a shared secret (HMAC-SHA256) to securely pass user identity between the two apps.
 
----
+## How It Works
 
-## 1. Loading Skeletons (Replace Spinners)
+1. **From Nova Wealth**: A link sends users to Cost Clarity with a signed token in the URL (e.g., `?nw_token=...`)
+2. **Direct visitors**: A "Login via Nova Wealth" button on the login page redirects to Nova Wealth, which authenticates and redirects back with a token
+3. **Backend validation**: A backend function verifies the token signature, auto-creates a local account if needed, and returns a session
+4. **Pro access**: The subscription check recognizes Nova Wealth users and grants Pro access
 
-**Problem:** Every page currently shows a generic spinner while loading data. This feels jarring and slow.
+## Implementation Steps
 
-**Fix:** Add content-shaped skeleton placeholders on the Home, History, Goals, and Insights pages so users see a preview of the layout before data loads. This makes the app feel significantly faster.
+### Step 1: Store the CROSS_APP_SECRET
+Store your secret securely in the backend so the validation function can use it.
 
----
+### Step 2: Create `validate-nova-token` backend function
+A new backend function that:
+- Receives the signed token (contains email, timestamp, HMAC signature)
+- Verifies the HMAC-SHA256 signature using the shared secret
+- Rejects expired tokens (older than 5 minutes) to prevent replay attacks
+- Looks up or auto-creates a local Cost Clarity account using the Nova Wealth email (with a random secure password)
+- Marks the profile as a Nova Wealth user (adds `nova_wealth_user: true` flag)
+- Returns a valid session for the auto-created/found user
 
-## 2. Pull-to-Refresh
+### Step 3: Add `nova_wealth_user` column to profiles table
+A database migration to add a boolean column `nova_wealth_user` (default `false`) to the profiles table, so the subscription system can identify these users.
 
-**Problem:** There's no way for users to manually refresh data on any page. If a sync fails or data feels stale, they're stuck.
+### Step 4: Update `check-subscription` function
+Modify the existing subscription check to grant Pro access when `nova_wealth_user` is `true` on the user's profile, regardless of Stripe subscription or trial status.
 
-**Fix:** Add pull-to-refresh gesture support on the Home page (and optionally History/Insights) that re-fetches purchases, goals, and profile data.
+### Step 5: Add token detection on page load
+In the main App component, detect the `nw_token` URL parameter on load. If present:
+- Call the `validate-nova-token` function
+- Set the returned session in the auth state
+- Remove the token from the URL
+- Redirect to `/home`
 
----
-
-## 3. Empty State Improvements
-
-**Problem:** Several pages (Insights, Challenges, Goals) may show minimal guidance when there's no data yet. New users could feel lost.
-
-**Fix:** Add friendly, illustrated empty states with a clear single CTA on each page (e.g., "Log your first purchase to see insights here").
-
----
-
-## 4. Network Error Handling / Retry
-
-**Problem:** If API calls fail (e.g., fetching purchases, profile), there's no user-facing error message or retry option -- the page just stays empty or shows a spinner forever.
-
-**Fix:** Add error states with a "Tap to retry" button on data-fetching pages. Also add React Query's `retry` and `retryDelay` configuration globally for resilience.
-
----
-
-## 5. Keyboard Handling for Forms
-
-**Problem:** On iOS, the keyboard can cover input fields (especially on the Add Purchase page and Onboarding). There's no scroll-into-view behavior.
-
-**Fix:** Add `scrollIntoView` behavior on input focus and ensure the submit button remains visible when the keyboard is open (using Capacitor's `Keyboard` plugin or CSS `env(safe-area-inset-bottom)`).
+### Step 6: Add "Login via Nova Wealth" button to the login page
+Add a styled button below the existing Google/Apple sign-in options. When clicked, it redirects to a Nova Wealth URL (configurable) that will authenticate the user and redirect back with a signed token.
 
 ---
 
-## 6. Safe Area Insets
+## Technical Details
 
-**Problem:** The bottom tab bar references `safe-area-inset-bottom` but the app may not properly handle the notch/Dynamic Island area at the top on modern iPhones.
+### Token Format
+The `nw_token` is a Base64-encoded JSON string:
+```text
+Base64({ email, timestamp, signature })
+```
+Where `signature = HMAC-SHA256(email + timestamp, CROSS_APP_SECRET)`
 
-**Fix:** Ensure `viewport-fit=cover` is set in the HTML meta tag and that all headers/content respect `env(safe-area-inset-top)`. Verify the bottom tab bar padding works on all iPhone models.
+### validate-nova-token Edge Function
+- Path: `supabase/functions/validate-nova-token/index.ts`
+- Config: `verify_jwt = false` (public endpoint since unauthenticated users call it)
+- Uses `CROSS_APP_SECRET` and `SUPABASE_SERVICE_ROLE_KEY` to validate and create sessions
+- Uses `supabase.auth.admin.createUser()` for auto-creation and `supabase.auth.admin.generateLink()` or sign-in to return a session
 
----
+### Database Migration
+```sql
+ALTER TABLE public.profiles 
+ADD COLUMN nova_wealth_user boolean NOT NULL DEFAULT false;
+```
 
-## 7. Session Expiry Handling
+### Files Modified
+- `supabase/functions/validate-nova-token/index.ts` -- new edge function
+- `supabase/config.toml` -- add `verify_jwt = false` for the new function
+- `supabase/functions/check-subscription/index.ts` -- add Nova Wealth Pro access check
+- `src/App.tsx` -- add `NovaWealthTokenHandler` component for token detection
+- `src/pages/Login.tsx` -- add "Login via Nova Wealth" button
 
-**Problem:** If a user's auth token expires while the app is in the background, they may see broken screens or silent failures instead of being redirected to login.
-
-**Fix:** Add a global auth state listener that detects `SIGNED_OUT` events and gracefully redirects to the login page with a toast message.
-
----
-
-## 8. Optimistic Updates for Purchases
-
-**Problem:** When adding a purchase, the user waits for the server round-trip before seeing it reflected on the Home page.
-
-**Fix:** Use React Query's optimistic update pattern to immediately show the new purchase in the list and roll back on failure.
-
----
-
-## 9. Rate Limiting / Debouncing Profile Updates
-
-**Problem:** In Settings, every keystroke in the name/income fields triggers `updateProfile`, which could fire dozens of API calls.
-
-**Fix:** Debounce the `updateProfile` calls (300-500ms delay) so they only fire after the user stops typing.
-
----
-
-## 10. App State Restoration (Deep Linking)
-
-**Problem:** If the app is killed and reopened, or a user taps a notification, they always land on `/home` regardless of where they were.
-
-**Fix:** This is lower priority but consider persisting the last active route so the app can restore context on relaunch.
-
----
-
-## Recommended Priority Order
-
-| Priority | Item | Impact |
-|----------|------|--------|
-| High | Loading skeletons | Perceived performance |
-| High | Network error handling / retry | Prevents dead-end states |
-| High | Debounce profile updates | Prevents API spam |
-| High | Safe area insets | Visual polish on all iPhones |
-| Medium | Pull-to-refresh | User control over data freshness |
-| Medium | Keyboard handling | Form usability on iOS |
-| Medium | Session expiry handling | Prevents confusing auth errors |
-| Medium | Optimistic updates | Snappier interactions |
-| Low | Empty state improvements | New user experience |
-| Low | App state restoration | Nice-to-have polish |
-
----
-
-## Technical Notes
-
-- **Loading skeletons** will use the existing `Skeleton` component from `src/components/ui/skeleton.tsx` and be added to each page's loading state.
-- **Debouncing** will use a simple `setTimeout`/`clearTimeout` pattern (no new dependencies needed).
-- **Error/retry states** will leverage React Query's `isError` and `refetch` from existing query hooks.
-- **Safe area insets** require adding `viewport-fit=cover` to `index.html` and applying `pt-[env(safe-area-inset-top)]` to page headers.
-- **Pull-to-refresh** can be implemented with a touch gesture handler or the `@capacitor/app` plugin.
+### Nova Wealth Side (for you to add later)
+You will need to add token generation logic to your Nova Wealth project that:
+1. Creates a signed token with the user's email and current timestamp
+2. Redirects to `https://spend-wise-dream-big.lovable.app/?nw_token=<token>`
 
