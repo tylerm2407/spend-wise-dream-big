@@ -29,7 +29,7 @@ interface RevenueCatState {
 
 // Your RevenueCat public API key (safe to store in code - it's a publishable key)
 // Replace this with your actual RevenueCat public API key from the RevenueCat dashboard
-const RC_PUBLIC_API_KEY_IOS = 'YOUR_REVENUECAT_IOS_PUBLIC_KEY';
+const RC_PUBLIC_API_KEY_IOS = 'sk_bYCOPJsDnvHCMSucnQTtJlcQHvQHD';
 const RC_PUBLIC_API_KEY_ANDROID = 'YOUR_REVENUECAT_ANDROID_PUBLIC_KEY';
 
 export function useRevenueCat() {
