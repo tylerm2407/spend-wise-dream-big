@@ -1,16 +1,22 @@
 
 
-# Update CROSS_APP_SECRET
+## Replace RevenueCat API Keys
 
-## What will happen
-Replace the existing `CROSS_APP_SECRET` stored in the backend with your new value. You'll be prompted to securely enter the new secret.
+### What changes
+Update the two placeholder constants in `src/hooks/useRevenueCat.tsx` (lines 30-31) with the actual RevenueCat public API keys provided by the user.
 
-## Important
-Make sure you save/copy this new secret value before entering it -- you'll need to use the **exact same value** when setting up the Nova Wealth side of the SSO integration.
+### Steps
 
-## Steps
-1. Prompt you to enter the new `CROSS_APP_SECRET` value securely
-2. The old value will be overwritten with the new one
+1. Ask the user for their RevenueCat public API keys (iOS and/or Android)
+2. Replace `YOUR_REVENUECAT_IOS_PUBLIC_KEY` and `YOUR_REVENUECAT_ANDROID_PUBLIC_KEY` in `src/hooks/useRevenueCat.tsx` with the real values
 
-No code changes are needed -- only the stored secret value is updated.
+### Technical details
 
+- File: `src/hooks/useRevenueCat.tsx`, lines 30-31
+- These are **publishable** keys, safe to store in client code
+- Current placeholders:
+  - `RC_PUBLIC_API_KEY_IOS = 'YOUR_REVENUECAT_IOS_PUBLIC_KEY'`
+  - `RC_PUBLIC_API_KEY_ANDROID = 'YOUR_REVENUECAT_ANDROID_PUBLIC_KEY'`
+
+### Before proceeding
+I will need the user to provide the actual key values. If the app only targets one platform, we only need that platform's key.
