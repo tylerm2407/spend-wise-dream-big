@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import { useSubscription } from '@/hooks/useSubscription';
+import { useRevenueCat } from '@/hooks/useRevenueCat';
 import { Button } from '@/components/ui/button';
-import { Crown, CreditCard, Check, X } from 'lucide-react';
+import { Crown, CreditCard, Check, X, Apple } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -8,6 +10,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
+import { useToast } from '@/hooks/use-toast';
 
 interface PaywallDialogProps {
   open: boolean;
@@ -29,11 +32,46 @@ const features = [
 
 export function PaywallDialog({ open, onOpenChange }: PaywallDialogProps) {
   const { openCheckout } = useSubscription();
+  const { isNative, offerings, purchasePackage, loading: rcLoading } = useRevenueCat();
+  const { toast } = useToast();
+  const [purchasing, setPurchasing] = useState(false);
 
-  const handleSubscribe = async () => {
+  const handleStripeSubscribe = async () => {
     await openCheckout();
     onOpenChange(false);
   };
+
+  const handleNativePurchase = async () => {
+    if (offerings.length === 0) {
+      toast({
+        title: 'No offerings available',
+        description: 'Please try again later.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setPurchasing(true);
+    try {
+      await purchasePackage(offerings[0].identifier);
+      toast({ title: 'Welcome to Pro!', description: 'Your subscription is now active.' });
+      onOpenChange(false);
+    } catch (err: any) {
+      const isCancelled = err?.code === 1 || err?.message?.includes('cancelled');
+      if (!isCancelled) {
+        toast({
+          title: 'Purchase failed',
+          description: 'Please try again.',
+          variant: 'destructive',
+        });
+      }
+    } finally {
+      setPurchasing(false);
+    }
+  };
+
+  // Get native price string if available
+  const nativePriceString = offerings.length > 0 ? offerings[0].product.priceString : '$4.99/mo';
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -79,23 +117,43 @@ export function PaywallDialog({ open, onOpenChange }: PaywallDialogProps) {
         </div>
 
         <div className="bg-gradient-primary/10 rounded-lg p-4 text-center border border-primary/20">
-          <div className="text-3xl font-bold text-primary">$4.99</div>
+          <div className="text-3xl font-bold text-primary">
+            {isNative ? nativePriceString : '$4.99'}
+          </div>
           <div className="text-muted-foreground text-sm">per month</div>
           <div className="text-xs text-muted-foreground mt-1">Cancel anytime</div>
         </div>
 
-        <Button
-          onClick={handleSubscribe}
-          className="w-full h-12 text-lg bg-gradient-primary glow"
-          size="lg"
-        >
-          <CreditCard className="w-5 h-5 mr-2" />
-          Subscribe to Pro
-        </Button>
-
-        <p className="text-xs text-center text-muted-foreground">
-          Secure payment powered by Stripe. Cancel anytime from Settings.
-        </p>
+        {isNative ? (
+          <>
+            <Button
+              onClick={handleNativePurchase}
+              className="w-full h-12 text-lg bg-gradient-primary glow"
+              size="lg"
+              disabled={purchasing || rcLoading}
+            >
+              <Apple className="w-5 h-5 mr-2" />
+              {purchasing ? 'Processing...' : 'Subscribe with Apple'}
+            </Button>
+            <p className="text-xs text-center text-muted-foreground">
+              Payment through your Apple ID. Manage in iOS Settings → Subscriptions.
+            </p>
+          </>
+        ) : (
+          <>
+            <Button
+              onClick={handleStripeSubscribe}
+              className="w-full h-12 text-lg bg-gradient-primary glow"
+              size="lg"
+            >
+              <CreditCard className="w-5 h-5 mr-2" />
+              Subscribe to Pro
+            </Button>
+            <p className="text-xs text-center text-muted-foreground">
+              Secure payment powered by Stripe. Cancel anytime from Settings.
+            </p>
+          </>
+        )}
       </DialogContent>
     </Dialog>
   );
