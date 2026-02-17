@@ -22,7 +22,8 @@ import {
   ExternalLink,
   MapPin,
   FileText,
-  UserX
+  UserX,
+  RotateCcw
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/AppLayout';
@@ -59,6 +60,7 @@ import { formatCurrency } from '@/lib/calculations';
 import { ReferralProgram } from '@/components/ReferralProgram';
 import { useBudgetNotifications } from '@/hooks/useBudgetNotifications';
 import { supabase } from '@/integrations/supabase/client';
+import { useRevenueCat } from '@/hooks/useRevenueCat';
 
 export default function Settings() {
   const navigate = useNavigate();
@@ -79,6 +81,7 @@ export default function Settings() {
   } = useSubscription();
   const { toast } = useToast();
   const { enabled: budgetAlertsEnabled, toggleAlerts, permission, isSupported } = useBudgetNotifications();
+  const { isNative, restorePurchases, loading: rcLoading, hasActiveSubscription: hasIAP } = useRevenueCat();
   const [isDarkMode, setIsDarkMode] = useState(
     document.documentElement.classList.contains('dark')
   );
@@ -406,6 +409,40 @@ export default function Settings() {
                       Your trial ends on {trialEndDate ? new Date(trialEndDate).toLocaleDateString() : 'soon'}
                     </p>
                   )}
+                </div>
+              )}
+
+              {/* Restore Purchases - native only */}
+              {isNative && (
+                <div className="mt-4 pt-4 border-t border-border/50">
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={async () => {
+                      try {
+                        await restorePurchases();
+                        toast({
+                          title: hasIAP ? 'Purchases restored!' : 'No purchases found',
+                          description: hasIAP
+                            ? 'Your Pro subscription has been restored.'
+                            : 'No previous purchases were found for this account.',
+                        });
+                      } catch {
+                        toast({
+                          title: 'Restore failed',
+                          description: 'Please try again later.',
+                          variant: 'destructive',
+                        });
+                      }
+                    }}
+                    disabled={rcLoading}
+                  >
+                    <RotateCcw className={`h-4 w-4 mr-2 ${rcLoading ? 'animate-spin' : ''}`} />
+                    {rcLoading ? 'Restoring...' : 'Restore Purchases'}
+                  </Button>
+                  <p className="text-xs text-center text-muted-foreground mt-2">
+                    Previously purchased a subscription? Tap to restore it.
+                  </p>
                 </div>
               )}
             </Card>
