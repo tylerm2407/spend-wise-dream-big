@@ -1,5 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  checkAndRecordAiUsage,
+  aiLimitResponse,
+  AI_COST_ESTIMATES,
+} from "../_shared/ai-usage-guard.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -22,6 +27,8 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
+    const userId = claimsData.claims.sub as string;
+
     const { product, zipCode, category, originalPrice } = await req.json();
 
     if (!product || typeof product !== 'string') {
@@ -31,12 +38,17 @@ serve(async (req) => {
       );
     }
 
+    // ── AI usage guard ──
+    const usageResult = await checkAndRecordAiUsage(userId, AI_COST_ESTIMATES.chatFlash);
+    if (usageResult !== 'ok') {
+      return aiLimitResponse(corsHeaders);
+    }
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    // Build location context for the prompt
     const locationContext = zipCode 
       ? `The user is located in zip code ${zipCode}. Include specific store locations near this area.`
       : 'Suggest nationally available stores.';
@@ -141,7 +153,6 @@ Be practical, realistic, and use real brand names and stores. Focus on commonly 
 
     const data = await response.json();
     
-    // Extract the tool call result
     const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
     if (!toolCall || toolCall.function.name !== "suggest_alternatives") {
       return new Response(

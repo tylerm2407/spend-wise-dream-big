@@ -35,6 +35,33 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_usage: {
+        Row: {
+          id: string
+          last_updated_at: string
+          period_start: string
+          total_cost_cents: number
+          total_requests: number
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          last_updated_at?: string
+          period_start: string
+          total_cost_cents?: number
+          total_requests?: number
+          user_id: string
+        }
+        Update: {
+          id?: string
+          last_updated_at?: string
+          period_start?: string
+          total_cost_cents?: number
+          total_requests?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       favorites: {
         Row: {
           amount: number
@@ -559,6 +586,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_and_record_ai_usage: {
+        Args: { p_estimated_cost_cents: number; p_user_id: string }
+        Returns: string
+      }
       get_community_challenge_stats: { Args: never; Returns: Json }
     }
     Enums: {

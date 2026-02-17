@@ -1,5 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  checkAndRecordAiUsage,
+  aiLimitResponse,
+  AI_COST_ESTIMATES,
+} from "../_shared/ai-usage-guard.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -23,6 +28,8 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
+    const userId = claimsData.claims.sub as string;
+
     const body = await req.json();
     const {
       totalSpent,
@@ -37,6 +44,12 @@ serve(async (req) => {
       daysWithNoPurchases,
       purchaseCount,
     } = body;
+
+    // ── AI usage guard ──
+    const usageResult = await checkAndRecordAiUsage(userId, AI_COST_ESTIMATES.chatFlash);
+    if (usageResult !== 'ok') {
+      return aiLimitResponse(corsHeaders);
+    }
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
