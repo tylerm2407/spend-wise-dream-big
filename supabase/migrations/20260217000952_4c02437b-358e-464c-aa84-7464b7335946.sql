@@ -1,0 +1,1 @@
+ALTER TABLE public.profiles ADD COLUMN nova_wealth_user boolean NOT NULL DEFAULT false;

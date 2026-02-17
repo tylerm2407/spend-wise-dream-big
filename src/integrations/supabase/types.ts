@@ -256,6 +256,7 @@ export type Database = {
           longest_streak: number | null
           monthly_income: number | null
           name: string | null
+          nova_wealth_user: boolean
           onboarding_completed: boolean | null
           referral_bonus_days: number
           referral_code: string
@@ -275,6 +276,7 @@ export type Database = {
           longest_streak?: number | null
           monthly_income?: number | null
           name?: string | null
+          nova_wealth_user?: boolean
           onboarding_completed?: boolean | null
           referral_bonus_days?: number
           referral_code: string
@@ -294,6 +296,7 @@ export type Database = {
           longest_streak?: number | null
           monthly_income?: number | null
           name?: string | null
+          nova_wealth_user?: boolean
           onboarding_completed?: boolean | null
           referral_bonus_days?: number
           referral_code?: string

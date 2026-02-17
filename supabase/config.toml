@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.suggest-alternatives]
 verify_jwt = false
+
+[functions.validate-nova-token]
+verify_jwt = false
