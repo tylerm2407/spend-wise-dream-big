@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.validate-nova-token]
 verify_jwt = false
+
+[functions.validate-iap-receipt]
+verify_jwt = false

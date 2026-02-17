@@ -10,6 +10,8 @@ interface SubscriptionStatus {
   hasProAccess: boolean;
   subscriptionEnd: string | null;
   productId: string | null;
+  hasActiveIAP: boolean;
+  iapExpiresDate: string | null;
 }
 
 interface SubscriptionContextType extends SubscriptionStatus {
@@ -30,6 +32,8 @@ const defaultStatus: SubscriptionStatus = {
   hasProAccess: true,
   subscriptionEnd: null,
   productId: null,
+  hasActiveIAP: false,
+  iapExpiresDate: null,
 };
 
 const SubscriptionContext = createContext<SubscriptionContextType | undefined>(undefined);
@@ -71,6 +75,8 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
         hasProAccess: data.has_pro_access ?? false,
         subscriptionEnd: data.subscription_end ?? null,
         productId: data.product_id ?? null,
+        hasActiveIAP: data.has_active_iap ?? false,
+        iapExpiresDate: data.iap_expires_date ?? null,
       });
     } catch (err) {
       console.error('Failed to check subscription:', err);
