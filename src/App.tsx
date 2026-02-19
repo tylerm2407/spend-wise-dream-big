@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useSearchParams, useNavigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
+import { GuestProvider, useGuest } from "@/hooks/useGuest";
 import { SubscriptionProvider } from "@/hooks/useSubscription";
 import { TrialBanner } from "@/components/SubscriptionGate";
 import { ReferralCodeApplier } from "@/components/ReferralCodeApplier";
@@ -57,9 +58,10 @@ function ThemeInitializer() {
   return null;
 }
 
-// Protected route wrapper — all authenticated users can view pages
+// Protected route wrapper — authenticated users AND guests can view pages
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
+  const { isGuest } = useGuest();
   
   if (loading) {
     return (
@@ -69,13 +71,13 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     );
   }
   
-  if (!user) {
+  if (!user && !isGuest) {
     return <Navigate to="/login" replace />;
   }
   
   return (
     <>
-      <TrialBanner />
+      {user && <TrialBanner />}
       {children}
     </>
   );
@@ -84,6 +86,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 // Public route wrapper (redirects if already logged in)
 function PublicRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
+  const { isGuest } = useGuest();
   
   if (loading) {
     return (
@@ -93,7 +96,7 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
     );
   }
   
-  if (user) {
+  if (user || isGuest) {
     return <Navigate to="/home" replace />;
   }
   
@@ -204,19 +207,21 @@ function AppRoutes() {
 const App = () => (
   <ErrorBoundary>
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <SubscriptionProvider>
-          <TooltipProvider>
-            <ThemeInitializer />
-            <ReferralCodeApplier />
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-              <AppRoutes />
-            </BrowserRouter>
-          </TooltipProvider>
-        </SubscriptionProvider>
-      </AuthProvider>
+      <GuestProvider>
+        <AuthProvider>
+          <SubscriptionProvider>
+            <TooltipProvider>
+              <ThemeInitializer />
+              <ReferralCodeApplier />
+              <Toaster />
+              <Sonner />
+              <BrowserRouter>
+                <AppRoutes />
+              </BrowserRouter>
+            </TooltipProvider>
+          </SubscriptionProvider>
+        </AuthProvider>
+      </GuestProvider>
     </QueryClientProvider>
   </ErrorBoundary>
 );
