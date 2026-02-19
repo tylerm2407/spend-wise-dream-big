@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Mail, Lock, Eye, EyeOff, ArrowRight, Loader2, User, Gift } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, ArrowRight, Loader2, User, Gift, UserX } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { useGuest } from '@/hooks/useGuest';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -18,6 +19,7 @@ export default function Signup() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { signUp, signInWithGoogle } = useAuth();
+  const { enterGuestMode } = useGuest();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -264,8 +266,32 @@ export default function Signup() {
             Continue with Apple
           </Button>
 
+          {/* Continue as Guest */}
+          <div className="relative my-5">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-border" />
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-2 bg-background text-muted-foreground">or</span>
+            </div>
+          </div>
+
+          <Button
+            type="button"
+            variant="ghost"
+            className="w-full h-12 touch-target text-muted-foreground hover:text-foreground"
+            onClick={() => { enterGuestMode(); navigate('/home'); }}
+          >
+            <UserX className="h-4 w-4 mr-2" />
+            Continue as Guest
+          </Button>
+
+          <p className="text-center text-xs text-muted-foreground mt-1">
+            No account needed — basic features only, no data saved
+          </p>
+
           {/* Login link */}
-          <p className="mt-6 text-center text-sm text-muted-foreground">
+          <p className="mt-5 text-center text-sm text-muted-foreground">
             Already have an account?{' '}
             <Link to="/login" className="text-primary font-medium hover:underline">
               Sign in

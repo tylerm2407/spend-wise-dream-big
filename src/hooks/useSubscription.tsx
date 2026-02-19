@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import { useAuth } from './useAuth';
+import { useGuest } from './useGuest';
 import { supabase } from '@/integrations/supabase/client';
 
 interface SubscriptionStatus {
@@ -40,11 +41,29 @@ const SubscriptionContext = createContext<SubscriptionContextType | undefined>(u
 
 export function SubscriptionProvider({ children }: { children: ReactNode }) {
   const { user, session } = useAuth();
+  const { isGuest } = useGuest();
   const [status, setStatus] = useState<SubscriptionStatus>(defaultStatus);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const checkSubscription = useCallback(async () => {
+    // Guests get free tier with no pro access
+    if (isGuest) {
+      setStatus({
+        subscribed: false,
+        isInTrial: false,
+        trialDaysRemaining: 0,
+        trialEndDate: null,
+        hasProAccess: false,
+        subscriptionEnd: null,
+        productId: null,
+        hasActiveIAP: false,
+        iapExpiresDate: null,
+      });
+      setLoading(false);
+      return;
+    }
+
     if (!session?.access_token) {
       setStatus(defaultStatus);
       setLoading(false);
@@ -84,7 +103,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, [session?.access_token]);
+  }, [session?.access_token, isGuest]);
 
   const openCheckout = async (referralData?: { referral_code: string; referrer_id: string }) => {
     if (!session?.access_token) {
@@ -121,21 +140,23 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    if (user) {
+    if (isGuest) {
+      checkSubscription();
+    } else if (user) {
       checkSubscription();
     } else {
       setStatus(defaultStatus);
       setLoading(false);
     }
-  }, [user, checkSubscription]);
+  }, [user, isGuest, checkSubscription]);
 
-  // Auto-refresh every minute
+  // Auto-refresh every minute (authenticated users only)
   useEffect(() => {
-    if (!user) return;
+    if (!user || isGuest) return;
     
     const interval = setInterval(checkSubscription, 60000);
     return () => clearInterval(interval);
-  }, [user, checkSubscription]);
+  }, [user, isGuest, checkSubscription]);
 
   return (
     <SubscriptionContext.Provider
