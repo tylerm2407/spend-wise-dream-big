@@ -277,6 +277,10 @@ export type Database = {
           created_at: string
           daily_budget: number | null
           hourly_wage: number | null
+          iap_active: boolean
+          iap_expires_at: string | null
+          iap_product_id: string | null
+          iap_updated_at: string | null
           id: string
           last_login_date: string | null
           login_streak: number | null
@@ -297,6 +301,10 @@ export type Database = {
           created_at?: string
           daily_budget?: number | null
           hourly_wage?: number | null
+          iap_active?: boolean
+          iap_expires_at?: string | null
+          iap_product_id?: string | null
+          iap_updated_at?: string | null
           id?: string
           last_login_date?: string | null
           login_streak?: number | null
@@ -317,6 +325,10 @@ export type Database = {
           created_at?: string
           daily_budget?: number | null
           hourly_wage?: number | null
+          iap_active?: boolean
+          iap_expires_at?: string | null
+          iap_product_id?: string | null
+          iap_updated_at?: string | null
           id?: string
           last_login_date?: string | null
           login_streak?: number | null

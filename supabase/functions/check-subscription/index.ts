@@ -43,10 +43,10 @@ serve(async (req) => {
     if (!user?.email) throw new Error("User not authenticated or email not available");
     logStep("User authenticated", { userId: user.id, email: user.email });
 
-    // Get user's profile for referral bonus days
+    // Get user's profile for referral bonus days + IAP status
     const { data: profileData } = await supabaseClient
       .from("profiles")
-      .select("referral_bonus_days, nova_wealth_user")
+      .select("referral_bonus_days, nova_wealth_user, iap_active, iap_product_id, iap_expires_at")
       .eq("user_id", user.id)
       .maybeSingle();
 
@@ -126,42 +126,15 @@ serve(async (req) => {
       logStep("No active subscription found");
     }
 
-    // Check RevenueCat for IAP subscription
-    let hasActiveIAP = false;
-    let iapExpiresDate: string | null = null;
-    const rcApiKey = Deno.env.get("REVENUECAT_API_KEY");
-    if (rcApiKey) {
-      try {
-        const rcRes = await fetch(
-          `https://api.revenuecat.com/v1/subscribers/${user.id}`,
-          {
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${rcApiKey}`,
-            },
-          }
-        );
-        if (rcRes.ok) {
-          const rcData = await rcRes.json();
-          const entitlements = rcData.subscriber?.entitlements || {};
-          const proEnt = entitlements["pro"] || entitlements["Pro"] || entitlements["premium"] || entitlements["Premium"];
-          if (proEnt) {
-            const expires = proEnt.expires_date;
-            if (expires) {
-              hasActiveIAP = new Date(expires) > new Date();
-              iapExpiresDate = expires;
-            } else {
-              hasActiveIAP = true; // lifetime
-            }
-          }
-          logStep("RevenueCat check", { hasActiveIAP, iapExpiresDate });
-        } else {
-          logStep("RevenueCat subscriber not found (normal for web-only users)");
-        }
-      } catch (rcErr) {
-        logStep("RevenueCat check skipped", { error: String(rcErr) });
-      }
+    // Check IAP status from profiles table (synced by revenuecat-webhook)
+    let hasActiveIAP = profileData?.iap_active ?? false;
+    let iapExpiresDate: string | null = profileData?.iap_expires_at ?? null;
+
+    // If iap_active but expired, treat as inactive
+    if (hasActiveIAP && iapExpiresDate && new Date(iapExpiresDate) < new Date()) {
+      hasActiveIAP = false;
     }
+    logStep("IAP status from DB", { hasActiveIAP, iapExpiresDate });
 
     // Pro access = Stripe subscribed OR in trial OR IAP active
     const hasProAccess = hasActiveSub || isInTrial || hasActiveIAP;
