@@ -27,10 +27,11 @@ serve(async (req) => {
     // Validate authorization header
     const webhookKey = Deno.env.get("REVENUECAT_WEBHOOK_AUTH_KEY");
     if (webhookKey) {
-      const authHeader = req.headers.get("Authorization");
-      const expectedHeader = `Bearer ${webhookKey}`;
-      if (!authHeader || authHeader !== expectedHeader) {
-        log("Unauthorized request");
+      const authHeader = req.headers.get("Authorization") ?? "";
+      // Accept: "Bearer <key>", or just "<key>" directly
+      const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : authHeader;
+      if (token !== webhookKey) {
+        log("Unauthorized request", { receivedHeader: authHeader ? "(present but mismatched)" : "(missing)" });
         return new Response(JSON.stringify({ error: "Unauthorized" }), {
           status: 401,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
