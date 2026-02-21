@@ -75,14 +75,13 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       const { data, error: fnError } = await supabase.functions.invoke('check-subscription');
       
       if (fnError) {
-        console.error('Error checking subscription:', fnError);
-        setError(fnError.message);
+        // 401 means token expired/invalid - use defaults, don't treat as error
+        console.warn('Subscription check failed (likely token refresh):', fnError.message);
         return;
       }
 
-      if (data.error) {
-        console.error('Subscription check error:', data.error);
-        setError(data.error);
+      if (data?.error) {
+        console.warn('Subscription check returned error:', data.error);
         return;
       }
 
