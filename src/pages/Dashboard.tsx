@@ -9,7 +9,8 @@ import {
   DollarSign,
   LogOut,
   History,
-  Settings
+  Settings,
+  Crown
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
@@ -24,6 +25,8 @@ import { SmarterSpendingSuggestions } from '@/components/SmarterSpendingSuggesti
 import { WeeklySpendingChallenge } from '@/components/WeeklySpendingChallenge';
 import { formatCurrency, calculateGoalProgress, getGoalStatus } from '@/lib/calculations';
 import { cn } from '@/lib/utils';
+import { useRevenueCat } from '@/hooks/useRevenueCat';
+import { useSubscription } from '@/hooks/useSubscription';
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -31,6 +34,8 @@ export default function Dashboard() {
   const { profile, isLoading: profileLoading } = useProfile();
   const { purchases, monthlyTotal, lastMonthTotal, monthlyChange, topCategory, recentPurchases } = usePurchases();
   const { primaryGoal, activeGoals } = useGoals();
+  const { showOffering, loading: rcLoading, isNative } = useRevenueCat();
+  const { hasProAccess } = useSubscription();
 
   useEffect(() => {
     if (!profileLoading && profile && !profile.onboarding_completed) {
@@ -104,6 +109,33 @@ export default function Dashboard() {
         animate="visible"
         className="px-6 space-y-6"
       >
+        {/* Upgrade to Pro Button (native only, non-Pro users) */}
+        {isNative && !hasProAccess && (
+          <motion.div variants={itemVariants}>
+            <Card className="p-4 glass-card">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Crown className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="font-semibold">Upgrade to Pro</p>
+                    <p className="text-xs text-muted-foreground">Unlock unlimited features</p>
+                  </div>
+                </div>
+                <Button
+                  size="sm"
+                  className="bg-gradient-primary"
+                  onClick={showOffering}
+                  disabled={rcLoading}
+                >
+                  {rcLoading ? 'Loading…' : 'View Plans'}
+                </Button>
+              </div>
+            </Card>
+          </motion.div>
+        )}
+
         {/* Primary Goal Card */}
         {primaryGoal && (
           <motion.div variants={itemVariants}>
