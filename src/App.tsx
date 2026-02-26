@@ -6,12 +6,12 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useSearchParams, useNavigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { GuestProvider, useGuest } from "@/hooks/useGuest";
+import { NovaWealthProvider, useNovaWealth } from "@/hooks/useNovaWealth";
 import { SubscriptionProvider } from "@/hooks/useSubscription";
 import { AppAccessProvider } from "@/hooks/useAppAccess";
 import { TrialBanner } from "@/components/SubscriptionGate";
 import { ReferralCodeApplier } from "@/components/ReferralCodeApplier";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
 // Lazy-loaded route components
@@ -41,12 +41,11 @@ const queryClient = new QueryClient({
     queries: {
       retry: 2,
       retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
-      staleTime: 1000 * 60 * 2, // 2 minutes
+      staleTime: 1000 * 60 * 2,
     },
   },
 });
 
-// Initialize theme from localStorage
 function ThemeInitializer() {
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme');
@@ -61,11 +60,12 @@ function ThemeInitializer() {
   return null;
 }
 
-// Protected route wrapper — authenticated users AND guests can view pages
+// Protected route wrapper
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   const { isGuest } = useGuest();
-  
+  const { isNovaWealthUser } = useNovaWealth();
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-hero flex items-center justify-center">
@@ -73,11 +73,11 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
       </div>
     );
   }
-  
-  if (!user && !isGuest) {
+
+  if (!user && !isGuest && !isNovaWealthUser) {
     return <Navigate to="/login" replace />;
   }
-  
+
   return (
     <>
       {user && <TrialBanner />}
@@ -86,11 +86,12 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   );
 }
 
-// Public route wrapper (redirects if already logged in)
+// Public route wrapper
 function PublicRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   const { isGuest } = useGuest();
-  
+  const { isNovaWealthUser } = useNovaWealth();
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-hero flex items-center justify-center">
@@ -98,11 +99,11 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
       </div>
     );
   }
-  
-  if (user || isGuest) {
+
+  if (user || isGuest || isNovaWealthUser) {
     return <Navigate to="/home" replace />;
   }
-  
+
   return <>{children}</>;
 }
 
@@ -114,57 +115,64 @@ function RouteFallback() {
   );
 }
 
-// Nova Wealth SSO token handler
+// Nova Wealth SSO token handler — validates nw_token param
 function NovaWealthTokenHandler() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { saveSession } = useNovaWealth();
 
   useEffect(() => {
-    const token = searchParams.get('auth_token');
+    const token = searchParams.get('nw_token');
     if (!token) return;
 
     // Remove token from URL immediately
-    searchParams.delete('auth_token');
+    searchParams.delete('nw_token');
     setSearchParams(searchParams, { replace: true });
 
     (async () => {
       try {
-        const res = await supabase.functions.invoke('validate-nova-token', {
-          body: { token },
-        });
+        const res = await fetch(
+          'https://dbwuegchdysuocbpsprd.supabase.co/functions/v1/validate-auth-token',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              apikey:
+                'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRid3VlZ2NoZHlzdW9jYnBzcHJkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExNzYyMTAsImV4cCI6MjA4Njc1MjIxMH0.6LEKjLXhaxeRublNoAITpVVueHwpUPuLxS0sbgcTUlE',
+            },
+            body: JSON.stringify({ token }),
+          }
+        );
 
-        if (res.error || res.data?.error) {
-          throw new Error(res.data?.error || res.error?.message || 'Token validation failed');
+        const data = await res.json();
+
+        if (!data.valid) {
+          throw new Error('Invalid or expired token');
         }
 
-        const { token_hash, email } = res.data;
-
-        // Use the token hash to verify OTP and establish session
-        const { error: otpError } = await supabase.auth.verifyOtp({
-          token_hash,
-          type: 'magiclink',
+        // Store session in localStorage
+        saveSession({
+          email: data.email,
+          user_id: data.user_id,
+          tier: data.tier,
         });
-
-        if (otpError) {
-          throw new Error(otpError.message);
-        }
 
         toast({
-          title: 'Welcome from Nova Wealth!',
-          description: `Signed in as ${email} with Pro access.`,
+          title: 'Welcome from NovaWealth!',
+          description: `Signed in as ${data.email}${data.tier === 'pro' ? ' with Pro access' : ''}.`,
         });
         navigate('/home', { replace: true });
       } catch (err: any) {
         console.error('[NovaWealth SSO]', err);
         toast({
           title: 'SSO Login Failed',
-          description: err.message || 'Could not verify Nova Wealth token.',
+          description: err.message || 'Could not verify NovaWealth token.',
           variant: 'destructive',
         });
       }
     })();
-  }, [searchParams, setSearchParams, navigate, toast]);
+  }, [searchParams, setSearchParams, navigate, toast, saveSession]);
 
   return null;
 }
@@ -182,8 +190,8 @@ function AppRoutes() {
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/privacy-policy" element={<PrivacyPolicy />} />
         <Route path="/terms-of-service" element={<TermsOfService />} />
-        
-        {/* Protected routes - Main app with tab bar */}
+
+        {/* Protected routes */}
         <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
         <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
         <Route path="/dashboard" element={<Navigate to="/home" replace />} />
@@ -192,18 +200,13 @@ function AppRoutes() {
         <Route path="/challenges" element={<ProtectedRoute><Challenges /></ProtectedRoute>} />
         <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
         <Route path="/invest" element={<ProtectedRoute><Invest /></ProtectedRoute>} />
-        
-        {/* Subscription success page */}
         <Route path="/subscription-success" element={<ProtectedRoute><SubscriptionSuccess /></ProtectedRoute>} />
         <Route path="/subscriptions" element={<ProtectedRoute><Subscriptions /></ProtectedRoute>} />
         <Route path="/grocery" element={<ProtectedRoute><Grocery /></ProtectedRoute>} />
-        
-        {/* Protected routes - Secondary screens (no tab bar) */}
         <Route path="/add-purchase" element={<ProtectedRoute><AddPurchase /></ProtectedRoute>} />
         <Route path="/history" element={<ProtectedRoute><History /></ProtectedRoute>} />
         <Route path="/goals" element={<ProtectedRoute><Goals /></ProtectedRoute>} />
-        
-        {/* Catch-all */}
+
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Suspense>
@@ -214,21 +217,23 @@ const App = () => (
   <ErrorBoundary>
     <QueryClientProvider client={queryClient}>
       <GuestProvider>
-        <AuthProvider>
-          <AppAccessProvider>
-            <SubscriptionProvider>
-            <TooltipProvider>
-              <ThemeInitializer />
-              <ReferralCodeApplier />
-              <Toaster />
-              <Sonner />
-              <BrowserRouter>
-                <AppRoutes />
-              </BrowserRouter>
-            </TooltipProvider>
-          </SubscriptionProvider>
-          </AppAccessProvider>
-        </AuthProvider>
+        <NovaWealthProvider>
+          <AuthProvider>
+            <AppAccessProvider>
+              <SubscriptionProvider>
+                <TooltipProvider>
+                  <ThemeInitializer />
+                  <ReferralCodeApplier />
+                  <Toaster />
+                  <Sonner />
+                  <BrowserRouter>
+                    <AppRoutes />
+                  </BrowserRouter>
+                </TooltipProvider>
+              </SubscriptionProvider>
+            </AppAccessProvider>
+          </AuthProvider>
+        </NovaWealthProvider>
       </GuestProvider>
     </QueryClientProvider>
   </ErrorBoundary>

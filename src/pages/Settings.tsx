@@ -61,6 +61,7 @@ import { ReferralProgram } from '@/components/ReferralProgram';
 import { useBudgetNotifications } from '@/hooks/useBudgetNotifications';
 import { supabase } from '@/integrations/supabase/client';
 import { useRevenueCat } from '@/hooks/useRevenueCat';
+import { useNovaWealth } from '@/hooks/useNovaWealth';
 
 export default function Settings() {
   const navigate = useNavigate();
@@ -82,6 +83,7 @@ export default function Settings() {
   const { toast } = useToast();
   const { enabled: budgetAlertsEnabled, toggleAlerts, permission, isSupported } = useBudgetNotifications();
   const { isNative, restorePurchases, loading: rcLoading, hasActiveSubscription: hasIAP } = useRevenueCat();
+  const { isNovaWealthUser, clearSession: clearNWSession } = useNovaWealth();
   const [isDarkMode, setIsDarkMode] = useState(
     document.documentElement.classList.contains('dark')
   );
@@ -209,8 +211,11 @@ export default function Settings() {
 
 
   const handleSignOut = async () => {
+    if (isNovaWealthUser) {
+      clearNWSession();
+    }
     await signOut();
-    navigate('/');
+    navigate('/login');
   };
 
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
