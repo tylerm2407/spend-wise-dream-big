@@ -245,7 +245,7 @@ export function PricingCards({ onSelectFree, showFreeAction }: PricingCardsProps
         <p className="text-center text-sm text-muted-foreground mt-6">
           Already a NovaWealth Pro subscriber? You have full access —{' '}
           <a
-            href="https://novawealthhqcom.lovable.app/login?redirect_app=Cost Clarity"
+            href={`https://novawealthhqcom.lovable.app/login?redirect_app=Cost Clarity&redirect_uri=${encodeURIComponent(window.location.origin)}`}
             className="text-primary font-medium hover:underline"
           >
             Log in with NovaWealth
