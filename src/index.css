@@ -279,63 +279,37 @@
 }
 
 @layer utilities {
-  /* Animated rotating glow border */
-  .glow-border {
-    position: relative;
-    overflow: hidden;
-  }
-
-  .glow-border::before {
-    content: '';
+  /* Traveling glow orb that orbits around card edges */
+  .glow-orb-track {
     position: absolute;
-    inset: -2px;
-    border-radius: inherit;
-    padding: 2px;
-    background: conic-gradient(
-      from var(--glow-angle, 0deg),
-      transparent 0%,
-      hsl(var(--primary)) 10%,
-      hsl(var(--primary) / 0.6) 20%,
-      transparent 30%,
-      transparent 100%
-    );
-    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-    -webkit-mask-composite: xor;
-    mask-composite: exclude;
-    animation: glow-rotate 4s linear infinite;
-    pointer-events: none;
+    inset: 0;
     z-index: 1;
+    pointer-events: none;
+    border-radius: inherit;
   }
 
-  .glow-border::after {
+  .glow-orb-track::before {
     content: '';
     position: absolute;
-    inset: -4px;
-    border-radius: inherit;
-    background: conic-gradient(
-      from var(--glow-angle, 0deg),
-      transparent 0%,
-      hsl(var(--primary) / 0.3) 10%,
-      hsl(var(--primary) / 0.15) 20%,
-      transparent 30%,
-      transparent 100%
-    );
-    filter: blur(8px);
-    animation: glow-rotate 4s linear infinite;
-    pointer-events: none;
-    z-index: 0;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: radial-gradient(circle, hsl(var(--primary)) 0%, hsl(var(--primary) / 0.5) 40%, transparent 70%);
+    box-shadow:
+      0 0 10px 3px hsl(var(--primary) / 0.5),
+      0 0 20px 8px hsl(var(--primary) / 0.25),
+      0 0 36px 14px hsl(var(--primary) / 0.1);
+    animation: orb-clockwise 3.5s linear infinite;
+    transform: translate(-50%, -50%);
   }
 
-  @keyframes glow-rotate {
-    from { --glow-angle: 0deg; }
-    to { --glow-angle: 360deg; }
-  }
-
-  @property --glow-angle {
-    syntax: '<angle>';
-    initial-value: 0deg;
-    inherits: false;
+  /* Clockwise travel: top-left → top-right → bottom-right → bottom-left → top-left */
+  @keyframes orb-clockwise {
+    0%   { top: 0; left: 0; }
+    25%  { top: 0; left: 100%; }
+    50%  { top: 100%; left: 100%; }
+    75%  { top: 100%; left: 0; }
+    100% { top: 0; left: 0; }
   }
   /* Safe area insets for mobile */
   .safe-area-inset-bottom {
