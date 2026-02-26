@@ -186,7 +186,15 @@ export function PricingCards({ onSelectFree, showFreeAction }: PricingCardsProps
                     </p>
                   )}
 
-                  <p className="text-muted-foreground text-sm mb-4">{plan.tagline}</p>
+                  <p className="text-muted-foreground text-sm mb-2">{plan.tagline}</p>
+
+                  {plan.monthlyPrice > 0 && (
+                    <p className="text-xs font-semibold text-primary mb-4">
+                      🎉 30-day free trial included
+                    </p>
+                  )}
+
+                  {plan.monthlyPrice === 0 && <div className="mb-4" />}
 
                   <ul className="space-y-2 mb-5 flex-1">
                     {plan.features.map((f) => (
