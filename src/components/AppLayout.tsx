@@ -74,15 +74,24 @@ function GuestBanner() {
 }
 
 export function AppLayout({ children, showTabBar = true }: AppLayoutProps) {
-
+  const navigate = useNavigate();
   return (
     <div className="min-h-screen bg-background pt-[env(safe-area-inset-top)]">
       <OfflineBanner />
       <GuestBanner />
-      {/* Notification bell - fixed position */}
+      {/* Top-right actions */}
       <div className="fixed top-4 right-4 z-50 flex items-center gap-2">
         <TierBadge />
         <NotificationBell />
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-9 w-9 rounded-full"
+          onClick={() => navigate('/settings')}
+          aria-label="Profile"
+        >
+          <User className="h-5 w-5 text-muted-foreground" />
+        </Button>
       </div>
       <div className={showTabBar ? 'pb-20' : ''}>{children}</div>
       {showTabBar && <BottomTabBar />}
