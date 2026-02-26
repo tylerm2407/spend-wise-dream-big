@@ -33,7 +33,8 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 const SubscriptionSuccess = lazy(() => import("./pages/SubscriptionSuccess"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const TermsOfService = lazy(() => import("./pages/TermsOfService"));
-
+const Subscriptions = lazy(() => import("./pages/Subscriptions"));
+const Grocery = lazy(() => import("./pages/Grocery"));
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -193,6 +194,8 @@ function AppRoutes() {
         
         {/* Subscription success page */}
         <Route path="/subscription-success" element={<ProtectedRoute><SubscriptionSuccess /></ProtectedRoute>} />
+        <Route path="/subscriptions" element={<ProtectedRoute><Subscriptions /></ProtectedRoute>} />
+        <Route path="/grocery" element={<ProtectedRoute><Grocery /></ProtectedRoute>} />
         
         {/* Protected routes - Secondary screens (no tab bar) */}
         <Route path="/add-purchase" element={<ProtectedRoute><AddPurchase /></ProtectedRoute>} />

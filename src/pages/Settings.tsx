@@ -447,6 +447,25 @@ export default function Settings() {
               )}
             </Card>
           </motion.div>
+
+          {/* Quick Links */}
+          <motion.div variants={itemVariants}>
+            <Card className="p-6 glass-card">
+              <h3 className="font-medium mb-4">Quick Links</h3>
+              <div className="space-y-2">
+                <Button variant="outline" className="w-full justify-start" onClick={() => navigate('/subscriptions')}>
+                  <CreditCard className="h-4 w-4 mr-2" />
+                  My Subscriptions
+                  <ChevronRight className="h-4 w-4 ml-auto" />
+                </Button>
+                <Button variant="outline" className="w-full justify-start" onClick={() => navigate('/grocery')}>
+                  <Zap className="h-4 w-4 mr-2" />
+                  Grocery Lists & Prices
+                  <ChevronRight className="h-4 w-4 ml-auto" />
+                </Button>
+              </div>
+            </Card>
+          </motion.div>
  
           {/* Income & Work Hours */}
           <motion.div variants={itemVariants}>

@@ -26,3 +26,9 @@ verify_jwt = false
 
 [functions.revenuecat-webhook]
 verify_jwt = false
+
+[functions.nearby-stores]
+verify_jwt = false
+
+[functions.estimate-grocery-prices]
+verify_jwt = false
