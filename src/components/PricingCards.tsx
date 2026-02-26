@@ -93,14 +93,7 @@ export function PricingCards({ onSelectFree, showFreeAction }: PricingCardsProps
     }
   };
 
-  const novaWealthLoginUrl = (() => {
-    const params = new URLSearchParams({
-      redirect_app: 'Cost Clarity',
-      redirect_uri: `${window.location.origin}/login`,
-    });
-
-    return `https://novawealthhqcom.lovable.app/login?${params.toString()}`;
-  })();
+  const novaWealthLoginUrl = 'https://novawealthhqcom.lovable.app/login?redirect_app=Cost Clarity';
 
   return (
     <div>

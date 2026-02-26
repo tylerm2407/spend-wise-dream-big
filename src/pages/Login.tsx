@@ -65,14 +65,7 @@ export default function Login() {
     }
   };
 
-  const novaWealthLoginUrl = (() => {
-    const params = new URLSearchParams({
-      redirect_app: 'Cost Clarity',
-      redirect_uri: `${window.location.origin}/login`,
-    });
-
-    return `https://novawealthhqcom.lovable.app/login?${params.toString()}`;
-  })();
+  const novaWealthLoginUrl = 'https://novawealthhqcom.lovable.app/login?redirect_app=Cost Clarity';
 
   return (
     <div className="min-h-screen bg-gradient-hero flex flex-col">
