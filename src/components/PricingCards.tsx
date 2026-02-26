@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useSubscription } from '@/hooks/useSubscription';
+import { useNovaWealth } from '@/hooks/useNovaWealth';
 import { cn } from '@/lib/utils';
 
 const NOVAWEALTH_SUBSCRIBE_URL = 'https://novawealth.app/subscribe';
@@ -80,6 +81,7 @@ interface PricingCardsProps {
 export function PricingCards({ onSelectFree, showFreeAction }: PricingCardsProps) {
   const [isYearly, setIsYearly] = useState(false);
   const { openCheckout, hasProAccess } = useSubscription();
+  const { hasNWProAccess } = useNovaWealth();
 
   const handleSubscribe = (plan: Plan) => {
     if (plan.bundle) {
@@ -237,6 +239,19 @@ export function PricingCards({ onSelectFree, showFreeAction }: PricingCardsProps
           );
         })}
       </div>
+
+      {/* NovaWealth Pro note */}
+      {!hasNWProAccess && (
+        <p className="text-center text-sm text-muted-foreground mt-6">
+          Already a NovaWealth Pro subscriber? You have full access —{' '}
+          <a
+            href="https://novawealthhqcom.lovable.app/login?redirect_app=Cost Clarity"
+            className="text-primary font-medium hover:underline"
+          >
+            Log in with NovaWealth
+          </a>
+        </p>
+      )}
     </div>
   );
 }

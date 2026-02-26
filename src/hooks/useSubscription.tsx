@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, ReactNode, useCallback 
 import { useAuth } from './useAuth';
 import { useGuest } from './useGuest';
 import { useAppAccess } from './useAppAccess';
+import { useNovaWealth } from './useNovaWealth';
 import { supabase } from '@/integrations/supabase/client';
 
 interface SubscriptionStatus {
@@ -44,6 +45,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   const { user, session } = useAuth();
   const { isGuest } = useGuest();
   const { hasAccess: appAccess } = useAppAccess();
+  const { hasNWProAccess } = useNovaWealth();
   const [status, setStatus] = useState<SubscriptionStatus>(defaultStatus);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -160,7 +162,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   }, [user, isGuest, checkSubscription]);
 
   // Merge app-level access (NovaWealth / standalone) with subscription status
-  const effectiveProAccess = status.hasProAccess || appAccess;
+  const effectiveProAccess = status.hasProAccess || appAccess || hasNWProAccess;
 
   return (
     <SubscriptionContext.Provider
