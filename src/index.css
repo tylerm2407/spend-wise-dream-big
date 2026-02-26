@@ -279,6 +279,64 @@
 }
 
 @layer utilities {
+  /* Animated rotating glow border */
+  .glow-border {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .glow-border::before {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: inherit;
+    padding: 2px;
+    background: conic-gradient(
+      from var(--glow-angle, 0deg),
+      transparent 0%,
+      hsl(var(--primary)) 10%,
+      hsl(var(--primary) / 0.6) 20%,
+      transparent 30%,
+      transparent 100%
+    );
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    animation: glow-rotate 4s linear infinite;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  .glow-border::after {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border-radius: inherit;
+    background: conic-gradient(
+      from var(--glow-angle, 0deg),
+      transparent 0%,
+      hsl(var(--primary) / 0.3) 10%,
+      hsl(var(--primary) / 0.15) 20%,
+      transparent 30%,
+      transparent 100%
+    );
+    filter: blur(8px);
+    animation: glow-rotate 4s linear infinite;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  @keyframes glow-rotate {
+    from { --glow-angle: 0deg; }
+    to { --glow-angle: 360deg; }
+  }
+
+  @property --glow-angle {
+    syntax: '<angle>';
+    initial-value: 0deg;
+    inherits: false;
+  }
   /* Safe area insets for mobile */
   .safe-area-inset-bottom {
     padding-bottom: env(safe-area-inset-bottom, 0px);
