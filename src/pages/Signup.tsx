@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Mail, Lock, Eye, EyeOff, ArrowRight, Loader2, User, Gift, UserX } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, ArrowRight, Loader2, User, Gift, UserX, AlertTriangle } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useGuest } from '@/hooks/useGuest';
+import { PricingCards } from '@/components/PricingCards';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -107,13 +108,21 @@ export default function Signup() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mx-auto w-full max-w-sm"
+          className="mx-auto w-full max-w-3xl"
         >
           {/* Logo */}
-          <div className="text-center mb-8">
+          <div className="text-center mb-6">
             <h1 className="text-3xl font-bold text-gradient-primary">Cost Clarity</h1>
-            <p className="text-muted-foreground mt-2">Start your journey to smarter spending</p>
+            <p className="text-muted-foreground mt-2">See what your spending really costs you</p>
           </div>
+
+          {/* Pricing Cards */}
+          <div className="mb-8">
+            <PricingCards showFreeAction onSelectFree={() => {}} />
+          </div>
+
+          {/* Signup Form */}
+          <div className="max-w-sm mx-auto">
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-5">
@@ -305,6 +314,7 @@ export default function Signup() {
             {' '}and{' '}
             <Link to="/privacy-policy" className="text-primary hover:underline">Privacy Policy</Link>
           </p>
+          </div>
         </motion.div>
       </div>
     </div>
