@@ -28,6 +28,7 @@ const Insights = lazy(() => import("./pages/Insights"));
 const Alternatives = lazy(() => import("./pages/Alternatives"));
 const Challenges = lazy(() => import("./pages/Challenges"));
 const Settings = lazy(() => import("./pages/Settings"));
+const Invest = lazy(() => import("./pages/Invest"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const SubscriptionSuccess = lazy(() => import("./pages/SubscriptionSuccess"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
@@ -188,6 +189,7 @@ function AppRoutes() {
         <Route path="/alternatives" element={<ProtectedRoute><Alternatives /></ProtectedRoute>} />
         <Route path="/challenges" element={<ProtectedRoute><Challenges /></ProtectedRoute>} />
         <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+        <Route path="/invest" element={<ProtectedRoute><Invest /></ProtectedRoute>} />
         
         {/* Subscription success page */}
         <Route path="/subscription-success" element={<ProtectedRoute><SubscriptionSuccess /></ProtectedRoute>} />
