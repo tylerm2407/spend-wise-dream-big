@@ -58,9 +58,9 @@ const plans: Plan[] = [
   {
     name: 'Bundle',
     icon: <Zap className="h-5 w-5" />,
-    monthlyPrice: 9.99,
-    yearlyPrice: 59.99,
-    yearlyDiscount: 50,
+    monthlyPrice: 29.99,
+    yearlyPrice: 249.99,
+    yearlyDiscount: 31,
     tagline: 'NovaWealth ecosystem',
     bundle: true,
     features: [
