@@ -56,22 +56,23 @@ serve(async (req) => {
     const userCreatedAtRaw = claimsData.claims.iat; // We'll need to fetch created_at from profile or getUser
     logStep("User authenticated via claims", { userId, email: userEmail });
 
-    // Fetch full user to get created_at for trial calculation
-    const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
+    // Get user's profile for referral bonus days + IAP status + created_at
+    const { data: profileData } = await supabaseClient
+      .from("profiles")
+      .select("referral_bonus_days, nova_wealth_user, iap_active, iap_product_id, iap_expires_at, created_at")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    // Also fetch user created_at from auth for trial calculation
+    const { data: userData, error: userError } = await supabaseClient.auth.admin.getUserById(userId);
     if (userError || !userData.user) {
+      logStep("Failed to fetch user via admin", { error: userError?.message });
       return new Response(JSON.stringify({ error: "Failed to fetch user data" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 401,
       });
     }
     const user = userData.user;
-
-    // Get user's profile for referral bonus days + IAP status
-    const { data: profileData } = await supabaseClient
-      .from("profiles")
-      .select("referral_bonus_days, nova_wealth_user, iap_active, iap_product_id, iap_expires_at")
-      .eq("user_id", user.id)
-      .maybeSingle();
 
     const referralBonusDays = profileData?.referral_bonus_days ?? 0;
     const isNovaWealthUser = profileData?.nova_wealth_user ?? false;
