@@ -65,23 +65,32 @@ serve(async (req) => {
       });
     }
 
+    const verifyUrl = Deno.env.get("NOVAWEALTH_VERIFY_URL");
+    if (!verifyUrl) {
+      log("NOVAWEALTH_VERIFY_URL not set");
+      return new Response(JSON.stringify({ error: "Server configuration error" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     let novaSubscriber = false;
+    let nwResponseData: Record<string, unknown> = {};
     try {
-      const nwRes = await fetch(
-        "https://dbwuegchdysuocbpsprd.supabase.co/functions/v1/verify-novawealth-subscription",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-webhook-secret": webhookSecret,
-          },
-          body: JSON.stringify({ user_email: email }),
-        }
-      );
+      const nwRes = await fetch(verifyUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-webhook-secret": webhookSecret,
+        },
+        body: JSON.stringify({ user_email: email }),
+      });
 
       if (nwRes.ok) {
         const nwData = await nwRes.json();
-        novaSubscriber = nwData.is_subscriber === true || nwData.subscribed === true || nwData.active === true;
+        nwResponseData = nwData;
+        // Support response format: { novawealth_subscriber: boolean, subscription_tier: "paid"|"free" }
+        novaSubscriber = nwData.novawealth_subscriber === true || nwData.subscription_tier === "paid";
         log("NovaWealth API response", { status: nwRes.status, novaSubscriber, nwData });
       } else {
         const errText = await nwRes.text();
@@ -115,7 +124,7 @@ serve(async (req) => {
     log("Access synced successfully", { userId, novaSubscriber });
 
     return new Response(
-      JSON.stringify({ novawealth_subscriber: novaSubscriber, synced: true }),
+      JSON.stringify({ novawealth_subscriber: novaSubscriber, synced: true, ...nwResponseData }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
     );
   } catch (err) {
