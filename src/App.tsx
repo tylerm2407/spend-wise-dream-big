@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route, Navigate, useSearchParams, useNavigate } 
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { GuestProvider, useGuest } from "@/hooks/useGuest";
 import { SubscriptionProvider } from "@/hooks/useSubscription";
+import { AppAccessProvider } from "@/hooks/useAppAccess";
 import { TrialBanner } from "@/components/SubscriptionGate";
 import { ReferralCodeApplier } from "@/components/ReferralCodeApplier";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -214,7 +215,8 @@ const App = () => (
     <QueryClientProvider client={queryClient}>
       <GuestProvider>
         <AuthProvider>
-          <SubscriptionProvider>
+          <AppAccessProvider>
+            <SubscriptionProvider>
             <TooltipProvider>
               <ThemeInitializer />
               <ReferralCodeApplier />
@@ -225,6 +227,7 @@ const App = () => (
               </BrowserRouter>
             </TooltipProvider>
           </SubscriptionProvider>
+          </AppAccessProvider>
         </AuthProvider>
       </GuestProvider>
     </QueryClientProvider>
