@@ -564,17 +564,12 @@ export default function Grocery() {
   };
 
   return (
-    <AppLayout showTabBar={false}>
+    <AppLayout>
       <div className="min-h-screen bg-gradient-hero">
         <header className="px-6 pt-6 pb-4">
-          {view === 'list' && (
-            <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="mb-2">
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-          )}
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <ShoppingCart className="h-6 w-6 text-primary" />
-            Grocery
+            Grocery List
           </h1>
         </header>
 
