@@ -65,6 +65,15 @@ export default function Login() {
     }
   };
 
+  const novaWealthLoginUrl = (() => {
+    const params = new URLSearchParams({
+      redirect_app: 'Cost Clarity',
+      redirect_uri: `${window.location.origin}/login`,
+    });
+
+    return `https://novawealthhqcom.lovable.app/login?${params.toString()}`;
+  })();
+
   return (
     <div className="min-h-screen bg-gradient-hero flex flex-col">
       <div className="flex-1 flex flex-col justify-center px-6 py-12">
@@ -206,7 +215,7 @@ export default function Login() {
             variant="outline"
             className="w-full h-12 touch-target mt-3 border-amber-500/30 text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/20"
             onClick={() => {
-              window.location.href = `https://novawealthhqcom.lovable.app/login?redirect_app=Cost Clarity&redirect_uri=${encodeURIComponent(window.location.origin)}`;
+              window.location.href = novaWealthLoginUrl;
             }}
           >
             <svg className="h-5 w-5 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

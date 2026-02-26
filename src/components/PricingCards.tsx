@@ -93,6 +93,15 @@ export function PricingCards({ onSelectFree, showFreeAction }: PricingCardsProps
     }
   };
 
+  const novaWealthLoginUrl = (() => {
+    const params = new URLSearchParams({
+      redirect_app: 'Cost Clarity',
+      redirect_uri: `${window.location.origin}/login`,
+    });
+
+    return `https://novawealthhqcom.lovable.app/login?${params.toString()}`;
+  })();
+
   return (
     <div>
       {/* Header */}
@@ -245,7 +254,7 @@ export function PricingCards({ onSelectFree, showFreeAction }: PricingCardsProps
         <p className="text-center text-sm text-muted-foreground mt-6">
           Already a NovaWealth Pro subscriber? You have full access —{' '}
           <a
-            href={`https://novawealthhqcom.lovable.app/login?redirect_app=Cost Clarity&redirect_uri=${encodeURIComponent(window.location.origin)}`}
+            href={novaWealthLoginUrl}
             className="text-primary font-medium hover:underline"
           >
             Log in with NovaWealth
