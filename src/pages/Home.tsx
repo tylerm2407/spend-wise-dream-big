@@ -35,6 +35,7 @@ import { DailyBudgetTracker } from '@/components/DailyBudgetTracker';
 import { WeeklyRecapCard } from '@/components/WeeklyRecapCard';
 import { MonthlyRecapCard } from '@/components/MonthlyRecapCard';
 import { PullToRefresh } from '@/components/PullToRefresh';
+import { CreditCardLinking } from '@/components/CreditCardLinking';
 import { HomeSkeleton, ErrorState } from '@/components/PageSkeletons';
 import { PaywallDialog } from '@/components/PaywallDialog';
 import { formatCurrency, calculateGoalProgress, getGoalStatus } from '@/lib/calculations';
@@ -193,6 +194,11 @@ export default function Home() {
 
           {/* Weekly Recap */}
           <WeeklyRecapCard />
+
+          {/* Linked Cards */}
+          <motion.div variants={itemVariants}>
+            <CreditCardLinking />
+          </motion.div>
 
           {/* Today's Summary */}
           <motion.div variants={itemVariants}>
