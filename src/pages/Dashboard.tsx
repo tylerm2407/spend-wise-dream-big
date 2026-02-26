@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useState } from 'react';
 import { 
   Plus, 
   TrendingUp, 
@@ -9,7 +10,7 @@ import {
   DollarSign,
   LogOut,
   History,
-  Settings,
+  CreditCard,
   Crown
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
@@ -23,6 +24,8 @@ import { AnimatedCounter } from '@/components/ui/AnimatedCounter';
 import { SpendingCharts } from '@/components/SpendingCharts';
 import { SmarterSpendingSuggestions } from '@/components/SmarterSpendingSuggestions';
 import { WeeklySpendingChallenge } from '@/components/WeeklySpendingChallenge';
+import { CreditCardLinking } from '@/components/CreditCardLinking';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { formatCurrency, calculateGoalProgress, getGoalStatus } from '@/lib/calculations';
 import { cn } from '@/lib/utils';
 import { useRevenueCat } from '@/hooks/useRevenueCat';
@@ -86,6 +89,19 @@ export default function Dashboard() {
             </h1>
           </div>
           <div className="flex gap-2">
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" className="rounded-full">
+                  <CreditCard className="h-5 w-5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="bottom" className="max-h-[85vh] overflow-y-auto rounded-t-2xl">
+                <SheetHeader className="mb-4">
+                  <SheetTitle>Manage Cards</SheetTitle>
+                </SheetHeader>
+                <CreditCardLinking />
+              </SheetContent>
+            </Sheet>
             <Link to="/history">
               <Button variant="ghost" size="icon" className="rounded-full">
                 <History className="h-5 w-5" />
