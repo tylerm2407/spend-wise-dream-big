@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Home, BarChart3, Lightbulb, Trophy, User } from 'lucide-react';
+import { Home, BarChart3, Lightbulb, TrendingUp, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { triggerHaptic } from '@/hooks/useHaptics';
 
@@ -8,7 +8,7 @@ const tabs = [
   { path: '/home', label: 'Home', icon: Home },
   { path: '/insights', label: 'Insights', icon: BarChart3 },
   { path: '/alternatives', label: 'Alternatives', icon: Lightbulb },
-  { path: '/challenges', label: 'Challenges', icon: Trophy },
+  { path: '/invest', label: 'Invest', icon: TrendingUp },
   { path: '/settings', label: 'Profile', icon: User },
 ];
 

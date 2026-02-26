@@ -143,6 +143,83 @@ export type Database = {
         }
         Relationships: []
       }
+      investment_accounts: {
+        Row: {
+          account_name: string
+          account_type: string
+          created_at: string
+          id: string
+          institution_name: string | null
+          is_default: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          account_name: string
+          account_type: string
+          created_at?: string
+          id?: string
+          institution_name?: string | null
+          is_default?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          account_name?: string
+          account_type?: string
+          created_at?: string
+          id?: string
+          institution_name?: string | null
+          is_default?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      investment_transfers: {
+        Row: {
+          account_id: string
+          amount: number
+          confirmed_at: string | null
+          created_at: string
+          id: string
+          source_description: string | null
+          source_type: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          account_id: string
+          amount: number
+          confirmed_at?: string | null
+          created_at?: string
+          id?: string
+          source_description?: string | null
+          source_type: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          account_id?: string
+          amount?: number
+          confirmed_at?: string | null
+          created_at?: string
+          id?: string
+          source_description?: string | null
+          source_type?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "investment_transfers_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "investment_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       price_alerts: {
         Row: {
           created_at: string
