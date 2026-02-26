@@ -143,6 +143,77 @@ export type Database = {
         }
         Relationships: []
       }
+      grocery_lists: {
+        Row: {
+          created_at: string
+          id: string
+          items: Json
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          items?: Json
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          items?: Json
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      grocery_price_comparisons: {
+        Row: {
+          best_store_name: string | null
+          best_store_total_price: number | null
+          created_at: string
+          grocery_list_id: string
+          id: string
+          location_lat: number
+          location_lng: number
+          store_results: Json
+          user_id: string
+        }
+        Insert: {
+          best_store_name?: string | null
+          best_store_total_price?: number | null
+          created_at?: string
+          grocery_list_id: string
+          id?: string
+          location_lat: number
+          location_lng: number
+          store_results?: Json
+          user_id: string
+        }
+        Update: {
+          best_store_name?: string | null
+          best_store_total_price?: number | null
+          created_at?: string
+          grocery_list_id?: string
+          id?: string
+          location_lat?: number
+          location_lng?: number
+          store_results?: Json
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "grocery_price_comparisons_grocery_list_id_fkey"
+            columns: ["grocery_list_id"]
+            isOneToOne: false
+            referencedRelation: "grocery_lists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       investment_accounts: {
         Row: {
           account_name: string
@@ -624,6 +695,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      subscriptions: {
+        Row: {
+          amount: number
+          billing_interval: string
+          created_at: string
+          currency: string
+          id: string
+          next_renewal_at: string | null
+          plan_name: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          billing_interval?: string
+          created_at?: string
+          currency?: string
+          id?: string
+          next_renewal_at?: string | null
+          plan_name: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          billing_interval?: string
+          created_at?: string
+          currency?: string
+          id?: string
+          next_renewal_at?: string | null
+          plan_name?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       weekly_challenges: {
         Row: {
