@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { CreditCard, Crown, ArrowLeft, ExternalLink } from 'lucide-react';
+import { CreditCard, Crown, ExternalLink } from 'lucide-react';
 import { AppLayout } from '@/components/AppLayout';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -69,12 +69,9 @@ export default function Subscriptions() {
   }, [user, hasProAccess, isInTrial, subscriptionEnd]);
 
   return (
-    <AppLayout showTabBar={false}>
+    <AppLayout>
       <div className="min-h-screen bg-gradient-hero">
         <header className="px-6 pt-6 pb-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="mb-2">
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
           <h1 className="text-2xl font-bold">My Subscriptions</h1>
           <p className="text-muted-foreground text-sm mt-1">View your current plans and billing status</p>
         </header>
