@@ -264,19 +264,43 @@ export function PaywallDialog({ open, onOpenChange }: PaywallDialogProps) {
             </p>
           </>
         ) : (
-          <>
+          <div className="space-y-3">
+            {/* Standalone CostClarity subscription */}
             <Button
               onClick={handleStripeSubscribe}
               className="w-full h-12 text-lg bg-gradient-primary glow"
               size="lg"
             >
               <CreditCard className="w-5 h-5 mr-2" />
-              Subscribe to Pro
+              Subscribe to CostClarity – $4.99/mo
             </Button>
             <p className="text-xs text-center text-muted-foreground">
-              Secure payment powered by Stripe. Cancel anytime from Settings.
+              Unlocks all CostClarity Pro features. Cancel anytime.
             </p>
-          </>
+
+            {/* NovaWealth bundle option */}
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t border-border" />
+              </div>
+              <div className="relative flex justify-center text-xs">
+                <span className="bg-background px-2 text-muted-foreground">or</span>
+              </div>
+            </div>
+
+            <Button
+              variant="outline"
+              className="w-full h-12 text-base border-primary/30 hover:border-primary/60"
+              size="lg"
+              onClick={() => window.open('https://novawealthhq.com/pricing', '_blank')}
+            >
+              <Crown className="w-5 h-5 mr-2 text-primary" />
+              NovaWealth Bundle – $9.99/mo
+            </Button>
+            <p className="text-xs text-center text-muted-foreground">
+              Unlocks CostClarity + all NovaWealth apps. Managed through NovaWealth.
+            </p>
+          </div>
         )}
       </DialogContent>
     </Dialog>

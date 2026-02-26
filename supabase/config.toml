@@ -32,3 +32,12 @@ verify_jwt = false
 
 [functions.estimate-grocery-prices]
 verify_jwt = false
+
+[functions.sync-novawealth-access]
+verify_jwt = false
+
+[functions.handle-standalone-webhook]
+verify_jwt = false
+
+[functions.estimate-grocery-prices]
+verify_jwt = false
