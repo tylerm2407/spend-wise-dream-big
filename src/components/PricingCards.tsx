@@ -149,12 +149,11 @@ export function PricingCards({ onSelectFree, showFreeAction }: PricingCardsProps
             >
               <Card
                 className={cn(
-                  'relative p-5 glow-orb-parent overflow-hidden h-full flex flex-col',
+                  'relative p-5 h-full flex flex-col',
                   plan.popular && 'border-primary/50',
                   plan.bundle && 'border-warning/50'
                 )}
               >
-                <div className="glow-orb-track" aria-hidden />
 
                 {plan.popular && (
                   <Badge className="absolute top-3 right-3 bg-primary text-primary-foreground text-[10px]">
