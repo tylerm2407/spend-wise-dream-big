@@ -36,20 +36,21 @@ const plans: Plan[] = [
     features: [
       { text: 'Basic spending tracking' },
       { text: 'Up to 2 goals' },
-      { text: '1 AI alternative per search' },
+      { text: 'Manual purchase entry only' },
     ],
   },
   {
     name: 'Pro',
     icon: <Crown className="h-5 w-5" />,
     monthlyPrice: 4.99,
-    yearlyPrice: 39.99,
-    yearlyDiscount: 33,
+    yearlyPrice: 29.99,
+    yearlyDiscount: 50,
     tagline: 'Unlock your full potential',
     popular: true,
     features: [
       { text: 'Unlimited goals' },
       { text: 'AI insights & alternatives' },
+      { text: 'Credit card linking' },
       { text: 'Advanced analytics' },
       { text: 'Priority support' },
     ],
@@ -58,8 +59,8 @@ const plans: Plan[] = [
     name: 'Bundle',
     icon: <Zap className="h-5 w-5" />,
     monthlyPrice: 9.99,
-    yearlyPrice: 79.99,
-    yearlyDiscount: 33,
+    yearlyPrice: 59.99,
+    yearlyDiscount: 50,
     tagline: 'NovaWealth ecosystem',
     bundle: true,
     features: [
@@ -71,7 +72,12 @@ const plans: Plan[] = [
   },
 ];
 
-export function PricingCards() {
+interface PricingCardsProps {
+  onSelectFree?: () => void;
+  showFreeAction?: boolean;
+}
+
+export function PricingCards({ onSelectFree, showFreeAction }: PricingCardsProps) {
   const [isYearly, setIsYearly] = useState(false);
   const { openCheckout, hasProAccess } = useSubscription();
 
@@ -80,6 +86,8 @@ export function PricingCards() {
       window.open(NOVAWEALTH_SUBSCRIBE_URL, '_blank');
     } else if (plan.monthlyPrice > 0) {
       openCheckout();
+    } else if (onSelectFree) {
+      onSelectFree();
     }
   };
 
@@ -114,19 +122,19 @@ export function PricingCards() {
           </button>
           {!isYearly && (
             <Badge className="absolute -top-3 -right-3 bg-success text-success-foreground text-[10px] px-1.5 py-0.5">
-              -33%
+              -50%
             </Badge>
           )}
           {isYearly && (
             <Badge className="absolute -top-3 -right-3 bg-success text-success-foreground text-[10px] px-1.5 py-0.5">
-              Save 33%
+              Save 50%
             </Badge>
           )}
         </div>
       </div>
 
-      {/* Cards */}
-      <div className="grid gap-4">
+      {/* Cards — side-by-side on wider screens */}
+      <div className="grid gap-4 sm:grid-cols-3">
         {plans.map((plan, i) => {
           const price = isYearly ? plan.yearlyPrice : plan.monthlyPrice;
           const interval = isYearly ? '/yr' : '/mo';
@@ -141,7 +149,7 @@ export function PricingCards() {
             >
               <Card
                 className={cn(
-                  'relative p-5 glow-orb-parent overflow-hidden',
+                  'relative p-5 glow-orb-parent overflow-hidden h-full flex flex-col',
                   plan.popular && 'border-primary/50',
                   plan.bundle && 'border-warning/50'
                 )}
@@ -154,7 +162,7 @@ export function PricingCards() {
                   </Badge>
                 )}
 
-                <div className="relative z-10">
+                <div className="relative z-10 flex flex-col flex-1">
                   <div className="flex items-center gap-2 mb-3">
                     <div
                       className={cn(
@@ -180,7 +188,7 @@ export function PricingCards() {
 
                   <p className="text-muted-foreground text-sm mb-4">{plan.tagline}</p>
 
-                  <ul className="space-y-2 mb-5">
+                  <ul className="space-y-2 mb-5 flex-1">
                     {plan.features.map((f) => (
                       <li key={f.text} className="flex items-center gap-2 text-sm">
                         <Check className="h-4 w-4 text-success flex-shrink-0" />
@@ -190,9 +198,19 @@ export function PricingCards() {
                   </ul>
 
                   {plan.monthlyPrice === 0 ? (
-                    <Button variant="outline" className="w-full" disabled={isCurrentPlan}>
-                      {isCurrentPlan ? 'Current Plan' : 'Free Forever'}
-                    </Button>
+                    showFreeAction ? (
+                      <Button
+                        variant="outline"
+                        className="w-full"
+                        onClick={() => onSelectFree?.()}
+                      >
+                        Sign Up Free
+                      </Button>
+                    ) : (
+                      <Button variant="outline" className="w-full" disabled={isCurrentPlan}>
+                        {isCurrentPlan ? 'Current Plan' : 'Free Forever'}
+                      </Button>
+                    )
                   ) : (
                     <Button
                       className={cn(
