@@ -32,34 +32,46 @@ serve(async (req) => {
     if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
     logStep("Stripe key verified");
 
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) throw new Error("No authorization header provided");
-    
-    const token = authHeader.replace("Bearer ", "");
-    const { data } = await supabaseClient.auth.getUser(token);
-    const user = data.user;
-    if (!user?.email) throw new Error("User not authenticated or email not available");
-    logStep("User authenticated", { userId: user.id, email: user.email });
-
-    // Parse optional referral data from request body
+    // Parse request body
     let referralCode: string | null = null;
     let referrerId: string | null = null;
+    let isUnauthenticated = false;
     try {
       const body = await req.json();
       referralCode = body.referral_code || null;
       referrerId = body.referrer_id || null;
+      isUnauthenticated = body.unauthenticated === true;
     } catch {
-      // No body or invalid JSON — proceed without referral
+      // No body or invalid JSON — proceed without extras
     }
-    logStep("Referral data", { referralCode, referrerId });
+    logStep("Request data", { referralCode, referrerId, isUnauthenticated });
+
+    let userEmail: string | undefined;
+    let customerId: string | undefined;
+
+    const authHeader = req.headers.get("Authorization");
+    if (authHeader && !isUnauthenticated) {
+      const token = authHeader.replace("Bearer ", "");
+      const { data } = await supabaseClient.auth.getUser(token);
+      const user = data.user;
+      if (user?.email) {
+        userEmail = user.email;
+        logStep("User authenticated", { userId: user.id, email: user.email });
+      }
+    }
+
+    if (!isUnauthenticated && !userEmail) {
+      throw new Error("User not authenticated or email not available");
+    }
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
-    
-    const customers = await stripe.customers.list({ email: user.email, limit: 1 });
-    let customerId: string | undefined;
-    if (customers.data.length > 0) {
-      customerId = customers.data[0].id;
-      logStep("Found existing customer", { customerId });
+
+    if (userEmail) {
+      const customers = await stripe.customers.list({ email: userEmail, limit: 1 });
+      if (customers.data.length > 0) {
+        customerId = customers.data[0].id;
+        logStep("Found existing customer", { customerId });
+      }
     }
 
     const origin = req.headers.get("origin") || "https://spend-wise-dream-big.lovable.app";
@@ -67,11 +79,14 @@ serve(async (req) => {
     // Build session params
     const sessionParams: Stripe.Checkout.SessionCreateParams = {
       customer: customerId,
-      customer_email: customerId ? undefined : user.email,
+      customer_email: customerId ? undefined : userEmail,
       line_items: [{ price: PRICE_ID, quantity: 1 }],
       mode: "subscription",
-      success_url: `${origin}/subscription-success`,
-      cancel_url: `${origin}/settings?subscription=cancelled`,
+      success_url: `${origin}/signup?plan=pro`,
+      cancel_url: `${origin}/signup`,
+      subscription_data: {
+        trial_period_days: 30,
+      },
     };
 
     // Apply referral coupon if valid referral data provided
