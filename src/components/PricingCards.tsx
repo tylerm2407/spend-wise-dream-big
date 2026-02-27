@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Crown, Zap, Sparkles, Check, ExternalLink } from 'lucide-react';
 import { Card } from '@/components/ui/card';
@@ -6,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useNovaWealth } from '@/hooks/useNovaWealth';
+import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 
 const NOVAWEALTH_SUBSCRIBE_URL = 'https://novawealth.app/subscribe';
@@ -82,14 +84,38 @@ export function PricingCards({ onSelectFree, showFreeAction }: PricingCardsProps
   const [isYearly, setIsYearly] = useState(false);
   const { openCheckout, hasProAccess } = useSubscription();
   const { hasNWProAccess } = useNovaWealth();
+  const navigate = useNavigate();
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
 
-  const handleSubscribe = (plan: Plan) => {
+  const handleCardClick = async (plan: Plan) => {
     if (plan.bundle) {
       window.open(NOVAWEALTH_SUBSCRIBE_URL, '_blank');
     } else if (plan.monthlyPrice > 0) {
-      openCheckout();
-    } else if (onSelectFree) {
-      onSelectFree();
+      // Pro card: open Stripe checkout with 30-day trial (works without auth)
+      setCheckoutLoading(true);
+      try {
+        const { data, error } = await supabase.functions.invoke('create-checkout', {
+          body: { unauthenticated: true },
+        });
+        if (error || data?.error) {
+          console.error('Checkout error:', error?.message || data?.error);
+          return;
+        }
+        if (data?.url) {
+          window.location.href = data.url;
+        }
+      } catch (err) {
+        console.error('Failed to create checkout:', err);
+      } finally {
+        setCheckoutLoading(false);
+      }
+    } else {
+      // Free card: go to signup form
+      if (onSelectFree) {
+        onSelectFree();
+      } else {
+        navigate('/signup');
+      }
     }
   };
 
@@ -152,8 +178,9 @@ export function PricingCards({ onSelectFree, showFreeAction }: PricingCardsProps
               transition={{ delay: i * 0.1 }}
             >
               <Card
+                onClick={() => handleCardClick(plan)}
                 className={cn(
-                  'relative p-5 h-full flex flex-col',
+                  'relative p-5 h-full flex flex-col cursor-pointer transition-shadow hover:shadow-lg',
                   plan.popular && 'border-primary/50',
                   plan.bundle && 'border-warning/50'
                 )}
@@ -213,7 +240,7 @@ export function PricingCards({ onSelectFree, showFreeAction }: PricingCardsProps
                       <Button
                         variant="outline"
                         className="w-full"
-                        onClick={() => onSelectFree?.()}
+                        onClick={(e) => { e.stopPropagation(); handleCardClick(plan); }}
                       >
                         Sign Up Free
                       </Button>
@@ -229,7 +256,7 @@ export function PricingCards({ onSelectFree, showFreeAction }: PricingCardsProps
                         plan.popular && 'bg-gradient-primary text-primary-foreground',
                         plan.bundle && 'bg-gradient-cta text-cta-foreground'
                       )}
-                      onClick={() => handleSubscribe(plan)}
+                      onClick={(e) => { e.stopPropagation(); handleCardClick(plan); }}
                     >
                       {plan.bundle && <ExternalLink className="h-4 w-4 mr-2" />}
                       {hasProAccess ? 'Manage Plan' : `Get ${plan.name}`}

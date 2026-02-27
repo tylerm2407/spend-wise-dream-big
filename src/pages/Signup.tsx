@@ -118,14 +118,16 @@ export default function Signup() {
 
           {/* Pricing Cards */}
           <div className="mb-8">
-            <PricingCards showFreeAction onSelectFree={() => {}} />
+            <PricingCards showFreeAction onSelectFree={() => {
+              document.getElementById('signup-form')?.scrollIntoView({ behavior: 'smooth' });
+            }} />
           </div>
 
           {/* Signup Form */}
           <div className="max-w-sm mx-auto">
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form id="signup-form" onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <div className="relative">
