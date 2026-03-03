@@ -49,11 +49,10 @@ const queryClient = new QueryClient({
 function ThemeInitializer() {
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme');
-    if (savedTheme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else if (savedTheme === 'light') {
+    if (savedTheme === 'light') {
       document.documentElement.classList.remove('dark');
-    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+    } else {
+      // Default to dark mode
       document.documentElement.classList.add('dark');
     }
   }, []);
