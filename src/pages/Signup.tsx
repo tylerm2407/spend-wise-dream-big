@@ -24,10 +24,17 @@ export default function Signup() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Pre-fill referral code from URL param
+  // Pre-fill referral code from URL param or localStorage
   useEffect(() => {
     const ref = searchParams.get('ref');
-    if (ref) setReferralCode(ref.toUpperCase());
+    if (ref) {
+      const code = ref.toUpperCase();
+      setReferralCode(code);
+      localStorage.setItem('referral_code', code);
+    } else {
+      const stored = localStorage.getItem('referral_code');
+      if (stored) setReferralCode(stored);
+    }
   }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {

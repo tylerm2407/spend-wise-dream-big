@@ -8,7 +8,11 @@ import { Button } from '@/components/ui/button';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useNovaWealth } from '@/hooks/useNovaWealth';
 import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+
+const SOURCE_APP = 'costclarity';
+const NW_API_BASE = 'https://dbwuegchdysuocbpsprd.supabase.co/functions/v1';
 
 const NOVAWEALTH_SUBSCRIBE_URL = 'https://novawealth.app/subscribe';
 
@@ -86,22 +90,75 @@ export function PricingCards({ onSelectFree, showFreeAction }: PricingCardsProps
   const { hasNWProAccess } = useNovaWealth();
   const navigate = useNavigate();
   const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const { toast } = useToast();
 
   const handleCardClick = async (plan: Plan) => {
     if (plan.bundle) {
       window.open(NOVAWEALTH_SUBSCRIBE_URL, '_blank');
     } else if (plan.monthlyPrice > 0) {
-      // Pro card: open Stripe checkout with 30-day trial (works without auth)
+      // Pro card: validate referral code if present, then open Stripe checkout
       setCheckoutLoading(true);
       try {
+        const storedCode = localStorage.getItem('referral_code');
+        let referralCode: string | null = null;
+        let referrerId: string | null = null;
+
+        // Validate referral via NovaWealth central API
+        if (storedCode) {
+          try {
+            const validateRes = await fetch(`${NW_API_BASE}/validate-referral`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                referral_code: storedCode,
+                source_app: SOURCE_APP,
+                referred_user_id: null,
+              }),
+            });
+            const validateData = await validateRes.json();
+            if (validateData.valid) {
+              referralCode = storedCode;
+              referrerId = validateData.referrer_user_id;
+              toast({
+                title: '🎉 Referral code applied!',
+                description: `You'll get ${validateData.discount?.value ?? 20}% off for your first ${validateData.discount?.duration_months ?? 3} months.`,
+              });
+            } else {
+              const reasons: Record<string, string> = {
+                expired_or_not_found: 'This referral code is expired or invalid.',
+                self_referral: "You can't use your own referral code.",
+                already_used_for_app: "You've already used a referral for this app.",
+                no_code_provided: 'No referral code provided.',
+              };
+              toast({
+                title: 'Referral code invalid',
+                description: reasons[validateData.reason] || 'Could not apply referral code.',
+                variant: 'destructive',
+              });
+              localStorage.removeItem('referral_code');
+            }
+          } catch (err) {
+            console.error('Referral validation failed:', err);
+          }
+        }
+
         const { data, error } = await supabase.functions.invoke('create-checkout', {
-          body: { unauthenticated: true },
+          body: {
+            unauthenticated: true,
+            referral_code: referralCode,
+            referrer_id: referrerId,
+          },
         });
         if (error || data?.error) {
           console.error('Checkout error:', error?.message || data?.error);
           return;
         }
         if (data?.url) {
+          // Persist referral data for post-signup tracking
+          if (referralCode && referrerId) {
+            localStorage.setItem('nw_referral_code', referralCode);
+            localStorage.setItem('nw_referrer_id', referrerId);
+          }
           window.location.href = data.url;
         }
       } catch (err) {

@@ -47,3 +47,6 @@ verify_jwt = false
 
 [functions.customer-portal]
 verify_jwt = false
+
+[functions.track-nw-referral]
+verify_jwt = false
