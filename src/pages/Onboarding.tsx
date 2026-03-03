@@ -107,18 +107,22 @@ export default function Onboarding() {
       amount: parseFloat(firstPurchaseAmount),
       category: firstPurchaseCategory as any,
     }, {
-      onSuccess: () => {
+      onSuccess: async () => {
         setFirstPurchaseLogged(true);
         toast({ title: '🎉 First purchase logged!' });
         // Mark onboarding as completed after first purchase
-        updateProfileAsync({ onboarding_completed: true });
+        try {
+          await updateProfileAsync({ onboarding_completed: true });
+        } catch {}
       },
     });
   };
 
-  const handleFinish = () => {
+  const handleFinish = async () => {
     // Also mark as complete when skipping / finishing step 4
-    updateProfileAsync({ onboarding_completed: true });
+    try {
+      await updateProfileAsync({ onboarding_completed: true });
+    } catch {}
     navigate('/home');
   };
   const stepVariants = {
