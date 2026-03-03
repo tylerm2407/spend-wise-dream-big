@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Crown, Zap, Sparkles, Check, ExternalLink } from 'lucide-react';
+import { Crown, Zap, Sparkles, Check, ExternalLink, Loader2 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -13,7 +13,6 @@ import { cn } from '@/lib/utils';
 
 const SOURCE_APP = 'costclarity';
 const NW_API_BASE = 'https://dbwuegchdysuocbpsprd.supabase.co/functions/v1';
-
 const NOVAWEALTH_SUBSCRIBE_URL = 'https://novawealth.app/subscribe';
 
 interface PlanFeature {
@@ -30,6 +29,15 @@ interface Plan {
   features: PlanFeature[];
   popular?: boolean;
   bundle?: boolean;
+}
+
+export interface ReferralDiscount {
+  valid: boolean;
+  percentOff: number;
+  durationMonths: number;
+  referralCode: string;
+  referrerId: string;
+  referralCodeId?: string;
 }
 
 const plans: Plan[] = [
@@ -81,10 +89,13 @@ const plans: Plan[] = [
 
 interface PricingCardsProps {
   onSelectFree?: () => void;
+  onSelectPlan?: (planName: string) => void;
   showFreeAction?: boolean;
+  selectedPlan?: string | null;
+  referralDiscount?: ReferralDiscount | null;
 }
 
-export function PricingCards({ onSelectFree, showFreeAction }: PricingCardsProps) {
+export function PricingCards({ onSelectFree, onSelectPlan, showFreeAction, selectedPlan, referralDiscount }: PricingCardsProps) {
   const [isYearly, setIsYearly] = useState(false);
   const { openCheckout, hasProAccess } = useSubscription();
   const { hasNWProAccess } = useNovaWealth();
@@ -92,19 +103,30 @@ export function PricingCards({ onSelectFree, showFreeAction }: PricingCardsProps
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const { toast } = useToast();
 
+  const getDiscountedPrice = (price: number, plan: Plan): number | null => {
+    if (!referralDiscount?.valid || plan.monthlyPrice === 0) return null;
+    const discounted = price * (1 - referralDiscount.percentOff / 100);
+    return Math.round(discounted * 100) / 100;
+  };
+
   const handleCardClick = async (plan: Plan) => {
+    // If onSelectPlan is provided, just select the plan (used on signup page)
+    if (onSelectPlan) {
+      onSelectPlan(plan.name);
+      return;
+    }
+
     if (plan.bundle) {
       window.open(NOVAWEALTH_SUBSCRIBE_URL, '_blank');
     } else if (plan.monthlyPrice > 0) {
-      // Pro card: validate referral code if present, then open Stripe checkout
       setCheckoutLoading(true);
       try {
         const storedCode = localStorage.getItem('referral_code');
-        let referralCode: string | null = null;
-        let referrerId: string | null = null;
+        let referralCode: string | null = referralDiscount?.valid ? referralDiscount.referralCode : null;
+        let referrerId: string | null = referralDiscount?.valid ? referralDiscount.referrerId : null;
 
-        // Validate referral via NovaWealth central API
-        if (storedCode) {
+        // If no pre-validated discount, try to validate on the fly
+        if (!referralCode && storedCode) {
           try {
             const validateRes = await fetch(`${NW_API_BASE}/validate-referral`, {
               method: 'POST',
@@ -119,23 +141,6 @@ export function PricingCards({ onSelectFree, showFreeAction }: PricingCardsProps
             if (validateData.valid) {
               referralCode = storedCode;
               referrerId = validateData.referrer_user_id;
-              toast({
-                title: '🎉 Referral code applied!',
-                description: `You'll get ${validateData.discount?.value ?? 20}% off for your first ${validateData.discount?.duration_months ?? 3} months.`,
-              });
-            } else {
-              const reasons: Record<string, string> = {
-                expired_or_not_found: 'This referral code is expired or invalid.',
-                self_referral: "You can't use your own referral code.",
-                already_used_for_app: "You've already used a referral for this app.",
-                no_code_provided: 'No referral code provided.',
-              };
-              toast({
-                title: 'Referral code invalid',
-                description: reasons[validateData.reason] || 'Could not apply referral code.',
-                variant: 'destructive',
-              });
-              localStorage.removeItem('referral_code');
             }
           } catch (err) {
             console.error('Referral validation failed:', err);
@@ -151,23 +156,31 @@ export function PricingCards({ onSelectFree, showFreeAction }: PricingCardsProps
         });
         if (error || data?.error) {
           console.error('Checkout error:', error?.message || data?.error);
+          toast({
+            title: 'Checkout failed',
+            description: 'Could not start checkout. Please try again.',
+            variant: 'destructive',
+          });
           return;
         }
         if (data?.url) {
-          // Persist referral data for post-signup tracking
           if (referralCode && referrerId) {
             localStorage.setItem('nw_referral_code', referralCode);
             localStorage.setItem('nw_referrer_id', referrerId);
           }
-          window.location.href = data.url;
+          window.open(data.url, '_blank');
         }
       } catch (err) {
         console.error('Failed to create checkout:', err);
+        toast({
+          title: 'Checkout failed',
+          description: 'Something went wrong. Please try again.',
+          variant: 'destructive',
+        });
       } finally {
         setCheckoutLoading(false);
       }
     } else {
-      // Free card: go to signup form
       if (onSelectFree) {
         onSelectFree();
       } else {
@@ -184,6 +197,11 @@ export function PricingCards({ onSelectFree, showFreeAction }: PricingCardsProps
       <div className="text-center mb-8">
         <h2 className="text-2xl font-bold mb-1">Choose Your Plan</h2>
         <p className="text-muted-foreground text-sm">Start free, upgrade anytime</p>
+        {referralDiscount?.valid && (
+          <Badge className="mt-2 bg-success text-success-foreground">
+            🎉 {referralDiscount.percentOff}% off for {referralDiscount.durationMonths} months applied!
+          </Badge>
+        )}
       </div>
 
       {/* Toggle */}
@@ -220,12 +238,14 @@ export function PricingCards({ onSelectFree, showFreeAction }: PricingCardsProps
         </div>
       </div>
 
-      {/* Cards — side-by-side on wider screens */}
+      {/* Cards */}
       <div className="grid gap-4 sm:grid-cols-3">
         {plans.map((plan, i) => {
           const price = isYearly ? plan.yearlyPrice : plan.monthlyPrice;
           const interval = isYearly ? '/yr' : '/mo';
           const isCurrentPlan = plan.monthlyPrice === 0 && !hasProAccess;
+          const discountedPrice = getDiscountedPrice(price, plan);
+          const isSelected = selectedPlan === plan.name;
 
           return (
             <motion.div
@@ -237,15 +257,22 @@ export function PricingCards({ onSelectFree, showFreeAction }: PricingCardsProps
               <Card
                 onClick={() => handleCardClick(plan)}
                 className={cn(
-                  'relative p-5 h-full flex flex-col cursor-pointer transition-shadow hover:shadow-lg',
+                  'relative p-5 h-full flex flex-col cursor-pointer transition-all hover:shadow-lg',
                   plan.popular && 'border-primary/50',
-                  plan.bundle && 'border-warning/50'
+                  plan.bundle && 'border-warning/50',
+                  isSelected && 'ring-2 ring-primary border-primary shadow-lg'
                 )}
               >
 
                 {plan.popular && (
                   <Badge className="absolute top-3 right-3 bg-primary text-primary-foreground text-[10px]">
                     POPULAR
+                  </Badge>
+                )}
+
+                {isSelected && (
+                  <Badge className="absolute top-3 left-3 bg-success text-success-foreground text-[10px]">
+                    SELECTED
                   </Badge>
                 )}
 
@@ -263,11 +290,24 @@ export function PricingCards({ onSelectFree, showFreeAction }: PricingCardsProps
                   </div>
 
                   <div className="mb-2">
-                    <span className="text-3xl font-bold">${price.toFixed(2)}</span>
-                    <span className="text-muted-foreground text-sm">{interval}</span>
+                    {discountedPrice !== null ? (
+                      <>
+                        <span className="text-lg line-through text-muted-foreground mr-2">${price.toFixed(2)}</span>
+                        <span className="text-3xl font-bold text-success">${discountedPrice.toFixed(2)}</span>
+                        <span className="text-muted-foreground text-sm">{interval}</span>
+                        <p className="text-success text-xs font-medium mt-1">
+                          {referralDiscount!.percentOff}% off for {referralDiscount!.durationMonths} months
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <span className="text-3xl font-bold">${price.toFixed(2)}</span>
+                        <span className="text-muted-foreground text-sm">{interval}</span>
+                      </>
+                    )}
                   </div>
 
-                  {isYearly && plan.yearlyDiscount > 0 && (
+                  {isYearly && plan.yearlyDiscount > 0 && !discountedPrice && (
                     <p className="text-success text-xs font-medium mb-2">
                       Save {plan.yearlyDiscount}% vs monthly
                     </p>
@@ -295,11 +335,11 @@ export function PricingCards({ onSelectFree, showFreeAction }: PricingCardsProps
                   {plan.monthlyPrice === 0 ? (
                     showFreeAction ? (
                       <Button
-                        variant="outline"
+                        variant={isSelected ? 'default' : 'outline'}
                         className="w-full"
                         onClick={(e) => { e.stopPropagation(); handleCardClick(plan); }}
                       >
-                        Sign Up Free
+                        {isSelected ? '✓ Selected' : 'Sign Up Free'}
                       </Button>
                     ) : (
                       <Button variant="outline" className="w-full" disabled={isCurrentPlan}>
@@ -310,13 +350,19 @@ export function PricingCards({ onSelectFree, showFreeAction }: PricingCardsProps
                     <Button
                       className={cn(
                         'w-full',
-                        plan.popular && 'bg-gradient-primary text-primary-foreground',
-                        plan.bundle && 'bg-gradient-cta text-cta-foreground'
+                        plan.popular && !isSelected && 'bg-gradient-primary text-primary-foreground',
+                        plan.bundle && !isSelected && 'bg-gradient-cta text-cta-foreground',
+                        isSelected && 'bg-success text-success-foreground'
                       )}
+                      disabled={checkoutLoading}
                       onClick={(e) => { e.stopPropagation(); handleCardClick(plan); }}
                     >
-                      {plan.bundle && <ExternalLink className="h-4 w-4 mr-2" />}
-                      {hasProAccess ? 'Manage Plan' : `Get ${plan.name}`}
+                      {checkoutLoading ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      ) : plan.bundle ? (
+                        <ExternalLink className="h-4 w-4 mr-2" />
+                      ) : null}
+                      {isSelected ? '✓ Selected' : hasProAccess ? 'Manage Plan' : `Get ${plan.name}`}
                     </Button>
                   )}
                 </div>
