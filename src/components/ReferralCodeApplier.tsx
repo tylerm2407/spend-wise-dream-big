@@ -52,26 +52,71 @@ export function ReferralCodeApplier() {
         }
       }
 
-      // 2. Legacy local referral code
+      // 2. Pending referral code (could be NW- cross-app or legacy local)
       if (pendingCode && !nwReferralCode) {
-        try {
-          const { data, error } = await supabase.functions.invoke('apply-referral', {
-            body: { referral_code: pendingCode },
-          });
+        const isNwCode = pendingCode.toUpperCase().startsWith('NW-');
 
-          if (error || data?.error) {
-            console.log('Referral apply skipped:', error?.message || data?.error);
-          } else {
-            toast({
-              title: '🎉 Referral applied!',
-              description: 'Your referral has been recorded. Thanks for joining through a friend!',
+        if (isNwCode) {
+          // Route NW- codes through the NovaWealth cross-app tracking
+          try {
+            const NW_API_BASE = 'https://dbwuegchdysuocbpsprd.supabase.co/functions/v1';
+            const validateRes = await fetch(`${NW_API_BASE}/validate-referral`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                referral_code: pendingCode.toUpperCase(),
+                source_app: 'costclarity',
+                referred_user_id: user.id,
+              }),
             });
+            const validateData = await validateRes.json();
+
+            if (validateData.valid) {
+              // Track the referral server-side
+              const { data, error } = await supabase.functions.invoke('track-nw-referral', {
+                body: {
+                  referral_code: pendingCode.toUpperCase(),
+                  referral_code_id: validateData.referral_code_id,
+                  referrer_user_id: validateData.referrer_user_id,
+                  event: 'signup',
+                },
+              });
+
+              if (!error && data?.success) {
+                toast({
+                  title: '🎉 Referral applied!',
+                  description: 'Your referral has been recorded. Welcome aboard!',
+                });
+              } else {
+                console.log('NW referral tracking skipped:', error?.message || data?.error);
+              }
+            } else {
+              console.log('NW referral validation failed:', validateData.reason);
+            }
+          } catch (err) {
+            console.log('NW referral apply error:', err);
           }
-        } catch (err) {
-          console.log('Referral apply error:', err);
-        } finally {
-          localStorage.removeItem('pending_referral_code');
+        } else {
+          // Legacy local referral code
+          try {
+            const { data, error } = await supabase.functions.invoke('apply-referral', {
+              body: { referral_code: pendingCode },
+            });
+
+            if (error || data?.error) {
+              console.log('Referral apply skipped:', error?.message || data?.error);
+            } else {
+              toast({
+                title: '🎉 Referral applied!',
+                description: 'Your referral has been recorded. Thanks for joining through a friend!',
+              });
+            }
+          } catch (err) {
+            console.log('Referral apply error:', err);
+          }
         }
+
+        localStorage.removeItem('pending_referral_code');
       }
     };
 
