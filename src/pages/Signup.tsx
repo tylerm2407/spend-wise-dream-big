@@ -13,6 +13,7 @@ import { lovable } from '@/integrations/lovable/index';
 
 const SOURCE_APP = 'costclarity';
 const NW_API_BASE = 'https://dbwuegchdysuocbpsprd.supabase.co/functions/v1';
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
 export default function Signup() {
   const [searchParams] = useSearchParams();
@@ -59,12 +60,14 @@ export default function Signup() {
     setReferralStatus('idle');
 
     try {
-      const validateRes = await fetch(`${NW_API_BASE}/validate-referral`, {
+      const validateRes = await fetch(`${SUPABASE_URL}/functions/v1/validate-nw-referral`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        },
         body: JSON.stringify({
           referral_code: code.toUpperCase(),
-          source_app: SOURCE_APP,
           referred_user_id: null,
         }),
       });
