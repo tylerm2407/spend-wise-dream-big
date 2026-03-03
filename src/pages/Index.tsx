@@ -1,4 +1,5 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Shield, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -8,8 +9,17 @@ import { useToast } from '@/hooks/use-toast';
 
 export default function Index() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { enterGuestMode } = useGuest();
   const { toast } = useToast();
+
+  // Detect NovaWealth referral code from URL and persist
+  useEffect(() => {
+    const refCode = searchParams.get('ref');
+    if (refCode) {
+      localStorage.setItem('referral_code', refCode.toUpperCase());
+    }
+  }, [searchParams]);
 
   const handleGuest = () => {
     enterGuestMode();
