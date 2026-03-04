@@ -7,7 +7,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const PRICE_ID = "price_1T1WqDAmUZkn8na4hChXph3w";
+const DEFAULT_PRICE_ID = "price_1T1WqDAmUZkn8na4hChXph3w";
 const NW_REFERRAL_COUPON = "jPSNu7Zh";
 
 const logStep = (step: string, details?: unknown) => {
@@ -36,15 +36,19 @@ serve(async (req) => {
     let referralCode: string | null = null;
     let referrerId: string | null = null;
     let isUnauthenticated = false;
+    let priceId: string = DEFAULT_PRICE_ID;
     try {
       const body = await req.json();
       referralCode = body.referral_code || null;
       referrerId = body.referrer_id || null;
       isUnauthenticated = body.unauthenticated === true;
+      if (body.price_id) {
+        priceId = body.price_id;
+      }
     } catch {
       // No body or invalid JSON — proceed without extras
     }
-    logStep("Request data", { referralCode, referrerId, isUnauthenticated });
+    logStep("Request data", { referralCode, referrerId, isUnauthenticated, priceId });
 
     let userEmail: string | undefined;
     let customerId: string | undefined;
@@ -80,7 +84,7 @@ serve(async (req) => {
     const sessionParams: Stripe.Checkout.SessionCreateParams = {
       customer: customerId,
       customer_email: customerId ? undefined : userEmail,
-      line_items: [{ price: PRICE_ID, quantity: 1 }],
+      line_items: [{ price: priceId, quantity: 1 }],
       mode: "subscription",
       success_url: `${origin}/signup?plan=pro`,
       cancel_url: `${origin}/signup`,
@@ -89,8 +93,9 @@ serve(async (req) => {
       },
     };
 
-    // Apply referral coupon if valid referral data provided
-    if (referralCode && referrerId) {
+    // Apply referral coupon only if valid referral data provided
+    // Referral coupons should only be applied to monthly plans
+    if (referralCode && referrerId && priceId === DEFAULT_PRICE_ID) {
       sessionParams.discounts = [{ coupon: NW_REFERRAL_COUPON }];
       sessionParams.metadata = {
         referrer_id: referrerId,
