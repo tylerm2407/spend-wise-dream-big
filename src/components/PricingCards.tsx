@@ -15,6 +15,9 @@ const SOURCE_APP = 'costclarity';
 const NW_API_BASE = 'https://dbwuegchdysuocbpsprd.supabase.co/functions/v1';
 const NOVAWEALTH_SUBSCRIBE_URL = 'https://novawealth.app/subscribe';
 
+const MONTHLY_PRICE_ID = 'price_1T1WqDAmUZkn8na4hChXph3w';
+const YEARLY_PRICE_ID = 'price_1T75ERAmUZkn8na4I6ev6nDI';
+
 interface PlanFeature {
   text: string;
 }
@@ -58,8 +61,8 @@ const plans: Plan[] = [
     name: 'Pro',
     icon: <Crown className="h-5 w-5" />,
     monthlyPrice: 4.99,
-    yearlyPrice: 29.99,
-    yearlyDiscount: 50,
+    yearlyPrice: 35.93,
+    yearlyDiscount: 40,
     tagline: 'Unlock your full potential',
     popular: true,
     features: [
@@ -74,8 +77,8 @@ const plans: Plan[] = [
     name: 'Bundle',
     icon: <Zap className="h-5 w-5" />,
     monthlyPrice: 29.99,
-    yearlyPrice: 249.99,
-    yearlyDiscount: 31,
+    yearlyPrice: 215.93,
+    yearlyDiscount: 40,
     tagline: 'NovaWealth ecosystem',
     bundle: true,
     features: [
@@ -103,8 +106,9 @@ export function PricingCards({ onSelectFree, onSelectPlan, showFreeAction, selec
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const { toast } = useToast();
 
+  // Referral discounts only apply to monthly plans
   const getDiscountedPrice = (price: number, plan: Plan): number | null => {
-    if (!referralDiscount?.valid || plan.monthlyPrice === 0) return null;
+    if (!referralDiscount?.valid || plan.monthlyPrice === 0 || isYearly) return null;
     const discounted = price * (1 - referralDiscount.percentOff / 100);
     return Math.round(discounted * 100) / 100;
   };
@@ -122,11 +126,11 @@ export function PricingCards({ onSelectFree, onSelectPlan, showFreeAction, selec
       setCheckoutLoading(true);
       try {
         const storedCode = localStorage.getItem('referral_code');
-        let referralCode: string | null = referralDiscount?.valid ? referralDiscount.referralCode : null;
-        let referrerId: string | null = referralDiscount?.valid ? referralDiscount.referrerId : null;
+        let referralCode: string | null = (!isYearly && referralDiscount?.valid) ? referralDiscount.referralCode : null;
+        let referrerId: string | null = (!isYearly && referralDiscount?.valid) ? referralDiscount.referrerId : null;
 
-        // If no pre-validated discount, try to validate on the fly
-        if (!referralCode && storedCode) {
+        // If no pre-validated discount and monthly, try to validate on the fly
+        if (!referralCode && storedCode && !isYearly) {
           try {
             const validateRes = await fetch(`${NW_API_BASE}/validate-referral`, {
               method: 'POST',
@@ -152,6 +156,7 @@ export function PricingCards({ onSelectFree, onSelectPlan, showFreeAction, selec
             unauthenticated: true,
             referral_code: referralCode,
             referrer_id: referrerId,
+            price_id: isYearly ? YEARLY_PRICE_ID : MONTHLY_PRICE_ID,
           },
         });
         if (error || data?.error) {
@@ -200,6 +205,7 @@ export function PricingCards({ onSelectFree, onSelectPlan, showFreeAction, selec
         {referralDiscount?.valid && (
           <Badge className="mt-2 bg-success text-success-foreground">
             🎉 {referralDiscount.percentOff}% off for {referralDiscount.durationMonths} months applied!
+            {isYearly && <span className="ml-1">(monthly plans only)</span>}
           </Badge>
         )}
       </div>
@@ -225,16 +231,9 @@ export function PricingCards({ onSelectFree, onSelectPlan, showFreeAction, selec
           >
             Yearly
           </button>
-          {!isYearly && (
-            <Badge className="absolute -top-3 -right-3 bg-success text-success-foreground text-[10px] px-1.5 py-0.5">
-              -50%
-            </Badge>
-          )}
-          {isYearly && (
-            <Badge className="absolute -top-3 -right-3 bg-success text-success-foreground text-[10px] px-1.5 py-0.5">
-              Save 50%
-            </Badge>
-          )}
+          <Badge className="absolute -top-3 -right-3 bg-success text-success-foreground text-[10px] px-1.5 py-0.5">
+            Save 40%
+          </Badge>
         </div>
       </div>
 
@@ -246,6 +245,9 @@ export function PricingCards({ onSelectFree, onSelectPlan, showFreeAction, selec
           const isCurrentPlan = plan.monthlyPrice === 0 && !hasProAccess;
           const discountedPrice = getDiscountedPrice(price, plan);
           const isSelected = selectedPlan === plan.name;
+          const monthlyEquivalent = isYearly && plan.yearlyPrice > 0
+            ? Math.round((plan.yearlyPrice / 12) * 100) / 100
+            : null;
 
           return (
             <motion.div
@@ -307,10 +309,22 @@ export function PricingCards({ onSelectFree, onSelectPlan, showFreeAction, selec
                     )}
                   </div>
 
-                  {isYearly && plan.yearlyDiscount > 0 && !discountedPrice && (
-                    <p className="text-success text-xs font-medium mb-2">
-                      Save {plan.yearlyDiscount}% vs monthly
-                    </p>
+                  {isYearly && plan.yearlyDiscount > 0 && (
+                    <div className="mb-2">
+                      <p className="text-success text-xs font-medium">
+                        Save {plan.yearlyDiscount}% vs monthly
+                      </p>
+                      {monthlyEquivalent && (
+                        <p className="text-muted-foreground text-xs">
+                          Just ${monthlyEquivalent.toFixed(2)}/mo
+                        </p>
+                      )}
+                      {referralDiscount?.valid && (
+                        <p className="text-muted-foreground text-[10px] italic mt-0.5">
+                          Referral discount applies to monthly plans only
+                        </p>
+                      )}
+                    </div>
                   )}
 
                   <p className="text-muted-foreground text-sm mb-2">{plan.tagline}</p>
