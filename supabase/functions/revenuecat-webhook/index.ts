@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { checkRateLimit, WEBHOOK_RATE_LIMIT } from "../_shared/rate-limiter.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -23,12 +24,14 @@ serve(async (req) => {
     });
   }
 
+  const rateLimited = checkRateLimit(req, corsHeaders, WEBHOOK_RATE_LIMIT);
+  if (rateLimited) return rateLimited;
+
   try {
     // Validate authorization header
     const webhookKey = Deno.env.get("REVENUECAT_WEBHOOK_AUTH_KEY");
     if (webhookKey) {
       const authHeader = req.headers.get("Authorization") ?? "";
-      // Accept: "Bearer <key>", or just "<key>" directly
       const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : authHeader;
       if (token !== webhookKey) {
         log("Unauthorized request", { receivedHeader: authHeader ? "(present but mismatched)" : "(missing)" });
@@ -49,11 +52,10 @@ serve(async (req) => {
       });
     }
 
-    const eventType: string = event.type;
-    const appUserId: string = event.app_user_id;
+    const eventType: string = String(event.type || "").slice(0, 50);
+    const appUserId: string = String(event.app_user_id || "").slice(0, 100);
     log("Event received", { eventType, appUserId });
 
-    // Events we don't need to update the DB for
     if (eventType === "SUBSCRIBER_ALIAS") {
       log("Alias event - no action needed");
       return new Response(JSON.stringify({ ok: true }), {
@@ -74,7 +76,6 @@ serve(async (req) => {
       { auth: { persistSession: false } }
     );
 
-    // Determine IAP status from the event
     let iapActive = false;
     let iapProductId: string | null = null;
     let iapExpiresAt: string | null = null;
@@ -84,14 +85,14 @@ serve(async (req) => {
 
     if (grantEvents.includes(eventType)) {
       iapActive = true;
-      iapProductId = event.product_id ?? null;
+      iapProductId = event.product_id ? String(event.product_id).slice(0, 100) : null;
       iapExpiresAt = event.expiration_at_ms
         ? new Date(event.expiration_at_ms).toISOString()
         : null;
       log("Granting Pro access", { iapProductId, iapExpiresAt });
     } else if (revokeEvents.includes(eventType)) {
       iapActive = false;
-      iapProductId = event.product_id ?? null;
+      iapProductId = event.product_id ? String(event.product_id).slice(0, 100) : null;
       iapExpiresAt = event.expiration_at_ms
         ? new Date(event.expiration_at_ms).toISOString()
         : null;
@@ -103,7 +104,6 @@ serve(async (req) => {
       });
     }
 
-    // Update profiles table using app_user_id (which is the Supabase user ID)
     const { error: updateError } = await supabase
       .from("profiles")
       .update({

@@ -1,5 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.57.2";
+import { checkRateLimit } from "../_shared/rate-limiter.ts";
+import { sanitizeUUID, sanitizeLat, sanitizeLng, sanitizeArray, invalidInputResponse } from "../_shared/input-sanitizer.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -10,6 +12,9 @@ serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+
+  const rateLimited = checkRateLimit(req, corsHeaders);
+  if (rateLimited) return rateLimited;
 
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
@@ -26,10 +31,14 @@ serve(async (req) => {
     if (userError || !userData.user) throw new Error("Not authenticated");
     const userId = userData.user.id;
 
-    const { grocery_list_id, stores, lat, lng } = await req.json();
-    if (!grocery_list_id || !stores || !Array.isArray(stores) || stores.length === 0) {
-      throw new Error("grocery_list_id and stores array are required");
-    }
+    const body = await req.json();
+    const grocery_list_id = sanitizeUUID(body.grocery_list_id);
+    const lat = sanitizeLat(body.lat) ?? 0;
+    const lng = sanitizeLng(body.lng) ?? 0;
+    const stores = sanitizeArray(body.stores, 10);
+
+    if (!grocery_list_id) return invalidInputResponse("grocery_list_id", corsHeaders);
+    if (!stores || stores.length === 0) return invalidInputResponse("stores", corsHeaders);
 
     // Fetch the grocery list
     const { data: list, error: listError } = await supabase
@@ -47,33 +56,28 @@ serve(async (req) => {
 
     const storeResults = [];
 
-    for (const store of stores) {
+    for (const store of stores as any[]) {
       const storeItems = [];
       let total = 0;
 
-      for (const item of items) {
+      for (const item of items.slice(0, 50)) {
         try {
-          const query = encodeURIComponent(`${item.name} ${store.name}`);
+          const itemName = String(item.name || "").slice(0, 100);
+          const storeName = String(store.name || "").slice(0, 100);
+          const query = encodeURIComponent(`${itemName} ${storeName}`);
           const resp = await fetch(
             `https://api.pricesapi.com/v1/search?q=${query}&source=google_shopping&country=us`,
             { headers: { "Authorization": `Bearer ${apiKey}` } }
           );
 
           if (!resp.ok) {
-            // Fallback: try without store name
             const fallbackResp = await fetch(
-              `https://api.pricesapi.com/v1/search?q=${encodeURIComponent(item.name)}&source=google_shopping&country=us`,
+              `https://api.pricesapi.com/v1/search?q=${encodeURIComponent(itemName)}&source=google_shopping&country=us`,
               { headers: { "Authorization": `Bearer ${apiKey}` } }
             );
             
             if (!fallbackResp.ok) {
-              storeItems.push({
-                item_name: item.name,
-                price: null,
-                currency: "USD",
-                source_product_title: null,
-                url: null,
-              });
+              storeItems.push({ item_name: itemName, price: null, currency: "USD", source_product_title: null, url: null });
               continue;
             }
             
@@ -83,20 +87,14 @@ serve(async (req) => {
               const price = (product.price || 0) * (item.quantity || 1);
               total += price;
               storeItems.push({
-                item_name: item.name,
+                item_name: itemName,
                 price: Math.round(price * 100) / 100,
                 currency: product.currency || "USD",
                 source_product_title: product.title || product.name || null,
                 url: product.url || null,
               });
             } else {
-              storeItems.push({
-                item_name: item.name,
-                price: null,
-                currency: "USD",
-                source_product_title: null,
-                url: null,
-              });
+              storeItems.push({ item_name: itemName, price: null, currency: "USD", source_product_title: null, url: null });
             }
             continue;
           }
@@ -108,36 +106,24 @@ serve(async (req) => {
             const price = (product.price || 0) * (item.quantity || 1);
             total += price;
             storeItems.push({
-              item_name: item.name,
+              item_name: itemName,
               price: Math.round(price * 100) / 100,
               currency: product.currency || "USD",
               source_product_title: product.title || product.name || null,
               url: product.url || null,
             });
           } else {
-            storeItems.push({
-              item_name: item.name,
-              price: null,
-              currency: "USD",
-              source_product_title: null,
-              url: null,
-            });
+            storeItems.push({ item_name: itemName, price: null, currency: "USD", source_product_title: null, url: null });
           }
         } catch (err) {
           console.error(`Error fetching price for ${item.name} at ${store.name}:`, err);
-          storeItems.push({
-            item_name: item.name,
-            price: null,
-            currency: "USD",
-            source_product_title: null,
-            url: null,
-          });
+          storeItems.push({ item_name: item.name, price: null, currency: "USD", source_product_title: null, url: null });
         }
       }
 
       storeResults.push({
         store_id: store.place_id,
-        store_name: store.name,
+        store_name: String(store.name || "").slice(0, 100),
         distance_miles: store.distance_miles,
         items: storeItems,
         total_price: Math.round(total * 100) / 100,
@@ -156,8 +142,8 @@ serve(async (req) => {
       .insert({
         user_id: userId,
         grocery_list_id,
-        location_lat: lat || 0,
-        location_lng: lng || 0,
+        location_lat: lat,
+        location_lng: lng,
         store_results: storeResults,
         best_store_name: bestStore?.store_name || null,
         best_store_total_price: bestStore?.total_price || null,

@@ -5,6 +5,8 @@ import {
   aiLimitResponse,
   AI_COST_ESTIMATES,
 } from "../_shared/ai-usage-guard.ts";
+import { checkRateLimit, AI_RATE_LIMIT } from "../_shared/rate-limiter.ts";
+import { sanitizeString, sanitizeZipCode, sanitizePositiveNumber, invalidInputResponse } from "../_shared/input-sanitizer.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -15,6 +17,9 @@ serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+
+  const rateLimited = checkRateLimit(req, corsHeaders, AI_RATE_LIMIT);
+  if (rateLimited) return rateLimited;
 
   try {
     const authHeader = req.headers.get("Authorization");
@@ -29,13 +34,14 @@ serve(async (req) => {
 
     const userId = claimsData.claims.sub as string;
 
-    const { product, zipCode, category, originalPrice } = await req.json();
+    const body = await req.json();
+    const product = sanitizeString(body.product, 200);
+    const zipCode = sanitizeZipCode(body.zipCode);
+    const category = sanitizeString(body.category, 50);
+    const originalPrice = sanitizePositiveNumber(body.originalPrice, 100000);
 
-    if (!product || typeof product !== 'string') {
-      return new Response(
-        JSON.stringify({ error: "Product name is required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    if (!product) {
+      return invalidInputResponse("product", corsHeaders);
     }
 
     // ── AI usage guard ──

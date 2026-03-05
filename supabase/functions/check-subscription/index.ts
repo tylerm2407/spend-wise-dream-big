@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { checkRateLimit } from "../_shared/rate-limiter.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -16,6 +17,9 @@ serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+
+  const rateLimited = checkRateLimit(req, corsHeaders);
+  if (rateLimited) return rateLimited;
 
   const supabaseClient = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
@@ -41,7 +45,6 @@ serve(async (req) => {
 
     const token = authHeader.replace("Bearer ", "");
     
-    // Use getClaims for fast JWT validation
     const { data: claimsData, error: claimsError } = await supabaseClient.auth.getClaims(token);
     if (claimsError || !claimsData?.claims?.sub) {
       logStep("Auth failed", { error: claimsError?.message });
@@ -53,17 +56,15 @@ serve(async (req) => {
     
     const userId = claimsData.claims.sub as string;
     const userEmail = claimsData.claims.email as string;
-    const userCreatedAtRaw = claimsData.claims.iat; // We'll need to fetch created_at from profile or getUser
     logStep("User authenticated via claims", { userId, email: userEmail });
 
-    // Get user's profile for referral bonus days + IAP status + created_at
+    // Get user's profile for referral bonus days + IAP status
     const { data: profileData } = await supabaseClient
       .from("profiles")
       .select("referral_bonus_days, nova_wealth_user, iap_active, iap_product_id, iap_expires_at, created_at")
       .eq("user_id", userId)
       .maybeSingle();
 
-    // Also fetch user created_at from auth for trial calculation
     const { data: userData, error: userError } = await supabaseClient.auth.admin.getUserById(userId);
     if (userError || !userData.user) {
       logStep("Failed to fetch user via admin", { error: userError?.message });
@@ -78,7 +79,6 @@ serve(async (req) => {
     const isNovaWealthUser = profileData?.nova_wealth_user ?? false;
     logStep("Profile flags", { referralBonusDays, isNovaWealthUser });
 
-    // Nova Wealth users always get Pro access
     if (isNovaWealthUser) {
       logStep("Nova Wealth user - granting Pro access");
       return new Response(JSON.stringify({
@@ -93,7 +93,6 @@ serve(async (req) => {
       });
     }
 
-    // Calculate 30-day Pro trial from account creation
     const userCreatedAt = new Date(user.created_at);
     const trialEndDate = new Date(userCreatedAt);
     trialEndDate.setDate(trialEndDate.getDate() + 30 + referralBonusDays);
@@ -150,17 +149,14 @@ serve(async (req) => {
       logStep("No active subscription found");
     }
 
-    // Check IAP status from profiles table (synced by revenuecat-webhook)
     let hasActiveIAP = profileData?.iap_active ?? false;
     let iapExpiresDate: string | null = profileData?.iap_expires_at ?? null;
 
-    // If iap_active but expired, treat as inactive
     if (hasActiveIAP && iapExpiresDate && new Date(iapExpiresDate) < new Date()) {
       hasActiveIAP = false;
     }
     logStep("IAP status from DB", { hasActiveIAP, iapExpiresDate });
 
-    // Pro access = Stripe subscribed OR in trial OR IAP active
     const hasProAccess = hasActiveSub || isInTrial || hasActiveIAP;
 
     return new Response(JSON.stringify({

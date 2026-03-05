@@ -1,5 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { checkRateLimit } from "../_shared/rate-limiter.ts";
+import { sanitizeString, sanitizeZipCode, invalidInputResponse } from "../_shared/input-sanitizer.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -10,6 +12,9 @@ serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+
+  const rateLimited = checkRateLimit(req, corsHeaders);
+  if (rateLimited) return rateLimited;
 
   try {
     const authHeader = req.headers.get("Authorization");
@@ -22,19 +27,18 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const { product, zipCode, category } = await req.json();
+    const body = await req.json();
+    const product = sanitizeString(body.product, 200);
+    const zipCode = sanitizeZipCode(body.zipCode);
+    const category = sanitizeString(body.category, 50);
 
-    if (!product || typeof product !== 'string') {
-      return new Response(
-        JSON.stringify({ error: "Product name is required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    if (!product) {
+      return invalidInputResponse("product", corsHeaders);
     }
 
     const FIRECRAWL_API_KEY = Deno.env.get("FIRECRAWL_API_KEY");
     if (!FIRECRAWL_API_KEY) {
       console.log("Firecrawl not configured, returning mock data");
-      // Return realistic fallback data when Firecrawl isn't available
       return new Response(
         JSON.stringify({
           stores: getDefaultStores(product, category, zipCode),
@@ -44,7 +48,6 @@ serve(async (req) => {
       );
     }
 
-    // Search for stores with the product and location
     const searchQuery = zipCode 
       ? `${product} price near ${zipCode} stores`
       : `${product} price comparison stores`;
@@ -65,7 +68,6 @@ serve(async (req) => {
 
     if (!response.ok) {
       console.error("Firecrawl search error:", response.status);
-      // Fallback to default stores
       return new Response(
         JSON.stringify({
           stores: getDefaultStores(product, category, zipCode),
@@ -78,7 +80,6 @@ serve(async (req) => {
     const searchResults = await response.json();
     console.log("Firecrawl results:", JSON.stringify(searchResults).slice(0, 500));
 
-    // Parse search results into store data
     const stores = parseSearchResults(searchResults, product, category, zipCode);
 
     return new Response(
@@ -95,50 +96,30 @@ serve(async (req) => {
   }
 });
 
-function parseSearchResults(results: any, product: string, category: string, zipCode?: string): any[] {
+function parseSearchResults(results: any, product: string, category: string, zipCode?: string | null): any[] {
   const stores: any[] = [];
   
   if (!results?.data || !Array.isArray(results.data)) {
     return getDefaultStores(product, category, zipCode);
   }
 
-  // Extract store information from search results
   for (const result of results.data.slice(0, 4)) {
     const url = result.url || '';
     const title = result.title || '';
     const description = result.description || '';
     
-    // Try to identify store from URL
     let storeName = 'Store';
     let storeType = 'retail';
     
-    if (url.includes('walmart')) {
-      storeName = 'Walmart';
-      storeType = 'superstore';
-    } else if (url.includes('target')) {
-      storeName = 'Target';
-      storeType = 'superstore';
-    } else if (url.includes('costco')) {
-      storeName = 'Costco';
-      storeType = 'warehouse';
-    } else if (url.includes('amazon')) {
-      storeName = 'Amazon';
-      storeType = 'online';
-    } else if (url.includes('aldi')) {
-      storeName = 'Aldi';
-      storeType = 'discount';
-    } else if (url.includes('kroger')) {
-      storeName = 'Kroger';
-      storeType = 'grocery';
-    } else if (url.includes('traderjoes') || url.includes('trader-joes')) {
-      storeName = 'Trader Joe\'s';
-      storeType = 'specialty';
-    } else if (url.includes('wholefood')) {
-      storeName = 'Whole Foods';
-      storeType = 'organic';
-    }
+    if (url.includes('walmart')) { storeName = 'Walmart'; storeType = 'superstore'; }
+    else if (url.includes('target')) { storeName = 'Target'; storeType = 'superstore'; }
+    else if (url.includes('costco')) { storeName = 'Costco'; storeType = 'warehouse'; }
+    else if (url.includes('amazon')) { storeName = 'Amazon'; storeType = 'online'; }
+    else if (url.includes('aldi')) { storeName = 'Aldi'; storeType = 'discount'; }
+    else if (url.includes('kroger')) { storeName = 'Kroger'; storeType = 'grocery'; }
+    else if (url.includes('traderjoes') || url.includes('trader-joes')) { storeName = "Trader Joe's"; storeType = 'specialty'; }
+    else if (url.includes('wholefood')) { storeName = 'Whole Foods'; storeType = 'organic'; }
 
-    // Try to extract price from description
     const priceMatch = description.match(/\$(\d+\.?\d*)/);
     const estimatedPrice = priceMatch ? parseFloat(priceMatch[1]) : null;
 
@@ -152,7 +133,6 @@ function parseSearchResults(results: any, product: string, category: string, zip
     });
   }
 
-  // If we didn't find enough stores, add defaults
   if (stores.length < 2) {
     return getDefaultStores(product, category, zipCode);
   }
@@ -160,10 +140,9 @@ function parseSearchResults(results: any, product: string, category: string, zip
   return stores;
 }
 
-function getDefaultStores(product: string, category?: string, zipCode?: string): any[] {
+function getDefaultStores(product: string, category?: string | null, zipCode?: string | null): any[] {
   const locationSuffix = zipCode ? ` near ${zipCode}` : '';
   
-  // Category-specific store recommendations
   const categoryStores: Record<string, any[]> = {
     groceries: [
       { name: 'Aldi', type: 'discount', savings: '25-40%', location: `Multiple locations${locationSuffix}` },
@@ -192,7 +171,6 @@ function getDefaultStores(product: string, category?: string, zipCode?: string):
     ],
   };
 
-  // Default generic stores
   const defaultStores = [
     { name: 'Walmart', type: 'superstore', savings: '15-25%', location: `Supercenter${locationSuffix}` },
     { name: 'Amazon', type: 'online', savings: '10-20%', location: 'Online with Prime' },

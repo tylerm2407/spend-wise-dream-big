@@ -1,6 +1,8 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { Resend } from "npm:resend@2.0.0";
+import { checkRateLimit, AUTH_RATE_LIMIT } from "../_shared/rate-limiter.ts";
+import { sanitizeReferralCode, invalidInputResponse } from "../_shared/input-sanitizer.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -16,6 +18,10 @@ serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+
+  // Rate limit
+  const rateLimited = checkRateLimit(req, corsHeaders, AUTH_RATE_LIMIT);
+  if (rateLimited) return rateLimited;
 
   const supabaseClient = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
@@ -36,15 +42,16 @@ serve(async (req) => {
     if (!user) throw new Error("User not authenticated");
     logStep("User authenticated", { userId: user.id });
 
-    const { referral_code } = await req.json();
-    if (!referral_code) throw new Error("Referral code is required");
+    const body = await req.json();
+    const referral_code = sanitizeReferralCode(body.referral_code);
+    if (!referral_code) return invalidInputResponse("referral_code", corsHeaders);
     logStep("Referral code received", { referral_code });
 
     // Find the referrer's profile by code
     const { data: referrerProfile, error: referrerError } = await supabaseClient
       .from("profiles")
       .select("id, user_id, referral_bonus_days")
-      .eq("referral_code", referral_code.toUpperCase())
+      .eq("referral_code", referral_code)
       .single();
 
     if (referrerError || !referrerProfile) {
@@ -127,7 +134,6 @@ serve(async (req) => {
 
       logStep("Referrals marked as rewarded");
 
-      // Send milestone email to referrer
       await sendMilestoneEmail(supabaseClient, referrerProfile.user_id, totalReferrals, newBonusDays);
     }
 
@@ -163,7 +169,6 @@ async function sendMilestoneEmail(
       return;
     }
 
-    // Get referrer's email from auth
     const { data: referrerAuth, error: authError } = await supabaseClient.auth.admin.getUserById(referrerUserId);
     if (authError || !referrerAuth?.user?.email) {
       logStep("Could not retrieve referrer email", { error: authError?.message });

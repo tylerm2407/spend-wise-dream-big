@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { checkRateLimit, WEBHOOK_RATE_LIMIT } from "../_shared/rate-limiter.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -24,6 +25,9 @@ serve(async (req) => {
     });
   }
 
+  const rateLimited = checkRateLimit(req, corsHeaders, WEBHOOK_RATE_LIMIT);
+  if (rateLimited) return rateLimited;
+
   try {
     // Validate webhook secret
     const webhookSecret = Deno.env.get("NOVAWEALTH_WEBHOOK_SECRET");
@@ -47,8 +51,8 @@ serve(async (req) => {
       });
     }
 
-    const eventType: string = event.type;
-    const appUserId: string = event.app_user_id;
+    const eventType: string = String(event.type || "").slice(0, 50);
+    const appUserId: string = String(event.app_user_id || "").slice(0, 100);
     log("Event received", { eventType, appUserId });
 
     if (eventType === "SUBSCRIBER_ALIAS" || eventType === "BILLING_ISSUE_DETECTED") {
@@ -80,7 +84,6 @@ serve(async (req) => {
       });
     }
 
-    // Upsert user_access — only touch standalone_subscriber
     const { error: upsertError } = await supabase
       .from("user_access")
       .upsert(
@@ -99,12 +102,11 @@ serve(async (req) => {
       });
     }
 
-    // Also update the existing profiles IAP fields for backward compatibility
     const { error: profileError } = await supabase
       .from("profiles")
       .update({
         iap_active: standaloneActive,
-        iap_product_id: event.product_id ?? null,
+        iap_product_id: event.product_id ? String(event.product_id).slice(0, 100) : null,
         iap_expires_at: event.expiration_at_ms
           ? new Date(event.expiration_at_ms).toISOString()
           : null,

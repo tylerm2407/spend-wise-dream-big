@@ -1,5 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.57.2";
+import { checkRateLimit } from "../_shared/rate-limiter.ts";
+import { sanitizeLat, sanitizeLng, sanitizeNumber, invalidInputResponse } from "../_shared/input-sanitizer.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -10,6 +12,9 @@ serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+
+  const rateLimited = checkRateLimit(req, corsHeaders);
+  if (rateLimited) return rateLimited;
 
   const supabaseClient = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
@@ -24,8 +29,12 @@ serve(async (req) => {
     const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
     if (userError || !userData.user) throw new Error("Not authenticated");
 
-    const { lat, lng, radius = 10000 } = await req.json();
-    if (!lat || !lng) throw new Error("lat and lng are required");
+    const body = await req.json();
+    const lat = sanitizeLat(body.lat);
+    const lng = sanitizeLng(body.lng);
+    const radius = sanitizeNumber(body.radius, 100, 50000) ?? 10000;
+
+    if (lat === null || lng === null) return invalidInputResponse("lat/lng", corsHeaders);
 
     const apiKey = Deno.env.get("GOOGLE_PLACES_API_KEY");
     if (!apiKey) throw new Error("GOOGLE_PLACES_API_KEY not configured");
@@ -42,7 +51,6 @@ serve(async (req) => {
     const stores = (data.results || []).slice(0, 7).map((place: any) => {
       const storeLat = place.geometry.location.lat;
       const storeLng = place.geometry.location.lng;
-      // Haversine distance in miles
       const R = 3958.8;
       const dLat = (storeLat - lat) * Math.PI / 180;
       const dLng = (storeLng - lng) * Math.PI / 180;

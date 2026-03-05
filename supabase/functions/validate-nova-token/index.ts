@@ -1,5 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { checkRateLimit, AUTH_RATE_LIMIT } from "../_shared/rate-limiter.ts";
+import { sanitizeString } from "../_shared/input-sanitizer.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -18,6 +20,9 @@ serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+
+  const rateLimited = checkRateLimit(req, corsHeaders, AUTH_RATE_LIMIT);
+  if (rateLimited) return rateLimited;
 
   const localAdmin = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
@@ -38,7 +43,7 @@ serve(async (req) => {
       });
     }
 
-    const { token } = body;
+    const token = sanitizeString(body.token, 5000);
     if (!token) throw new Error("No token provided");
     log("Token received, validating against NovaWealth");
 

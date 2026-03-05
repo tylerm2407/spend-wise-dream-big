@@ -4,6 +4,8 @@ import {
   aiLimitResponse,
   AI_COST_ESTIMATES,
 } from "../_shared/ai-usage-guard.ts";
+import { checkRateLimit, AI_RATE_LIMIT } from "../_shared/rate-limiter.ts";
+import { sanitizeBase64Image } from "../_shared/input-sanitizer.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -22,6 +24,9 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const rateLimited = checkRateLimit(req, corsHeaders, AI_RATE_LIMIT);
+  if (rateLimited) return rateLimited;
+
   try {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
@@ -35,11 +40,12 @@ Deno.serve(async (req) => {
 
     const userId = claimsData.claims.sub as string;
 
-    const { image } = await req.json();
+    const body = await req.json();
+    const image = sanitizeBase64Image(body.image);
 
     if (!image) {
       return new Response(
-        JSON.stringify({ error: 'No image provided' }),
+        JSON.stringify({ error: 'No valid image provided (max 10MB)' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -50,7 +56,6 @@ Deno.serve(async (req) => {
       return aiLimitResponse(corsHeaders);
     }
 
-    // Use Lovable AI to analyze the receipt
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -96,7 +101,6 @@ Example: {"merchant": "Starbucks", "total": 5.75, "date": "2025-02-05", "items":
     const aiResponse = await response.json();
     const content = aiResponse.choices?.[0]?.message?.content || '';
     
-    // Parse the JSON response
     let receiptData: ReceiptData = {};
     try {
       const cleanedContent = content.replace(/```json\n?|\n?```/g, '').trim();
