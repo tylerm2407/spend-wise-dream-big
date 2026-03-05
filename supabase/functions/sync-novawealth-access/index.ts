@@ -1,5 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { checkRateLimit } from "../_shared/rate-limiter.ts";
+import { sanitizeUUID, sanitizeEmail, invalidInputResponse } from "../_shared/input-sanitizer.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -16,6 +18,9 @@ serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+
+  const rateLimited = checkRateLimit(req, corsHeaders);
+  if (rateLimited) return rateLimited;
 
   try {
     // Authenticate the caller
@@ -43,7 +48,9 @@ serve(async (req) => {
     }
 
     const userId = claimsData.claims.sub as string;
-    const { user_id, email } = await req.json();
+    const body = await req.json();
+    const user_id = sanitizeUUID(body.user_id);
+    const email = sanitizeEmail(body.email);
 
     // Ensure the caller is requesting for themselves
     if (user_id !== userId) {
@@ -52,6 +59,8 @@ serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    if (!email) return invalidInputResponse("email", corsHeaders);
 
     log("Checking NovaWealth subscription", { userId, email });
 
@@ -89,7 +98,6 @@ serve(async (req) => {
       if (nwRes.ok) {
         const nwData = await nwRes.json();
         nwResponseData = nwData;
-        // Support response format: { novawealth_subscriber: boolean, subscription_tier: "paid"|"free" }
         novaSubscriber = nwData.novawealth_subscriber === true || nwData.subscription_tier === "paid";
         log("NovaWealth API response", { status: nwRes.status, novaSubscriber, nwData });
       } else {

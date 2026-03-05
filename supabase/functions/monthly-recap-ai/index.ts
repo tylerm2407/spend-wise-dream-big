@@ -5,6 +5,8 @@ import {
   aiLimitResponse,
   AI_COST_ESTIMATES,
 } from "../_shared/ai-usage-guard.ts";
+import { checkRateLimit, AI_RATE_LIMIT } from "../_shared/rate-limiter.ts";
+import { sanitizeString, sanitizePositiveNumber, sanitizeNumber } from "../_shared/input-sanitizer.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -16,6 +18,9 @@ serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+
+  const rateLimited = checkRateLimit(req, corsHeaders, AI_RATE_LIMIT);
+  if (rateLimited) return rateLimited;
 
   try {
     const authHeader = req.headers.get("Authorization");
@@ -31,19 +36,17 @@ serve(async (req) => {
     const userId = claimsData.claims.sub as string;
 
     const body = await req.json();
-    const {
-      totalSpent,
-      monthlyIncome,
-      savingsRate,
-      categoryBreakdown,
-      dailyAverage,
-      comparedToLastMonth,
-      lastMonthTotal,
-      monthLabel,
-      goalProgress,
-      daysWithNoPurchases,
-      purchaseCount,
-    } = body;
+    const totalSpent = sanitizePositiveNumber(body.totalSpent, 10_000_000) ?? 0;
+    const monthlyIncome = sanitizePositiveNumber(body.monthlyIncome, 10_000_000);
+    const savingsRate = sanitizeNumber(body.savingsRate, -1000, 100);
+    const dailyAverage = sanitizePositiveNumber(body.dailyAverage, 100_000) ?? 0;
+    const comparedToLastMonth = sanitizeNumber(body.comparedToLastMonth, -1000, 10000);
+    const lastMonthTotal = sanitizePositiveNumber(body.lastMonthTotal, 10_000_000) ?? 0;
+    const monthLabel = sanitizeString(body.monthLabel, 50) ?? "This Month";
+    const daysWithNoPurchases = sanitizePositiveNumber(body.daysWithNoPurchases, 31) ?? 0;
+    const purchaseCount = sanitizePositiveNumber(body.purchaseCount, 10000) ?? 0;
+    const categoryBreakdown = Array.isArray(body.categoryBreakdown) ? body.categoryBreakdown.slice(0, 20) : [];
+    const goalProgress = Array.isArray(body.goalProgress) ? body.goalProgress.slice(0, 10) : [];
 
     // ── AI usage guard ──
     const usageResult = await checkAndRecordAiUsage(userId, AI_COST_ESTIMATES.chatFlash);
@@ -56,17 +59,17 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    const categorySummary = (categoryBreakdown || [])
+    const categorySummary = categoryBreakdown
       .map(
         (c: { name: string; amount: number; count: number }) =>
-          `${c.name}: $${c.amount.toFixed(2)} (${c.count} purchases)`
+          `${String(c.name).slice(0, 50)}: $${Number(c.amount || 0).toFixed(2)} (${Number(c.count || 0)} purchases)`
       )
       .join(", ");
 
-    const goalSummary = (goalProgress || [])
+    const goalSummary = goalProgress
       .map(
         (g: { name: string; current: number; target: number; progress: number }) =>
-          `"${g.name}": ${g.progress}% complete ($${g.current.toFixed(0)} of $${g.target.toFixed(0)})`
+          `"${String(g.name).slice(0, 100)}": ${Number(g.progress || 0)}% complete ($${Number(g.current || 0).toFixed(0)} of $${Number(g.target || 0).toFixed(0)})`
       )
       .join("; ");
 

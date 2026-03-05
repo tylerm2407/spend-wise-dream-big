@@ -1,4 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { checkRateLimit } from "../_shared/rate-limiter.ts";
+import { sanitizeReferralCode, sanitizeUUID } from "../_shared/input-sanitizer.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -14,12 +16,16 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const rateLimited = checkRateLimit(req, corsHeaders);
+  if (rateLimited) return rateLimited;
+
   try {
     const crossAppSecret = Deno.env.get("CROSS_APP_SECRET");
     if (!crossAppSecret) throw new Error("CROSS_APP_SECRET not configured");
 
     const body = await req.json();
-    const { referral_code, referred_user_id } = body;
+    const referral_code = sanitizeReferralCode(body.referral_code);
+    const referred_user_id = sanitizeUUID(body.referred_user_id);
 
     if (!referral_code) {
       return new Response(
@@ -36,7 +42,7 @@ serve(async (req) => {
         "x-api-secret": crossAppSecret,
       },
       body: JSON.stringify({
-        referral_code: referral_code.toUpperCase(),
+        referral_code,
         source_app: SOURCE_APP,
         referred_user_id: referred_user_id || null,
       }),

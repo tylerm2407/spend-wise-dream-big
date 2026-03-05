@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { checkRateLimit, AUTH_RATE_LIMIT } from "../_shared/rate-limiter.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -10,6 +11,9 @@ serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+
+  const rateLimited = checkRateLimit(req, corsHeaders, AUTH_RATE_LIMIT);
+  if (rateLimited) return rateLimited;
 
   try {
     const supabaseAdmin = createClient(
@@ -52,7 +56,6 @@ serve(async (req) => {
     await supabaseAdmin.from("referrals").delete().eq("referrer_id", userId);
     await supabaseAdmin.from("profiles").delete().eq("user_id", userId);
 
-    // Actually delete the auth user
     const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(userId);
     if (deleteError) {
       console.error("Failed to delete auth user:", deleteError);

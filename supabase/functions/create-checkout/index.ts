@@ -1,6 +1,8 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { checkRateLimit, AUTH_RATE_LIMIT } from "../_shared/rate-limiter.ts";
+import { sanitizeReferralCode, sanitizePriceId, sanitizeUUID } from "../_shared/input-sanitizer.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -20,6 +22,9 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const rateLimited = checkRateLimit(req, corsHeaders, AUTH_RATE_LIMIT);
+  if (rateLimited) return rateLimited;
+
   const supabaseClient = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
     Deno.env.get("SUPABASE_ANON_KEY") ?? ""
@@ -32,18 +37,19 @@ serve(async (req) => {
     if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
     logStep("Stripe key verified");
 
-    // Parse request body
+    // Parse and sanitize request body
     let referralCode: string | null = null;
     let referrerId: string | null = null;
     let isUnauthenticated = false;
     let priceId: string = DEFAULT_PRICE_ID;
     try {
       const body = await req.json();
-      referralCode = body.referral_code || null;
-      referrerId = body.referrer_id || null;
+      referralCode = sanitizeReferralCode(body.referral_code);
+      referrerId = sanitizeUUID(body.referrer_id);
       isUnauthenticated = body.unauthenticated === true;
-      if (body.price_id) {
-        priceId = body.price_id;
+      const sanitizedPriceId = sanitizePriceId(body.price_id);
+      if (sanitizedPriceId) {
+        priceId = sanitizedPriceId;
       }
     } catch {
       // No body or invalid JSON — proceed without extras

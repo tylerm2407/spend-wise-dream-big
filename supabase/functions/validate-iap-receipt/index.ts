@@ -1,5 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { checkRateLimit } from "../_shared/rate-limiter.ts";
+import { sanitizeString } from "../_shared/input-sanitizer.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -16,6 +18,9 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const rateLimited = checkRateLimit(req, corsHeaders);
+  if (rateLimited) return rateLimited;
+
   const supabaseAdmin = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
@@ -28,7 +33,6 @@ serve(async (req) => {
     const rcApiKey = Deno.env.get("REVENUECAT_API_KEY");
     if (!rcApiKey) throw new Error("REVENUECAT_API_KEY is not set");
 
-    // Authenticate user
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) throw new Error("No authorization header provided");
 
@@ -39,13 +43,13 @@ serve(async (req) => {
     if (!user?.id) throw new Error("User not authenticated");
     logStep("User authenticated", { userId: user.id });
 
-    const { app_user_id } = await req.json();
+    const body = await req.json();
+    const app_user_id = sanitizeString(body.app_user_id, 200);
     const rcUserId = app_user_id || user.id;
     logStep("Checking RevenueCat subscriber", { rcUserId });
 
-    // Query RevenueCat REST API for subscriber info
     const rcRes = await fetch(
-      `https://api.revenuecat.com/v1/subscribers/${rcUserId}`,
+      `https://api.revenuecat.com/v1/subscribers/${encodeURIComponent(rcUserId)}`,
       {
         headers: {
           "Content-Type": "application/json",
@@ -62,7 +66,6 @@ serve(async (req) => {
     const rcData = await rcRes.json();
     logStep("RevenueCat subscriber data received");
 
-    // Check for active entitlements (look for "pro" entitlement)
     const entitlements = rcData.subscriber?.entitlements || {};
     const proEntitlement = entitlements["pro"] || entitlements["Pro"] || entitlements["premium"] || entitlements["Premium"];
 
@@ -76,7 +79,6 @@ serve(async (req) => {
         hasActiveIAP = new Date(expires) > new Date();
         expiresDate = expires;
       } else {
-        // Lifetime purchase (no expiry)
         hasActiveIAP = true;
       }
       productIdentifier = proEntitlement.product_identifier || null;
@@ -84,11 +86,10 @@ serve(async (req) => {
 
     logStep("Entitlement check", { hasActiveIAP, expiresDate, productIdentifier });
 
-    // If active IAP, sync Pro status to profiles table
     if (hasActiveIAP) {
       const { error: updateError } = await supabaseAdmin
         .from("profiles")
-        .update({ nova_wealth_user: false }) // not nova wealth, but we track IAP separately
+        .update({ nova_wealth_user: false })
         .eq("user_id", user.id);
 
       if (updateError) {

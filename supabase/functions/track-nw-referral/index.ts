@@ -1,5 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { checkRateLimit } from "../_shared/rate-limiter.ts";
+import { sanitizeReferralCode, sanitizeUUID, sanitizeString, invalidInputResponse } from "../_shared/input-sanitizer.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -20,6 +22,9 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const rateLimited = checkRateLimit(req, corsHeaders);
+  if (rateLimited) return rateLimited;
+
   try {
     const crossAppSecret = Deno.env.get("CROSS_APP_SECRET");
     if (!crossAppSecret) throw new Error("CROSS_APP_SECRET not configured");
@@ -38,12 +43,17 @@ serve(async (req) => {
 
     const userId = userData.user.id;
     const body = await req.json();
-    const { referral_code, referral_code_id, referrer_user_id, event } = body;
+    const referral_code = sanitizeReferralCode(body.referral_code);
+    const referral_code_id = sanitizeUUID(body.referral_code_id);
+    const referrer_user_id = sanitizeUUID(body.referrer_user_id);
+    const event = sanitizeString(body.event, 50);
+
+    const validEvents = ["signup", "subscription_created", "first_payment"];
 
     log("Tracking referral", { userId, referral_code, event });
 
-    if (!referral_code || !referrer_user_id || !event) {
-      throw new Error("Missing required fields: referral_code, referrer_user_id, event");
+    if (!referral_code || !referrer_user_id || !event || !validEvents.includes(event)) {
+      return invalidInputResponse("referral_code, referrer_user_id, or event", corsHeaders);
     }
 
     // Call NovaWealth track-referral endpoint (server-to-server)
