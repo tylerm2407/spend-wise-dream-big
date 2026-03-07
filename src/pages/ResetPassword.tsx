@@ -130,7 +130,7 @@ export default function ResetPassword() {
           className="mx-auto w-full max-w-sm"
         >
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-gradient-primary">True Cost</h1>
+            <h1 className="text-3xl font-bold text-gradient-primary">CostClarity</h1>
             <p className="text-muted-foreground mt-2">Set your new password</p>
           </div>
 

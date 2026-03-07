@@ -149,7 +149,7 @@ export function PaywallDialog({ open, onOpenChange }: PaywallDialogProps) {
           <div className="mx-auto w-14 h-14 rounded-full bg-gradient-primary flex items-center justify-center mb-2">
             <Crown className="w-7 h-7 text-primary-foreground" />
           </div>
-          <DialogTitle className="text-xl">Upgrade to SpendWise Pro</DialogTitle>
+          <DialogTitle className="text-xl">Upgrade to CostClarity Pro</DialogTitle>
           <DialogDescription className="text-base pt-1">
             Unlock unlimited goals, AI alternatives, and all premium features
           </DialogDescription>

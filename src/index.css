@@ -2,49 +2,49 @@
 @tailwind components;
 @tailwind utilities;
 
-/* True Cost - Financial App Design System
-   A calming, modern fintech aesthetic with blue-green tones
-   Premium-but-friendly finance tool with orange CTA accents
-   60-30-10 color rule: 60% background, 30% secondary surfaces, 10% accent CTAs */
+/* CostClarity - Financial App Design System
+   Dark-first, purple/violet primary (#6C63FF)
+   Clean and focused fintech aesthetic
+   60-30-10 color rule: 60% background, 30% secondary surfaces, 10% accent */
 
 @layer base {
   :root {
-    /* Core palette - Calming teal/blue-green */
-    --background: 200 20% 98%;
-    --foreground: 200 50% 10%;
+    /* Core palette - Purple/Violet */
+    --background: 250 20% 98%;
+    --foreground: 244 30% 10%;
 
     --card: 0 0% 100%;
-    --card-foreground: 200 50% 10%;
+    --card-foreground: 244 30% 10%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 200 50% 10%;
+    --popover-foreground: 244 30% 10%;
 
-    /* Primary - Deep teal */
-    --primary: 174 62% 35%;
+    /* Primary - Purple #6C63FF */
+    --primary: 244 100% 69%;
     --primary-foreground: 0 0% 100%;
 
-    /* Secondary - Soft mint */
-    --secondary: 168 35% 92%;
-    --secondary-foreground: 174 62% 25%;
+    /* Secondary - Soft lavender */
+    --secondary: 250 30% 92%;
+    --secondary-foreground: 244 70% 40%;
 
-    /* Muted - Subtle gray-blue */
-    --muted: 200 15% 94%;
-    --muted-foreground: 200 15% 45%;
+    /* Muted */
+    --muted: 250 15% 94%;
+    --muted-foreground: 244 10% 45%;
 
-    /* Accent - Vibrant teal */
-    --accent: 174 70% 45%;
+    /* Accent - Vibrant purple */
+    --accent: 244 80% 65%;
     --accent-foreground: 0 0% 100%;
 
     /* CTA Orange - For action buttons */
     --cta: 24 95% 53%;
     --cta-foreground: 0 0% 100%;
 
-    /* Destructive - Warm coral for warnings */
-    --destructive: 12 76% 61%;
+    /* Destructive */
+    --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
     /* Success - Fresh green */
-    --success: 152 60% 45%;
+    --success: 142 71% 45%;
     --success-foreground: 0 0% 100%;
 
     /* Warning - Warm amber */
@@ -55,75 +55,76 @@
     --info: 199 89% 48%;
     --info-foreground: 0 0% 100%;
 
-    --border: 200 20% 88%;
-    --input: 200 20% 88%;
-    --ring: 174 62% 35%;
+    --border: 250 20% 88%;
+    --input: 250 20% 88%;
+    --ring: 244 100% 69%;
 
     --radius: 1rem;
 
     /* Custom gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(174 62% 35%), hsl(185 68% 45%));
+    --gradient-primary: linear-gradient(135deg, hsl(244 100% 65%), hsl(260 90% 72%));
     --gradient-cta: linear-gradient(135deg, hsl(24 95% 53%), hsl(32 95% 55%));
-    --gradient-success: linear-gradient(135deg, hsl(152 60% 45%), hsl(168 55% 50%));
+    --gradient-success: linear-gradient(135deg, hsl(142 71% 45%), hsl(158 65% 50%));
     --gradient-warning: linear-gradient(135deg, hsl(38 92% 50%), hsl(28 90% 55%));
-    --gradient-destructive: linear-gradient(135deg, hsl(12 76% 61%), hsl(0 70% 55%));
-    --gradient-hero: linear-gradient(180deg, hsl(185 40% 96%), hsl(174 30% 92%));
-    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%), hsl(200 20% 98%));
+    --gradient-destructive: linear-gradient(135deg, hsl(0 72% 51%), hsl(0 65% 45%));
+    --gradient-hero: linear-gradient(180deg, hsl(250 25% 97%), hsl(244 20% 92%));
+    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%), hsl(250 20% 98%));
 
     /* Shadows */
-    --shadow-sm: 0 1px 2px 0 hsl(200 20% 10% / 0.05);
-    --shadow-md: 0 4px 6px -1px hsl(200 20% 10% / 0.07), 0 2px 4px -2px hsl(200 20% 10% / 0.05);
-    --shadow-lg: 0 10px 15px -3px hsl(200 20% 10% / 0.08), 0 4px 6px -4px hsl(200 20% 10% / 0.05);
-    --shadow-xl: 0 20px 25px -5px hsl(200 20% 10% / 0.1), 0 8px 10px -6px hsl(200 20% 10% / 0.05);
-    --shadow-glow: 0 0 20px hsl(174 62% 35% / 0.2);
+    --shadow-sm: 0 1px 2px 0 hsl(244 20% 10% / 0.05);
+    --shadow-md: 0 4px 6px -1px hsl(244 20% 10% / 0.07), 0 2px 4px -2px hsl(244 20% 10% / 0.05);
+    --shadow-lg: 0 10px 15px -3px hsl(244 20% 10% / 0.08), 0 4px 6px -4px hsl(244 20% 10% / 0.05);
+    --shadow-xl: 0 20px 25px -5px hsl(244 20% 10% / 0.1), 0 8px 10px -6px hsl(244 20% 10% / 0.05);
+    --shadow-glow: 0 0 20px hsl(244 100% 69% / 0.2);
     --shadow-cta-glow: 0 0 20px hsl(24 95% 53% / 0.3);
-    --shadow-card: 0 2px 8px hsl(200 20% 10% / 0.04), 0 8px 24px hsl(200 20% 10% / 0.06);
+    --shadow-card: 0 2px 8px hsl(244 20% 10% / 0.04), 0 8px 24px hsl(244 20% 10% / 0.06);
 
     /* Sidebar */
     --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 200 15% 30%;
-    --sidebar-primary: 174 62% 35%;
+    --sidebar-foreground: 244 15% 30%;
+    --sidebar-primary: 244 100% 69%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 168 35% 92%;
-    --sidebar-accent-foreground: 174 62% 25%;
-    --sidebar-border: 200 20% 88%;
-    --sidebar-ring: 174 62% 35%;
+    --sidebar-accent: 250 30% 92%;
+    --sidebar-accent-foreground: 244 70% 40%;
+    --sidebar-border: 250 20% 88%;
+    --sidebar-ring: 244 100% 69%;
 
     /* Tab bar */
     --tab-bar-background: 0 0% 100%;
-    --tab-bar-border: 200 20% 90%;
+    --tab-bar-border: 250 20% 90%;
   }
 
   .dark {
-    --background: 200 30% 6%;
-    --foreground: 200 15% 95%;
+    /* Dark mode - matches mobile app: #0A0A0F background, #6C63FF primary */
+    --background: 240 20% 5%;
+    --foreground: 240 14% 96%;
 
-    --card: 200 25% 10%;
-    --card-foreground: 200 15% 95%;
+    --card: 240 16% 9%;
+    --card-foreground: 240 14% 96%;
 
-    --popover: 200 25% 10%;
-    --popover-foreground: 200 15% 95%;
+    --popover: 240 16% 9%;
+    --popover-foreground: 240 14% 96%;
 
-    --primary: 174 55% 50%;
-    --primary-foreground: 200 30% 8%;
+    --primary: 244 100% 72%;
+    --primary-foreground: 240 20% 5%;
 
-    --secondary: 200 25% 15%;
-    --secondary-foreground: 174 55% 60%;
+    --secondary: 240 15% 13%;
+    --secondary-foreground: 244 100% 80%;
 
-    --muted: 200 25% 15%;
-    --muted-foreground: 200 15% 60%;
+    --muted: 240 15% 13%;
+    --muted-foreground: 240 10% 62%;
 
-    --accent: 174 60% 55%;
-    --accent-foreground: 200 30% 8%;
+    --accent: 244 100% 72%;
+    --accent-foreground: 240 20% 5%;
 
     /* CTA Orange - Dark mode */
     --cta: 24 90% 55%;
     --cta-foreground: 0 0% 100%;
 
-    --destructive: 12 70% 50%;
+    --destructive: 0 65% 55%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 152 55% 50%;
+    --success: 142 60% 50%;
     --success-foreground: 0 0% 100%;
 
     --warning: 38 85% 55%;
@@ -132,29 +133,29 @@
     --info: 199 80% 55%;
     --info-foreground: 0 0% 100%;
 
-    --border: 200 25% 18%;
-    --input: 200 25% 18%;
-    --ring: 174 55% 50%;
+    --border: 240 14% 19%;
+    --input: 240 14% 19%;
+    --ring: 244 100% 72%;
 
-    --gradient-primary: linear-gradient(135deg, hsl(174 55% 45%), hsl(185 60% 50%));
-   --gradient-cta: linear-gradient(135deg, hsl(24 95% 60%), hsl(32 95% 65%));
-    --gradient-hero: linear-gradient(180deg, hsl(200 30% 8%), hsl(200 25% 10%));
-    --gradient-card: linear-gradient(145deg, hsl(200 25% 12%), hsl(200 25% 9%));
+    --gradient-primary: linear-gradient(135deg, hsl(244 100% 68%), hsl(260 100% 75%));
+    --gradient-cta: linear-gradient(135deg, hsl(24 95% 60%), hsl(32 95% 65%));
+    --gradient-hero: linear-gradient(180deg, hsl(240 20% 5%), hsl(240 16% 8%));
+    --gradient-card: linear-gradient(145deg, hsl(240 16% 11%), hsl(240 16% 8%));
 
-    --shadow-glow: 0 0 25px hsl(174 55% 50% / 0.25);
-   --shadow-cta-glow: 0 0 30px hsl(24 95% 60% / 0.5);
+    --shadow-glow: 0 0 25px hsl(244 100% 72% / 0.25);
+    --shadow-cta-glow: 0 0 30px hsl(24 95% 60% / 0.5);
 
-    --sidebar-background: 200 30% 6%;
-    --sidebar-foreground: 200 15% 80%;
-    --sidebar-primary: 174 55% 50%;
-    --sidebar-primary-foreground: 200 30% 8%;
-    --sidebar-accent: 200 25% 15%;
-    --sidebar-accent-foreground: 174 55% 60%;
-    --sidebar-border: 200 25% 18%;
-    --sidebar-ring: 174 55% 50%;
+    --sidebar-background: 240 20% 5%;
+    --sidebar-foreground: 240 14% 80%;
+    --sidebar-primary: 244 100% 72%;
+    --sidebar-primary-foreground: 240 20% 5%;
+    --sidebar-accent: 240 15% 13%;
+    --sidebar-accent-foreground: 244 100% 80%;
+    --sidebar-border: 240 14% 19%;
+    --sidebar-ring: 244 100% 72%;
 
-    --tab-bar-background: 200 25% 8%;
-    --tab-bar-border: 200 25% 15%;
+    --tab-bar-background: 240 16% 7%;
+    --tab-bar-border: 240 14% 15%;
   }
 }
 
@@ -237,13 +238,13 @@
    .bg-gradient-primary.glow {
      box-shadow: var(--shadow-glow);
    }
- 
+
    .dark .bg-gradient-primary.glow {
-     box-shadow: 0 4px 20px hsl(174 55% 50% / 0.4), 0 0 40px hsl(174 55% 50% / 0.25);
+     box-shadow: 0 4px 20px hsl(244 100% 72% / 0.4), 0 0 40px hsl(244 100% 72% / 0.25);
    }
- 
+
    .dark .bg-gradient-primary.glow:hover {
-     box-shadow: 0 4px 25px hsl(174 55% 50% / 0.5), 0 0 50px hsl(174 55% 50% / 0.35);
+     box-shadow: 0 4px 25px hsl(244 100% 72% / 0.5), 0 0 50px hsl(244 100% 72% / 0.35);
    }
 
   /* Animated number counter container */
@@ -289,7 +290,7 @@
     box-shadow:
       0 0 12px 2px hsl(var(--primary) / 0.25),
       0 0 24px 6px hsl(var(--primary) / 0.12),
-      0 8px 20px -4px hsl(200 20% 10% / 0.1);
+      0 8px 20px -4px hsl(244 20% 5% / 0.1);
   }
 
   .glow-orb-track {

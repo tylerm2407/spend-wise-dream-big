@@ -398,7 +398,7 @@ export default function Settings() {
               ) : (
                 <div className="space-y-3">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">SpendWise Pro</span>
+                    <span className="text-muted-foreground">CostClarity Pro</span>
                     <span className="font-semibold">$4.99/month</span>
                   </div>
                   <Button 
