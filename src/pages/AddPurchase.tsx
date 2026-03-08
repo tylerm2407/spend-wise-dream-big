@@ -143,6 +143,15 @@ export default function AddPurchase() {
 
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
+
+    if (!canAddPurchase) {
+      toast({
+        title: 'Monthly limit reached',
+        description: `Free plan allows ${purchaseLimit} purchases per month. Upgrade to Pro for unlimited tracking.`,
+        variant: 'destructive',
+      });
+      return;
+    }
     
     if (!numericAmount || !itemName || !category) {
       toast({
