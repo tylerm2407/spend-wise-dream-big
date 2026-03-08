@@ -92,7 +92,7 @@ serve(async (req) => {
       customer_email: customerId ? undefined : userEmail,
       line_items: [{ price: priceId, quantity: 1 }],
       mode: "subscription",
-      success_url: `${origin}/signup?plan=pro`,
+      success_url: `${origin}/subscription-success`,
       cancel_url: `${origin}/signup`,
       subscription_data: {
         trial_period_days: 30,
