@@ -85,6 +85,7 @@ export default function Settings() {
   const { enabled: budgetAlertsEnabled, toggleAlerts, permission, isSupported } = useBudgetNotifications();
   const { isNative, restorePurchases, loading: rcLoading, hasActiveSubscription: hasIAP } = useRevenueCat();
   const { isNovaWealthUser, clearSession: clearNWSession } = useNovaWealth();
+  const { canExportCSV } = useFreeTierLimits();
   const [isDarkMode, setIsDarkMode] = useState(
     document.documentElement.classList.contains('dark')
   );
