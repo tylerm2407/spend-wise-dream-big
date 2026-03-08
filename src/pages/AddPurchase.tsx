@@ -35,6 +35,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useHaptics } from '@/hooks/useHaptics';
  import { useRecurringDetection } from '@/hooks/useRecurringDetection';
 import { useSubscriptionGate } from '@/hooks/useSubscriptionGate';
+import { useFreeTierLimits } from '@/hooks/useFreeTierLimits';
 import { AnimatedCounter } from '@/components/ui/AnimatedCounter';
  import { VoiceInput } from '@/components/VoiceInput';
  import { ReceiptScanner } from '@/components/ReceiptScanner';
@@ -83,6 +84,7 @@ export default function AddPurchase() {
   const { haptic } = useHaptics();
   const { checkBudgetThresholds } = useBudgetNotifications();
   const { guardAction, showPaywall, dismissPaywall } = useSubscriptionGate();
+  const { canAddPurchase, purchasesRemaining, purchaseLimit, hasProAccess } = useFreeTierLimits();
 
   const [amount, setAmount] = useState('');
   const [itemName, setItemName] = useState('');
@@ -141,6 +143,15 @@ export default function AddPurchase() {
 
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
+
+    if (!canAddPurchase) {
+      toast({
+        title: 'Monthly limit reached',
+        description: `Free plan allows ${purchaseLimit} purchases per month. Upgrade to Pro for unlimited tracking.`,
+        variant: 'destructive',
+      });
+      return;
+    }
     
     if (!numericAmount || !itemName || !category) {
       toast({
@@ -273,6 +284,25 @@ export default function AddPurchase() {
               ))}
             </div>
           </div>
+        )}
+
+        {/* Free tier purchase limit warning */}
+        {!hasProAccess && purchasesRemaining <= 10 && purchasesRemaining > 0 && (
+          <Card className="p-3 border-warning/30 bg-warning/5">
+            <p className="text-xs text-warning font-medium text-center">
+              ⚠️ {purchasesRemaining} purchases remaining this month on Free plan
+            </p>
+          </Card>
+        )}
+        {!canAddPurchase && (
+          <Card className="p-4 border-destructive/30 bg-destructive/5">
+            <p className="text-sm text-destructive font-medium text-center mb-2">
+              Monthly purchase limit reached ({purchaseLimit}/{purchaseLimit})
+            </p>
+            <Button variant="default" size="sm" className="w-full bg-gradient-primary" onClick={() => dismissPaywall()}>
+              Upgrade to Pro — Unlimited Tracking
+            </Button>
+          </Card>
         )}
 
         {/* Form */}

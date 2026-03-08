@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { Shield, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PricingCards } from '@/components/PricingCards';
+import { LandingCalculator } from '@/components/LandingCalculator';
 import { useGuest } from '@/hooks/useGuest';
 import { useToast } from '@/hooks/use-toast';
 
@@ -46,6 +47,11 @@ export default function Index() {
           <p className="text-sm text-muted-foreground mt-1">
             See what your spending <span className="text-primary">really</span> costs you
           </p>
+        </div>
+
+        {/* Interactive Calculator — value before pricing */}
+        <div className="mt-8">
+          <LandingCalculator />
         </div>
 
         {/* Pricing Section */}

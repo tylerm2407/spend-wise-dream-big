@@ -36,8 +36,12 @@ import { WeeklyRecapCard } from '@/components/WeeklyRecapCard';
 import { MonthlyRecapCard } from '@/components/MonthlyRecapCard';
 import { PullToRefresh } from '@/components/PullToRefresh';
 import { CreditCardLinking } from '@/components/CreditCardLinking';
+import { OnboardingChecklist } from '@/components/OnboardingChecklist';
+import { ShareSavingsCard } from '@/components/ShareSavingsCard';
 import { HomeSkeleton, ErrorState } from '@/components/PageSkeletons';
 import { PaywallDialog } from '@/components/PaywallDialog';
+import { useDailyNudge } from '@/hooks/useDailyNudge';
+import { useSavedAlternatives } from '@/hooks/useSavedAlternatives';
 import { formatCurrency, calculateGoalProgress, getGoalStatus } from '@/lib/calculations';
 import { cn } from '@/lib/utils';
 import { useQueryClient } from '@tanstack/react-query';
@@ -52,7 +56,11 @@ export default function Home() {
   const { currentChallenge, progressPercent } = useWeeklyChallenge();
   const { currentStreak, longestStreak, streakFreezesRemaining, streakEvent, welcomeMessage, encouragementMessage, dismissStreakEvent } = useStreaks();
   const { guardAction, showPaywall, dismissPaywall } = useSubscriptionGate();
+  const { savedAlternatives = [] } = useSavedAlternatives();
   const queryClient = useQueryClient();
+
+  // Schedule 6pm daily nudge on native
+  useDailyNudge();
 
   const isLoading = profileLoading || purchasesLoading || goalsLoading;
   const hasError = profileError || purchasesError || goalsError;
@@ -189,6 +197,15 @@ export default function Home() {
               </motion.div>
             )}
           </AnimatePresence>
+
+          {/* Onboarding Checklist for new users */}
+          <OnboardingChecklist
+            purchaseCount={purchases.length}
+            hasGoal={activeGoals.length > 0}
+            hasDailyBudget={!!profile?.daily_budget && Number(profile.daily_budget) > 0}
+            hasHourlyWage={!!profile?.hourly_wage && Number(profile.hourly_wage) > 0}
+          />
+
           {/* Monthly Recap */}
           <MonthlyRecapCard />
 
@@ -436,6 +453,22 @@ export default function Home() {
               />
             </motion.div>
           )}
+
+          {/* Share Savings Card */}
+          <motion.div variants={itemVariants}>
+            <ShareSavingsCard
+              monthlySavings={savedAlternatives
+                .filter(a => {
+                  const d = new Date(a.created_at);
+                  const now = new Date();
+                  return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+                })
+                .reduce((sum, a) => sum + Number(a.savings), 0)}
+              totalAlternativesSaved={savedAlternatives.length}
+              streakDays={currentStreak}
+              userName={profile?.name ?? undefined}
+            />
+          </motion.div>
         </motion.main>
       </div>
       </PullToRefresh>

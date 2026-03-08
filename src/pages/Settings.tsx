@@ -62,6 +62,7 @@ import { useBudgetNotifications } from '@/hooks/useBudgetNotifications';
 import { supabase } from '@/integrations/supabase/client';
 import { useRevenueCat } from '@/hooks/useRevenueCat';
 import { useNovaWealth } from '@/hooks/useNovaWealth';
+import { useFreeTierLimits } from '@/hooks/useFreeTierLimits';
 
 export default function Settings() {
   const navigate = useNavigate();
@@ -84,6 +85,7 @@ export default function Settings() {
   const { enabled: budgetAlertsEnabled, toggleAlerts, permission, isSupported } = useBudgetNotifications();
   const { isNative, restorePurchases, loading: rcLoading, hasActiveSubscription: hasIAP } = useRevenueCat();
   const { isNovaWealthUser, clearSession: clearNWSession } = useNovaWealth();
+  const { canExportCSV } = useFreeTierLimits();
   const [isDarkMode, setIsDarkMode] = useState(
     document.documentElement.classList.contains('dark')
   );
@@ -178,6 +180,14 @@ export default function Settings() {
   };
 
   const handleExportCSV = () => {
+    if (!canExportCSV) {
+      toast({
+        title: 'Pro feature',
+        description: 'CSV export is available on the Pro plan. Upgrade to export your data.',
+        variant: 'destructive',
+      });
+      return;
+    }
     if (purchases.length === 0) {
       toast({
         title: 'No data to export',
