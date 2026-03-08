@@ -35,6 +35,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useHaptics } from '@/hooks/useHaptics';
  import { useRecurringDetection } from '@/hooks/useRecurringDetection';
 import { useSubscriptionGate } from '@/hooks/useSubscriptionGate';
+import { useFreeTierLimits } from '@/hooks/useFreeTierLimits';
 import { AnimatedCounter } from '@/components/ui/AnimatedCounter';
  import { VoiceInput } from '@/components/VoiceInput';
  import { ReceiptScanner } from '@/components/ReceiptScanner';
