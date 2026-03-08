@@ -1,13 +1,10 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { checkRateLimit, AUTH_RATE_LIMIT } from "../_shared/rate-limiter.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+import { getCorsHeaders } from "../_shared/cors.ts";
 
 serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -42,6 +39,11 @@ serve(async (req) => {
     const userId = userData.user.id;
 
     // Delete user data from all tables (order matters for foreign keys)
+    // Tables with foreign key dependencies first
+    await supabaseAdmin.from("grocery_price_comparisons").delete().eq("user_id", userId);
+    await supabaseAdmin.from("grocery_lists").delete().eq("user_id", userId);
+    await supabaseAdmin.from("investment_transfers").delete().eq("user_id", userId);
+    await supabaseAdmin.from("investment_accounts").delete().eq("user_id", userId);
     await supabaseAdmin.from("price_notifications").delete().eq("user_id", userId);
     await supabaseAdmin.from("price_alerts").delete().eq("user_id", userId);
     await supabaseAdmin.from("purchase_patterns").delete().eq("user_id", userId);
@@ -53,6 +55,9 @@ serve(async (req) => {
     await supabaseAdmin.from("quick_adds").delete().eq("user_id", userId);
     await supabaseAdmin.from("purchases").delete().eq("user_id", userId);
     await supabaseAdmin.from("goals").delete().eq("user_id", userId);
+    await supabaseAdmin.from("subscriptions").delete().eq("user_id", userId);
+    await supabaseAdmin.from("ai_usage").delete().eq("user_id", userId);
+    await supabaseAdmin.from("user_access").delete().eq("id", userId);
     await supabaseAdmin.from("referrals").delete().eq("referrer_id", userId);
     await supabaseAdmin.from("profiles").delete().eq("user_id", userId);
 

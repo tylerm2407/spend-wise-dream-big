@@ -19,14 +19,27 @@ export function usePurchases() {
     queryFn: async () => {
       if (!user) return [];
       
-      const { data, error } = await supabase
-        .from('purchases')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('purchase_date', { ascending: false });
-      
-      if (error) throw error;
-      return data;
+      // Fetch all purchases using pagination to avoid the 1000-row limit
+      const allPurchases: Purchase[] = [];
+      const PAGE_SIZE = 1000;
+      let from = 0;
+      let hasMore = true;
+
+      while (hasMore) {
+        const { data, error } = await supabase
+          .from('purchases')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('purchase_date', { ascending: false })
+          .range(from, from + PAGE_SIZE - 1);
+        
+        if (error) throw error;
+        allPurchases.push(...(data || []));
+        hasMore = (data?.length ?? 0) === PAGE_SIZE;
+        from += PAGE_SIZE;
+      }
+
+      return allPurchases;
     },
     enabled: !!user,
   });

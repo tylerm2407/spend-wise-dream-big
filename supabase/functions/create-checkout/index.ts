@@ -3,11 +3,7 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { checkRateLimit, AUTH_RATE_LIMIT } from "../_shared/rate-limiter.ts";
 import { sanitizeReferralCode, sanitizePriceId, sanitizeUUID } from "../_shared/input-sanitizer.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+import { getCorsHeaders } from "../_shared/cors.ts";
 
 const DEFAULT_PRICE_ID = "price_1T1WqDAmUZkn8na4hChXph3w";
 const NW_REFERRAL_COUPON = "jPSNu7Zh";
@@ -18,6 +14,7 @@ const logStep = (step: string, details?: unknown) => {
 };
 
 serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -92,7 +89,7 @@ serve(async (req) => {
       customer_email: customerId ? undefined : userEmail,
       line_items: [{ price: priceId, quantity: 1 }],
       mode: "subscription",
-      success_url: `${origin}/signup?plan=pro`,
+      success_url: `${origin}/subscription-success`,
       cancel_url: `${origin}/signup`,
       subscription_data: {
         trial_period_days: 30,
