@@ -56,7 +56,11 @@ export default function Home() {
   const { currentChallenge, progressPercent } = useWeeklyChallenge();
   const { currentStreak, longestStreak, streakFreezesRemaining, streakEvent, welcomeMessage, encouragementMessage, dismissStreakEvent } = useStreaks();
   const { guardAction, showPaywall, dismissPaywall } = useSubscriptionGate();
+  const { savedAlternatives = [] } = useSavedAlternatives();
   const queryClient = useQueryClient();
+
+  // Schedule 6pm daily nudge on native
+  useDailyNudge();
 
   const isLoading = profileLoading || purchasesLoading || goalsLoading;
   const hasError = profileError || purchasesError || goalsError;
