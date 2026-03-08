@@ -9,7 +9,7 @@ const tabs = [
   { path: '/insights', label: 'Insights', icon: BarChart3 },
   { path: '/grocery', label: 'Grocery List', icon: ShoppingCart },
   { path: '/alternatives', label: 'Alternatives', icon: Lightbulb },
-  { path: '/challenges', label: 'Challenges', icon: Trophy },
+  { path: '/invest', label: 'Invest', icon: TrendingUp },
 ];
 
 export function BottomTabBar() {
