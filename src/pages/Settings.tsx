@@ -180,6 +180,14 @@ export default function Settings() {
   };
 
   const handleExportCSV = () => {
+    if (!canExportCSV) {
+      toast({
+        title: 'Pro feature',
+        description: 'CSV export is available on the Pro plan. Upgrade to export your data.',
+        variant: 'destructive',
+      });
+      return;
+    }
     if (purchases.length === 0) {
       toast({
         title: 'No data to export',
