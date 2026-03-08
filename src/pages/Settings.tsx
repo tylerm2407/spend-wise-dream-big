@@ -187,12 +187,19 @@ export default function Settings() {
       return;
     }
     const headers = ['Date', 'Item', 'Category', 'Amount', 'Frequency'];
+    const escapeCSV = (val: unknown) => {
+      const str = String(val ?? '');
+      if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+        return `"${str.replace(/"/g, '""')}"`;
+      }
+      return str;
+    };
     const rows = purchases.map(p => [
-      p.purchase_date,
-      p.item_name,
-      p.category,
-      p.amount,
-      p.frequency,
+      escapeCSV(p.purchase_date),
+      escapeCSV(p.item_name),
+      escapeCSV(p.category),
+      escapeCSV(p.amount),
+      escapeCSV(p.frequency),
     ]);
     const csv = [headers, ...rows].map(row => row.join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
