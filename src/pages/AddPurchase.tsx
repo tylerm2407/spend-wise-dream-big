@@ -84,6 +84,7 @@ export default function AddPurchase() {
   const { haptic } = useHaptics();
   const { checkBudgetThresholds } = useBudgetNotifications();
   const { guardAction, showPaywall, dismissPaywall } = useSubscriptionGate();
+  const { canAddPurchase, purchasesRemaining, purchaseLimit, hasProAccess } = useFreeTierLimits();
 
   const [amount, setAmount] = useState('');
   const [itemName, setItemName] = useState('');
