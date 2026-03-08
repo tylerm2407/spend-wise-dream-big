@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Home, BarChart3, ShoppingCart, Lightbulb, Trophy } from 'lucide-react';
+import { Home, BarChart3, ShoppingCart, Lightbulb, TrendingUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { triggerHaptic } from '@/hooks/useHaptics';
 
