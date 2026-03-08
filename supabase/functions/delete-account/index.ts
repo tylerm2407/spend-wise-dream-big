@@ -4,6 +4,7 @@ import { checkRateLimit, AUTH_RATE_LIMIT } from "../_shared/rate-limiter.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 
 serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
