@@ -286,6 +286,25 @@ export default function AddPurchase() {
           </div>
         )}
 
+        {/* Free tier purchase limit warning */}
+        {!hasProAccess && purchasesRemaining <= 10 && purchasesRemaining > 0 && (
+          <Card className="p-3 border-warning/30 bg-warning/5">
+            <p className="text-xs text-warning font-medium text-center">
+              ⚠️ {purchasesRemaining} purchases remaining this month on Free plan
+            </p>
+          </Card>
+        )}
+        {!canAddPurchase && (
+          <Card className="p-4 border-destructive/30 bg-destructive/5">
+            <p className="text-sm text-destructive font-medium text-center mb-2">
+              Monthly purchase limit reached ({purchaseLimit}/{purchaseLimit})
+            </p>
+            <Button variant="default" size="sm" className="w-full bg-gradient-primary" onClick={() => dismissPaywall()}>
+              Upgrade to Pro — Unlimited Tracking
+            </Button>
+          </Card>
+        )}
+
         {/* Form */}
         <form onSubmit={(e) => { e.preventDefault(); guardAction(() => handleSubmit()); }} className="space-y-6">
           {/* Amount */}
