@@ -49,6 +49,11 @@ export default function Index() {
           </p>
         </div>
 
+        {/* Interactive Calculator — value before pricing */}
+        <div className="mt-8">
+          <LandingCalculator />
+        </div>
+
         {/* Pricing Section */}
         <div className="mt-8">
           <PricingCards
