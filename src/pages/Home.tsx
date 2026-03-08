@@ -197,6 +197,15 @@ export default function Home() {
               </motion.div>
             )}
           </AnimatePresence>
+
+          {/* Onboarding Checklist for new users */}
+          <OnboardingChecklist
+            purchaseCount={purchases.length}
+            hasGoal={activeGoals.length > 0}
+            hasDailyBudget={!!profile?.daily_budget && Number(profile.daily_budget) > 0}
+            hasHourlyWage={!!profile?.hourly_wage && Number(profile.hourly_wage) > 0}
+          />
+
           {/* Monthly Recap */}
           <MonthlyRecapCard />
 
