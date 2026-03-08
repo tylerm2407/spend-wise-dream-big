@@ -42,6 +42,11 @@ serve(async (req) => {
     const userId = userData.user.id;
 
     // Delete user data from all tables (order matters for foreign keys)
+    // Tables with foreign key dependencies first
+    await supabaseAdmin.from("grocery_price_comparisons").delete().eq("user_id", userId);
+    await supabaseAdmin.from("grocery_lists").delete().eq("user_id", userId);
+    await supabaseAdmin.from("investment_transfers").delete().eq("user_id", userId);
+    await supabaseAdmin.from("investment_accounts").delete().eq("user_id", userId);
     await supabaseAdmin.from("price_notifications").delete().eq("user_id", userId);
     await supabaseAdmin.from("price_alerts").delete().eq("user_id", userId);
     await supabaseAdmin.from("purchase_patterns").delete().eq("user_id", userId);
@@ -53,6 +58,9 @@ serve(async (req) => {
     await supabaseAdmin.from("quick_adds").delete().eq("user_id", userId);
     await supabaseAdmin.from("purchases").delete().eq("user_id", userId);
     await supabaseAdmin.from("goals").delete().eq("user_id", userId);
+    await supabaseAdmin.from("subscriptions").delete().eq("user_id", userId);
+    await supabaseAdmin.from("ai_usage").delete().eq("user_id", userId);
+    await supabaseAdmin.from("user_access").delete().eq("id", userId);
     await supabaseAdmin.from("referrals").delete().eq("referrer_id", userId);
     await supabaseAdmin.from("profiles").delete().eq("user_id", userId);
 
