@@ -7,6 +7,7 @@ const SOURCE_APP = "costclarity";
 const NW_API_BASE = "https://dbwuegchdysuocbpsprd.supabase.co/functions/v1";
 
 serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
