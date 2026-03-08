@@ -453,6 +453,22 @@ export default function Home() {
               />
             </motion.div>
           )}
+
+          {/* Share Savings Card */}
+          <motion.div variants={itemVariants}>
+            <ShareSavingsCard
+              monthlySavings={savedAlternatives
+                .filter(a => {
+                  const d = new Date(a.created_at);
+                  const now = new Date();
+                  return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+                })
+                .reduce((sum, a) => sum + Number(a.savings), 0)}
+              totalAlternativesSaved={savedAlternatives.length}
+              streakDays={currentStreak}
+              userName={profile?.name ?? undefined}
+            />
+          </motion.div>
         </motion.main>
       </div>
       </PullToRefresh>
