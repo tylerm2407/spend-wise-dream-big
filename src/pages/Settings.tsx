@@ -62,6 +62,7 @@ import { useBudgetNotifications } from '@/hooks/useBudgetNotifications';
 import { supabase } from '@/integrations/supabase/client';
 import { useRevenueCat } from '@/hooks/useRevenueCat';
 import { useNovaWealth } from '@/hooks/useNovaWealth';
+import { useFreeTierLimits } from '@/hooks/useFreeTierLimits';
 
 export default function Settings() {
   const navigate = useNavigate();
