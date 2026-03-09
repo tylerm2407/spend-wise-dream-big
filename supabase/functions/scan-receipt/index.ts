@@ -21,10 +21,8 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const rateLimited = checkRateLimit(req, corsHeaders, AI_RATE_LIMIT);
-  if (rateLimited) return rateLimited;
-
   try {
+    // Auth first so rate limit key is scoped per user, not just IP
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -36,6 +34,10 @@ Deno.serve(async (req) => {
     }
 
     const userId = claimsData.claims.sub as string;
+
+    // Rate limit scoped to user ID + IP to prevent abuse across shared IPs and IP rotation
+    const rateLimited = checkRateLimit(req, corsHeaders, AI_RATE_LIMIT, userId);
+    if (rateLimited) return rateLimited;
 
     const body = await req.json();
     const image = sanitizeBase64Image(body.image);

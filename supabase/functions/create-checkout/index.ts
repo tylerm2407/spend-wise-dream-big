@@ -5,8 +5,8 @@ import { checkRateLimit, AUTH_RATE_LIMIT } from "../_shared/rate-limiter.ts";
 import { sanitizeReferralCode, sanitizePriceId, sanitizeUUID } from "../_shared/input-sanitizer.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 
-const DEFAULT_PRICE_ID = "price_1T1WqDAmUZkn8na4hChXph3w";
-const NW_REFERRAL_COUPON = "jPSNu7Zh";
+const DEFAULT_PRICE_ID = Deno.env.get("STRIPE_DEFAULT_PRICE_ID") ?? "price_1T1WqDAmUZkn8na4hChXph3w";
+const NW_REFERRAL_COUPON = Deno.env.get("STRIPE_NW_REFERRAL_COUPON") ?? "jPSNu7Zh";
 
 const logStep = (step: string, details?: unknown) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
@@ -57,12 +57,15 @@ serve(async (req) => {
     let customerId: string | undefined;
 
     const authHeader = req.headers.get("Authorization");
-    if (authHeader && !isUnauthenticated) {
+    if (authHeader) {
+      // Always attempt to resolve user from auth header — even in "unauthenticated" flow.
+      // If a valid session exists, use it regardless of the unauthenticated flag.
       const token = authHeader.replace("Bearer ", "");
       const { data } = await supabaseClient.auth.getUser(token);
       const user = data.user;
       if (user?.email) {
         userEmail = user.email;
+        isUnauthenticated = false; // authenticated session takes precedence
         logStep("User authenticated", { userId: user.id, email: user.email });
       }
     }
@@ -118,7 +121,7 @@ serve(async (req) => {
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     logStep("ERROR in create-checkout", { message: errorMessage });
-    return new Response(JSON.stringify({ error: errorMessage }), {
+    return new Response(JSON.stringify({ error: "Failed to create checkout session" }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
     });

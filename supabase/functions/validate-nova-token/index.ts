@@ -5,7 +5,6 @@ import { sanitizeString } from "../_shared/input-sanitizer.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 
 const NW_VALIDATE_URL = "https://dbwuegchdysuocbpsprd.supabase.co/functions/v1/validate-auth-token";
-const NW_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRid3VlZ2NoZHlzdW9jYnBzcHJkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExNzYyMTAsImV4cCI6MjA4Njc1MjIxMH0.6LEKjLXhaxeRublNoAITpVVueHwpUPuLxS0sbgcTUlE";
 
 const log = (step: string, details?: unknown) => {
   const d = details ? ` - ${JSON.stringify(details)}` : "";
@@ -30,15 +29,8 @@ serve(async (req) => {
   try {
     const body = await req.json();
 
-    // Action: return cross-app secret for referral calls
-    if (body.action === 'get-cross-app-secret') {
-      const secret = Deno.env.get("CROSS_APP_SECRET") || "";
-      log("Returning cross-app secret");
-      return new Response(JSON.stringify({ secret }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 200,
-      });
-    }
+    const nwAnonKey = Deno.env.get("NOVAWEALTH_ANON_KEY");
+    if (!nwAnonKey) throw new Error("NovaWealth integration not configured");
 
     const token = sanitizeString(body.token, 5000);
     if (!token) throw new Error("No token provided");
@@ -49,19 +41,33 @@ serve(async (req) => {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        apikey: NW_ANON_KEY,
-        Authorization: `Bearer ${NW_ANON_KEY}`,
+        apikey: nwAnonKey,
+        Authorization: `Bearer ${nwAnonKey}`,
       },
       body: JSON.stringify({ token }),
     });
 
     const validateData = await validateRes.json();
     if (!validateData.valid) {
-      throw new Error(validateData.error || "Invalid or expired token");
+      throw new Error("Invalid or expired token");
     }
 
     const email = validateData.email;
+    const tier = sanitizeString(validateData.tier, 50) ?? "free";
     log("NovaWealth token valid", { email });
+
+    // Action: validate-only — just return user info, no Supabase user creation
+    if (body.action === "validate-only") {
+      return new Response(JSON.stringify({
+        valid: true,
+        email,
+        tier,
+        user_id: validateData.user_id,
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
 
     // Step 2: Find or create local user
     const { data: allUsers } = await localAdmin.auth.admin.listUsers();
@@ -104,13 +110,12 @@ serve(async (req) => {
       throw new Error(`Failed to generate session: ${linkError?.message}`);
     }
 
-    const tokenHash = linkData.properties?.hashed_token;
     log("Magic link generated successfully");
 
     return new Response(JSON.stringify({
       success: true,
       email,
-      token_hash: tokenHash,
+      tier,
       user_id: userId,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -119,7 +124,10 @@ serve(async (req) => {
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     log("ERROR", { message: errorMessage });
-    return new Response(JSON.stringify({ error: errorMessage }), {
+    // Only surface safe error messages to clients
+    const safeMessages = ["No token provided", "Invalid or expired token", "NovaWealth integration not configured"];
+    const clientMessage = safeMessages.includes(errorMessage) ? errorMessage : "Token validation failed";
+    return new Response(JSON.stringify({ error: clientMessage }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 400,
     });

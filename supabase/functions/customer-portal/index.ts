@@ -2,7 +2,7 @@
  import Stripe from "https://esm.sh/stripe@18.5.0";
  import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
  import { checkRateLimit } from "../_shared/rate-limiter.ts";
- import { getCorsHeaders } from "../_shared/cors.ts";
+import { getCorsHeaders } from "../_shared/cors.ts";
  
  const logStep = (step: string, details?: unknown) => {
    const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
@@ -14,7 +14,7 @@
    if (req.method === "OPTIONS") {
      return new Response(null, { headers: corsHeaders });
    }
- 
+
    const rateLimited = checkRateLimit(req, corsHeaders);
    if (rateLimited) return rateLimited;
 
@@ -64,7 +64,7 @@
    } catch (error) {
      const errorMessage = error instanceof Error ? error.message : String(error);
      logStep("ERROR in customer-portal", { message: errorMessage });
-     return new Response(JSON.stringify({ error: errorMessage }), {
+     return new Response(JSON.stringify({ error: "Failed to create billing portal session" }), {
        headers: { ...corsHeaders, "Content-Type": "application/json" },
        status: 500,
      });

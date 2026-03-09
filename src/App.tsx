@@ -125,22 +125,30 @@ function NovaWealthTokenHandler() {
     const token = searchParams.get('nw_token');
     if (!token) return;
 
-    // Remove token from URL immediately
+    // Remove token from URL immediately to prevent leakage via referer headers
     searchParams.delete('nw_token');
     setSearchParams(searchParams, { replace: true });
 
+    // Basic client-side sanity check before hitting the backend
+    if (token.length > 5000 || !/^[\w\-.]+$/.test(token)) {
+      toast({ title: 'SSO Login Failed', description: 'Invalid token format.', variant: 'destructive' });
+      return;
+    }
+
     (async () => {
       try {
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+        const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
         const res = await fetch(
-          'https://dbwuegchdysuocbpsprd.supabase.co/functions/v1/validate-auth-token',
+          `${supabaseUrl}/functions/v1/validate-nova-token`,
           {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              apikey:
-                'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRid3VlZ2NoZHlzdW9jYnBzcHJkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExNzYyMTAsImV4cCI6MjA4Njc1MjIxMH0.6LEKjLXhaxeRublNoAITpVVueHwpUPuLxS0sbgcTUlE',
+              apikey: supabaseKey,
+              Authorization: `Bearer ${supabaseKey}`,
             },
-            body: JSON.stringify({ token }),
+            body: JSON.stringify({ token, action: 'validate-only' }),
           }
         );
 

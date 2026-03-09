@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useSubscription } from '@/hooks/useSubscription';
+import { useAuth } from '@/hooks/useAuth';
 import { useNovaWealth } from '@/hooks/useNovaWealth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -102,6 +103,7 @@ export function PricingCards({ onSelectFree, onSelectPlan, showFreeAction, selec
   const [isYearly, setIsYearly] = useState(false);
   const { openCheckout, hasProAccess } = useSubscription();
   const { hasNWProAccess } = useNovaWealth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const { toast } = useToast();
@@ -131,29 +133,37 @@ export function PricingCards({ onSelectFree, onSelectPlan, showFreeAction, selec
 
         // If no pre-validated discount and monthly, try to validate on the fly
         if (!referralCode && storedCode && !isYearly) {
-          try {
-            const validateRes = await fetch(`${NW_API_BASE}/validate-referral`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                referral_code: storedCode,
-                source_app: SOURCE_APP,
-                referred_user_id: null,
-              }),
-            });
-            const validateData = await validateRes.json();
-            if (validateData.valid) {
-              referralCode = storedCode;
-              referrerId = validateData.referrer_user_id;
+          // Client-side sanity check before hitting the NovaWealth API
+          const isValidFormat = storedCode.length <= 20 && /^[A-Z0-9\-_]+$/i.test(storedCode);
+          if (!isValidFormat) {
+            localStorage.removeItem('referral_code');
+          } else {
+            try {
+              const validateRes = await fetch(`${NW_API_BASE}/validate-referral`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  referral_code: storedCode,
+                  source_app: SOURCE_APP,
+                  referred_user_id: null,
+                }),
+              });
+              const validateData = await validateRes.json();
+              if (validateData.valid) {
+                referralCode = storedCode;
+                referrerId = validateData.referrer_user_id;
+              }
+            } catch (err) {
+              console.error('Referral validation failed:', err);
             }
-          } catch (err) {
-            console.error('Referral validation failed:', err);
           }
         }
 
         const { data, error } = await supabase.functions.invoke('create-checkout', {
           body: {
-            unauthenticated: true,
+            // Only flag as unauthenticated when there's genuinely no logged-in user.
+            // When authenticated, the edge function uses the session to pre-fill email in Stripe.
+            unauthenticated: !user,
             referral_code: referralCode,
             referrer_id: referrerId,
             price_id: isYearly ? YEARLY_PRICE_ID : MONTHLY_PRICE_ID,

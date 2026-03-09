@@ -12,6 +12,10 @@ import {
   Trash2,
   ChevronDown,
   Sparkles,
+  ExternalLink,
+  Info,
+  BookOpen,
+  CheckCircle2,
 } from 'lucide-react';
 import { AppLayout } from '@/components/AppLayout';
 import { Card } from '@/components/ui/card';
@@ -19,6 +23,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 import {
   Select,
   SelectContent,
@@ -43,11 +48,18 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { useInvestmentAccounts, getAccountTypeLabel, type InvestmentAccount } from '@/hooks/useInvestmentAccounts';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
+import { useInvestmentAccounts, getAccountTypeLabel, type InvestmentAccount, type InvestmentTransfer } from '@/hooks/useInvestmentAccounts';
 import { useSavedAlternatives } from '@/hooks/useSavedAlternatives';
 import { useWeeklyChallenge } from '@/hooks/useWeeklyChallenge';
 import { useToast } from '@/hooks/use-toast';
 import { formatCurrency } from '@/lib/calculations';
+
+// ─── Account type metadata ───────────────────────────────────────────────────
 
 const ACCOUNT_TYPES: { value: InvestmentAccount['account_type']; label: string }[] = [
   { value: 'roth_ira', label: 'Roth IRA' },
@@ -57,6 +69,341 @@ const ACCOUNT_TYPES: { value: InvestmentAccount['account_type']; label: string }
   { value: 'savings', label: 'Savings Account' },
   { value: 'other', label: 'Other' },
 ];
+
+interface AccountTypeInfo {
+  description: string;
+  annualLimit: number | null;     // IRS 2025 contribution limit in USD, null if N/A
+  catchUpLimit: number | null;    // Age 50+ catch-up limit
+  taxBenefit: string;
+  bestFor: string;
+  setupSteps: string[];
+}
+
+const ACCOUNT_TYPE_INFO: Record<InvestmentAccount['account_type'], AccountTypeInfo> = {
+  roth_ira: {
+    description: 'Contributions are made with after-tax dollars. Your money grows tax-free and qualified withdrawals in retirement are tax-free.',
+    annualLimit: 7000,
+    catchUpLimit: 8000,
+    taxBenefit: 'Tax-free growth & withdrawals',
+    bestFor: 'Long-term retirement savings (especially if you expect to be in a higher tax bracket later)',
+    setupSteps: [
+      'Open a Roth IRA at Fidelity, Schwab, or Vanguard (takes ~10 min online)',
+      'Link your checking account inside the broker\'s app',
+      'Transfer funds directly from your bank to the Roth IRA',
+      'Choose an investment (e.g. a target-date fund matching your retirement year)',
+    ],
+  },
+  traditional_ira: {
+    description: 'Contributions may be tax-deductible. Growth is tax-deferred, and you pay ordinary income tax on withdrawals in retirement.',
+    annualLimit: 7000,
+    catchUpLimit: 8000,
+    taxBenefit: 'Potential tax deduction now; deferred taxes until retirement',
+    bestFor: 'Anyone who wants a possible upfront tax deduction today',
+    setupSteps: [
+      'Open a Traditional IRA at Fidelity, Schwab, or Vanguard',
+      'Link your checking account inside the broker\'s app',
+      'Transfer funds directly from your bank to the IRA',
+      'Pick a diversified fund (e.g. a total market index fund)',
+    ],
+  },
+  '401k': {
+    description: 'An employer-sponsored retirement plan. Contributions come from your paycheck before taxes. Many employers match a portion.',
+    annualLimit: 23500,
+    catchUpLimit: 31000,
+    taxBenefit: 'Pre-tax contributions lower your taxable income today',
+    bestFor: 'Anyone whose employer offers a match — free money!',
+    setupSteps: [
+      'Log into your employer\'s HR portal (e.g. Fidelity NetBenefits, Voya, Empower)',
+      'Increase your contribution percentage under "Change Contributions"',
+      'At minimum, contribute enough to get the full employer match',
+      'Choose your investment allocation (target-date fund is the simplest pick)',
+    ],
+  },
+  brokerage: {
+    description: 'A standard taxable investment account with no contribution limits. Ideal for investing beyond retirement account limits.',
+    annualLimit: null,
+    catchUpLimit: null,
+    taxBenefit: 'No limits; long-term gains taxed at lower capital gains rates',
+    bestFor: 'Investing after maxing out tax-advantaged accounts, or saving for goals before retirement',
+    setupSteps: [
+      'Open a brokerage account at Fidelity, Schwab, Robinhood, or Webull',
+      'Complete identity verification (takes ~5 min)',
+      'Link your bank account and transfer funds',
+      'Choose your investments or buy fractional shares',
+    ],
+  },
+  savings: {
+    description: 'A high-yield savings account (HYSA) earns significantly more interest than a traditional savings account — often 4–5% APY.',
+    annualLimit: null,
+    catchUpLimit: null,
+    taxBenefit: 'FDIC insured; interest earned taxed as ordinary income',
+    bestFor: 'Emergency fund, short-term goals, or parking cash before investing',
+    setupSteps: [
+      'Open a HYSA at Marcus by Goldman Sachs, Ally, SoFi, or your credit union',
+      'Link your checking account (takes ~2 min)',
+      'Set up automatic transfers from checking to savings',
+      'Aim to keep 3–6 months of expenses here before investing',
+    ],
+  },
+  other: {
+    description: 'Any other investment vehicle (HSA, 529 college savings, annuity, crypto, etc.).',
+    annualLimit: null,
+    catchUpLimit: null,
+    taxBenefit: 'Varies by account type',
+    bestFor: 'Specialized goals beyond standard retirement accounts',
+    setupSteps: [
+      'Identify the account type and find the appropriate provider',
+      'Open the account and complete verification',
+      'Link your funding source (bank account)',
+      'Set up contributions aligned to your goal',
+    ],
+  },
+};
+
+// ─── Institution quick-link map ───────────────────────────────────────────────
+
+const INSTITUTION_LINKS: Record<string, string> = {
+  fidelity: 'https://www.fidelity.com',
+  schwab: 'https://www.schwab.com',
+  vanguard: 'https://www.vanguard.com',
+  robinhood: 'https://robinhood.com',
+  'td ameritrade': 'https://www.tdameritrade.com',
+  betterment: 'https://www.betterment.com',
+  wealthfront: 'https://www.wealthfront.com',
+  etrade: 'https://us.etrade.com',
+  'e*trade': 'https://us.etrade.com',
+  webull: 'https://www.webull.com',
+  merrill: 'https://www.merrilledge.com',
+  ally: 'https://www.ally.com',
+  marcus: 'https://www.marcus.com',
+  sofi: 'https://www.sofi.com',
+  m1: 'https://m1.com',
+  acorns: 'https://www.acorns.com',
+  stash: 'https://www.stash.com',
+  empower: 'https://www.empower.com',
+  voya: 'https://www.voya.com',
+  tiaa: 'https://www.tiaa.org',
+};
+
+function getInstitutionUrl(name: string | null): string | null {
+  if (!name) return null;
+  const key = name.toLowerCase().trim();
+  return INSTITUTION_LINKS[key] ?? null;
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function getThisYearInvested(transfers: InvestmentTransfer[], accountId: string): number {
+  const thisYear = new Date().getFullYear();
+  return transfers
+    .filter(
+      (t) =>
+        t.account_id === accountId &&
+        (t.status === 'confirmed' || t.status === 'completed') &&
+        new Date(t.created_at).getFullYear() === thisYear,
+    )
+    .reduce((sum, t) => sum + Number(t.amount), 0);
+}
+
+// ─── Sub-components ───────────────────────────────────────────────────────────
+
+function SetupGuide({ onAddAccount }: { onAddAccount: () => void }) {
+  const [open, setOpen] = useState(true);
+  const steps = [
+    {
+      icon: <Building2 className="h-4 w-4" />,
+      title: 'Add your account',
+      detail: 'Name your Roth IRA, 401(k), or savings account here so CostClarity knows where to route your savings.',
+    },
+    {
+      icon: <PiggyBank className="h-4 w-4" />,
+      title: 'Record a transfer',
+      detail: 'Tap the arrow button next to any savings source (alternatives, challenges, or a custom amount) to log how much you want to invest.',
+    },
+    {
+      icon: <ExternalLink className="h-4 w-4" />,
+      title: 'Move the money',
+      detail: 'Open your broker\'s app and manually transfer the same amount from your bank. CostClarity tracks your intent — you complete the actual transfer.',
+    },
+  ];
+
+  return (
+    <Collapsible open={open} onOpenChange={setOpen}>
+      <Card className="glass-card border-primary/20 overflow-hidden">
+        <CollapsibleTrigger asChild>
+          <button className="w-full p-4 flex items-center justify-between text-left">
+            <div className="flex items-center gap-2">
+              <BookOpen className="h-4 w-4 text-primary" />
+              <span className="font-semibold text-sm">How to get started</span>
+              <Badge variant="secondary" className="text-2xs">3 steps</Badge>
+            </div>
+            <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${open ? 'rotate-180' : ''}`} />
+          </button>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <div className="px-4 pb-4 space-y-3">
+            {steps.map((step, i) => (
+              <div key={i} className="flex gap-3">
+                <div className="flex-shrink-0 flex flex-col items-center">
+                  <div className="w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center">
+                    {step.icon}
+                  </div>
+                  {i < steps.length - 1 && <div className="w-px flex-1 bg-border mt-1" />}
+                </div>
+                <div className="pb-3">
+                  <p className="font-medium text-sm">
+                    <span className="text-muted-foreground mr-1.5">{i + 1}.</span>
+                    {step.title}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{step.detail}</p>
+                </div>
+              </div>
+            ))}
+            <Button size="sm" className="w-full bg-gradient-primary mt-1" onClick={onAddAccount}>
+              <Plus className="h-4 w-4 mr-1" />
+              Add Your First Account
+            </Button>
+          </div>
+        </CollapsibleContent>
+      </Card>
+    </Collapsible>
+  );
+}
+
+interface AccountTypeHintProps {
+  type: InvestmentAccount['account_type'];
+}
+
+function AccountTypeHint({ type }: AccountTypeHintProps) {
+  const info = ACCOUNT_TYPE_INFO[type];
+  return (
+    <div className="rounded-lg bg-muted/60 p-3 space-y-1.5 text-xs">
+      <p className="text-muted-foreground leading-relaxed">{info.description}</p>
+      <div className="flex flex-wrap gap-x-4 gap-y-1 pt-0.5">
+        {info.annualLimit && (
+          <span className="text-success font-medium">
+            ${info.annualLimit.toLocaleString()} / yr limit
+          </span>
+        )}
+        <span className="text-muted-foreground">{info.taxBenefit}</span>
+      </div>
+    </div>
+  );
+}
+
+interface ContributionProgressProps {
+  invested: number;
+  limit: number | null;
+  accountType: InvestmentAccount['account_type'];
+}
+
+function ContributionProgress({ invested, limit, accountType }: ContributionProgressProps) {
+  if (!limit || invested === 0) return null;
+  const pct = Math.min((invested / limit) * 100, 100);
+  const remaining = Math.max(limit - invested, 0);
+  return (
+    <div className="mt-2 space-y-1">
+      <div className="flex items-center justify-between text-2xs text-muted-foreground">
+        <span>{new Date().getFullYear()} contributions</span>
+        <span>{formatCurrency(invested)} / {formatCurrency(limit)}</span>
+      </div>
+      <Progress value={pct} className="h-1.5" />
+      {remaining > 0 ? (
+        <p className="text-2xs text-muted-foreground">
+          {formatCurrency(remaining)} remaining before {accountType === '401k' ? '401(k)' : 'IRA'} limit
+        </p>
+      ) : (
+        <p className="text-2xs text-success font-medium">Annual limit reached!</p>
+      )}
+    </div>
+  );
+}
+
+interface NextStepsDialogProps {
+  open: boolean;
+  onClose: () => void;
+  amount: number;
+  accountName: string;
+  accountType: InvestmentAccount['account_type'];
+  institutionName: string | null;
+}
+
+function NextStepsDialog({ open, onClose, amount, accountName, accountType, institutionName }: NextStepsDialogProps) {
+  const info = ACCOUNT_TYPE_INFO[accountType];
+  const institutionUrl = getInstitutionUrl(institutionName);
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <div className="flex items-center gap-2 mb-1">
+            <div className="w-8 h-8 rounded-full bg-success/15 flex items-center justify-center">
+              <CheckCircle2 className="h-4 w-4 text-success" />
+            </div>
+            <DialogTitle>Transfer Recorded!</DialogTitle>
+          </div>
+          <DialogDescription>
+            {formatCurrency(amount)} logged for <strong>{accountName}</strong>. Now complete the actual transfer:
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-3 pt-1">
+          {/* Steps */}
+          <div className="space-y-2">
+            {info.setupSteps.map((step, i) => (
+              <div key={i} className="flex gap-2.5">
+                <div className="flex-shrink-0 w-5 h-5 rounded-full bg-primary/10 text-primary text-2xs flex items-center justify-center font-semibold mt-0.5">
+                  {i + 1}
+                </div>
+                <p className="text-sm text-muted-foreground leading-snug">{step}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Institution quick link */}
+          {institutionUrl ? (
+            <Button
+              className="w-full"
+              variant="outline"
+              onClick={() => window.open(institutionUrl, '_blank')}
+            >
+              <ExternalLink className="h-4 w-4 mr-2" />
+              Open {institutionName}
+            </Button>
+          ) : institutionName ? (
+            <Button
+              className="w-full"
+              variant="outline"
+              onClick={() => window.open(`https://www.google.com/search?q=${encodeURIComponent(institutionName + ' login')}`, '_blank')}
+            >
+              <ExternalLink className="h-4 w-4 mr-2" />
+              Find {institutionName} online
+            </Button>
+          ) : (
+            <div className="rounded-lg bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
+              <Info className="h-3 w-3 inline mr-1" />
+              Tip: Add an institution name to your account so we can link you directly.
+            </div>
+          )}
+
+          {info.annualLimit && (
+            <div className="rounded-lg bg-info/5 border border-info/20 px-3 py-2 text-xs text-muted-foreground">
+              <span className="font-medium text-foreground">Contribution limit:</span>{' '}
+              ${info.annualLimit.toLocaleString()} per year ({info.catchUpLimit && `$${info.catchUpLimit.toLocaleString()} if age 50+`}).{' '}
+              {info.taxBenefit}.
+            </div>
+          )}
+
+          <Button className="w-full" onClick={onClose}>
+            Done
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function Invest() {
   const { toast } = useToast();
@@ -87,7 +434,9 @@ export default function Invest() {
   const [showTransferDialog, setShowTransferDialog] = useState(false);
   const [transferAmount, setTransferAmount] = useState('');
   const [transferAccountId, setTransferAccountId] = useState('');
-  const [transferSourceType, setTransferSourceType] = useState<'alternative_savings' | 'challenge_savings' | 'custom' | 'purchase_savings'>('custom');
+  const [transferSourceType, setTransferSourceType] = useState<
+    'alternative_savings' | 'challenge_savings' | 'custom' | 'purchase_savings'
+  >('custom');
   const [transferDescription, setTransferDescription] = useState('');
 
   // Confirmation dialog
@@ -95,16 +444,28 @@ export default function Invest() {
     amount: number;
     accountName: string;
     accountId: string;
+    accountType: InvestmentAccount['account_type'];
+    institutionName: string | null;
     sourceType: string;
     description: string;
+  } | null>(null);
+
+  // Post-transfer next-steps dialog
+  const [nextSteps, setNextSteps] = useState<{
+    amount: number;
+    accountName: string;
+    accountType: InvestmentAccount['account_type'];
+    institutionName: string | null;
   } | null>(null);
 
   // Delete account confirmation
   const [deletingAccountId, setDeletingAccountId] = useState<string | null>(null);
 
+  // Per-purchase savings collapsible
+  const [showIndividual, setShowIndividual] = useState(false);
+
   const challengeSavings = currentChallenge ? Number(currentChallenge.actual_savings) : 0;
 
-  // Savings breakdown for display
   const savingsSources = useMemo(() => {
     const sources = [];
     if (totalSavedAmount > 0) {
@@ -120,13 +481,15 @@ export default function Invest() {
         label: 'Weekly Challenge',
         amount: challengeSavings,
         type: 'challenge_savings' as const,
-        description: `This week's challenge savings`,
+        description: "This week's challenge savings",
       });
     }
     return sources;
   }, [totalSavedAmount, challengeSavings, favoritedAlternatives.length]);
 
   const totalAvailableSavings = totalSavedAmount + challengeSavings;
+
+  // ── Handlers ────────────────────────────────────────────────────────────────
 
   const handleAddAccount = async () => {
     if (!newAccount.account_name.trim()) {
@@ -159,7 +522,11 @@ export default function Invest() {
     setDeletingAccountId(null);
   };
 
-  const handleStartTransfer = (sourceType: typeof transferSourceType, amount: number, description: string) => {
+  const handleStartTransfer = (
+    sourceType: typeof transferSourceType,
+    amount: number,
+    description: string,
+  ) => {
     if (accounts.length === 0) {
       toast({ title: 'Add an investment account first', variant: 'destructive' });
       return;
@@ -181,11 +548,15 @@ export default function Invest() {
       toast({ title: 'Select an account', variant: 'destructive' });
       return;
     }
-    const account = accounts.find(a => a.id === transferAccountId);
+    const account = accounts.find((a) => a.id === transferAccountId);
     setPendingTransfer({
       amount,
-      accountName: account ? `${account.account_name} (${getAccountTypeLabel(account.account_type)})` : '',
+      accountName: account
+        ? `${account.account_name} (${getAccountTypeLabel(account.account_type)})`
+        : '',
       accountId: transferAccountId,
+      accountType: account?.account_type ?? 'other',
+      institutionName: account?.institution_name ?? null,
       sourceType: transferSourceType,
       description: transferDescription,
     });
@@ -201,15 +572,20 @@ export default function Invest() {
         source_type: pendingTransfer.sourceType as any,
         source_description: pendingTransfer.description || undefined,
       });
-      toast({
-        title: 'Transfer recorded!',
-        description: `${formatCurrency(pendingTransfer.amount)} queued for ${pendingTransfer.accountName}`,
+      // Show post-transfer next-steps instead of just a toast
+      setNextSteps({
+        amount: pendingTransfer.amount,
+        accountName: pendingTransfer.accountName,
+        accountType: pendingTransfer.accountType,
+        institutionName: pendingTransfer.institutionName,
       });
     } catch {
       toast({ title: 'Transfer failed', variant: 'destructive' });
     }
     setPendingTransfer(null);
   };
+
+  // ── Animation ───────────────────────────────────────────────────────────────
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -222,14 +598,14 @@ export default function Invest() {
 
   const recentTransfers = transfers.slice(0, 5);
 
+  // ── Render ───────────────────────────────────────────────────────────────────
+
   return (
     <AppLayout>
       <div className="min-h-screen bg-gradient-hero">
         <header className="px-6 pt-6 pb-4">
           <h1 className="text-2xl font-bold">Invest Your Savings</h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            Turn what you save into wealth
-          </p>
+          <p className="text-muted-foreground text-sm mt-1">Turn what you save into wealth</p>
         </header>
 
         <motion.main
@@ -238,6 +614,11 @@ export default function Invest() {
           animate="visible"
           className="px-6 space-y-5 pb-32"
         >
+          {/* Setup guide — always shown, collapsible */}
+          <motion.div variants={itemVariants}>
+            <SetupGuide onAddAccount={() => setShowAddAccount(true)} />
+          </motion.div>
+
           {/* Total Savings Overview */}
           <motion.div variants={itemVariants}>
             <Card className="p-6 glass-card overflow-hidden relative">
@@ -248,14 +629,105 @@ export default function Invest() {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Available to Invest</p>
-                  <p className="text-3xl font-bold number-display">{formatCurrency(totalAvailableSavings)}</p>
+                  <p className="text-3xl font-bold number-display">
+                    {formatCurrency(totalAvailableSavings)}
+                  </p>
                 </div>
               </div>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <TrendingUp className="h-4 w-4 text-success" />
-                <span>Total invested so far: <strong className="text-foreground">{formatCurrency(totalInvested)}</strong></span>
+                <span>
+                  Total invested so far:{' '}
+                  <strong className="text-foreground">{formatCurrency(totalInvested)}</strong>
+                </span>
               </div>
             </Card>
+          </motion.div>
+
+          {/* Investment Accounts */}
+          <motion.div variants={itemVariants}>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-lg font-semibold">Investment Accounts</h2>
+              <Button size="sm" variant="outline" onClick={() => setShowAddAccount(true)}>
+                <Plus className="h-4 w-4 mr-1" />
+                Add
+              </Button>
+            </div>
+
+            {accounts.length === 0 ? (
+              <Card className="p-6 glass-card text-center">
+                <Building2 className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                <p className="text-sm text-muted-foreground mb-3">
+                  Add your investment accounts to start routing savings
+                </p>
+                <Button onClick={() => setShowAddAccount(true)}>
+                  <Plus className="h-4 w-4 mr-1" />
+                  Add Account
+                </Button>
+              </Card>
+            ) : (
+              <div className="space-y-2">
+                {accounts.map((account) => {
+                  const info = ACCOUNT_TYPE_INFO[account.account_type];
+                  const yearInvested = getThisYearInvested(transfers, account.id);
+                  const institutionUrl = getInstitutionUrl(account.institution_name);
+
+                  return (
+                    <Card key={account.id} className="p-4 glass-card">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-start gap-3 flex-1 min-w-0">
+                          <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <Wallet className="h-4 w-4 text-primary" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <p className="font-medium truncate">{account.account_name}</p>
+                              {account.is_default && (
+                                <Badge variant="secondary" className="text-2xs">Default</Badge>
+                              )}
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              {getAccountTypeLabel(account.account_type)}
+                              {account.institution_name && ` · ${account.institution_name}`}
+                            </p>
+
+                            {/* Contribution progress bar */}
+                            <ContributionProgress
+                              invested={yearInvested}
+                              limit={info.annualLimit}
+                              accountType={account.account_type}
+                            />
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-1 flex-shrink-0">
+                          {/* Institution link */}
+                          {institutionUrl && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0 text-muted-foreground hover:text-primary"
+                              onClick={() => window.open(institutionUrl, '_blank')}
+                              title={`Open ${account.institution_name}`}
+                            >
+                              <ExternalLink className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-destructive h-8 w-8 p-0"
+                            onClick={() => setDeletingAccountId(account.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
           </motion.div>
 
           {/* Savings Sources */}
@@ -282,7 +754,9 @@ export default function Invest() {
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => handleStartTransfer(source.type, source.amount, source.label)}
+                          onClick={() =>
+                            handleStartTransfer(source.type, source.amount, source.label)
+                          }
                           disabled={accounts.length === 0}
                         >
                           <ArrowRight className="h-4 w-4" />
@@ -292,45 +766,53 @@ export default function Invest() {
                   </Card>
                 ))}
 
-                {/* Per-purchase savings from alternatives */}
+                {/* Per-purchase savings collapsible */}
                 {favoritedAlternatives.length > 0 && (
-                  <div className="mt-2">
-                    <button
-                      className="text-sm text-primary font-medium flex items-center gap-1 mb-2"
-                      onClick={() => {}}
-                    >
-                      <ChevronDown className="h-3 w-3" />
-                      Individual purchase savings ({favoritedAlternatives.length})
-                    </button>
-                    <div className="space-y-2 max-h-48 overflow-y-auto scrollbar-hide">
-                      {favoritedAlternatives.slice(0, 10).map((alt) => (
-                        <div key={alt.id} className="flex items-center justify-between px-3 py-2 rounded-lg bg-muted/50">
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium truncate">{alt.alternative_name}</p>
-                            <p className="text-xs text-muted-foreground">{alt.category}</p>
+                  <Collapsible open={showIndividual} onOpenChange={setShowIndividual}>
+                    <CollapsibleTrigger asChild>
+                      <button className="text-sm text-primary font-medium flex items-center gap-1 mb-2">
+                        <ChevronDown
+                          className={`h-3 w-3 transition-transform ${showIndividual ? 'rotate-180' : ''}`}
+                        />
+                        Individual purchase savings ({favoritedAlternatives.length})
+                      </button>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <div className="space-y-2 max-h-48 overflow-y-auto scrollbar-hide">
+                        {favoritedAlternatives.slice(0, 10).map((alt) => (
+                          <div
+                            key={alt.id}
+                            className="flex items-center justify-between px-3 py-2 rounded-lg bg-muted/50"
+                          >
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium truncate">{alt.alternative_name}</p>
+                              <p className="text-xs text-muted-foreground">{alt.category}</p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-semibold text-success">
+                                {formatCurrency(Number(alt.savings))}
+                              </span>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 w-7 p-0"
+                                onClick={() =>
+                                  handleStartTransfer(
+                                    'purchase_savings',
+                                    Number(alt.savings),
+                                    `Saved on: ${alt.alternative_name}`,
+                                  )
+                                }
+                                disabled={accounts.length === 0}
+                              >
+                                <ArrowRight className="h-3 w-3" />
+                              </Button>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-semibold text-success">{formatCurrency(Number(alt.savings))}</span>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="h-7 w-7 p-0"
-                              onClick={() =>
-                                handleStartTransfer(
-                                  'purchase_savings',
-                                  Number(alt.savings),
-                                  `Saved on: ${alt.alternative_name}`
-                                )
-                              }
-                              disabled={accounts.length === 0}
-                            >
-                              <ArrowRight className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+                        ))}
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
                 )}
 
                 {/* Custom amount */}
@@ -354,77 +836,23 @@ export default function Invest() {
             )}
           </motion.div>
 
-          {/* Investment Accounts */}
-          <motion.div variants={itemVariants}>
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-lg font-semibold">Investment Accounts</h2>
-              <Button size="sm" variant="outline" onClick={() => setShowAddAccount(true)}>
-                <Plus className="h-4 w-4 mr-1" />
-                Add
-              </Button>
-            </div>
-            {accounts.length === 0 ? (
-              <Card className="p-6 glass-card text-center">
-                <Building2 className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-                <p className="text-sm text-muted-foreground mb-3">
-                  Add your investment accounts to start routing savings
-                </p>
-                <Button onClick={() => setShowAddAccount(true)}>
-                  <Plus className="h-4 w-4 mr-1" />
-                  Add Account
-                </Button>
-              </Card>
-            ) : (
-              <div className="space-y-2">
-                {accounts.map((account) => (
-                  <Card key={account.id} className="p-4 glass-card">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center">
-                          <Wallet className="h-4 w-4 text-primary" />
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <p className="font-medium">{account.account_name}</p>
-                            {account.is_default && (
-                              <Badge variant="secondary" className="text-2xs">Default</Badge>
-                            )}
-                          </div>
-                          <p className="text-xs text-muted-foreground">
-                            {getAccountTypeLabel(account.account_type)}
-                            {account.institution_name && ` · ${account.institution_name}`}
-                          </p>
-                        </div>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-destructive h-8 w-8 p-0"
-                        onClick={() => setDeletingAccountId(account.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </motion.div>
-
           {/* Recent Transfers */}
           {recentTransfers.length > 0 && (
             <motion.div variants={itemVariants}>
               <h2 className="text-lg font-semibold mb-3">Recent Transfers</h2>
               <div className="space-y-2">
                 {recentTransfers.map((transfer) => {
-                  const account = accounts.find(a => a.id === transfer.account_id);
+                  const account = accounts.find((a) => a.id === transfer.account_id);
                   return (
                     <Card key={transfer.id} className="p-3 glass-card">
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="text-sm font-medium">{formatCurrency(Number(transfer.amount))}</p>
+                          <p className="text-sm font-medium">
+                            {formatCurrency(Number(transfer.amount))}
+                          </p>
                           <p className="text-xs text-muted-foreground">
-                            {account?.account_name || 'Account'} · {new Date(transfer.created_at).toLocaleDateString()}
+                            {account?.account_name || 'Account'} ·{' '}
+                            {new Date(transfer.created_at).toLocaleDateString()}
                           </p>
                         </div>
                         <Badge variant="outline" className="text-2xs">
@@ -439,60 +867,94 @@ export default function Invest() {
             </motion.div>
           )}
 
-          {/* Setup Instructions Banner */}
+          {/* Contribution limits reference */}
           <motion.div variants={itemVariants}>
-            <Card className="p-4 glass-card border-info/30 bg-info/5">
-              <p className="text-sm font-medium text-info mb-1">🔗 Bank Integration Coming Soon</p>
-              <p className="text-xs text-muted-foreground">
-                Transfers are currently recorded for tracking. Automatic bank-to-broker transfers will be available once you connect your accounts via Plaid integration.
+            <Card className="p-4 glass-card">
+              <p className="text-sm font-semibold mb-3 flex items-center gap-1.5">
+                <Info className="h-4 w-4 text-primary" />
+                2025 IRS Contribution Limits
               </p>
+              <div className="space-y-1.5">
+                {[
+                  { label: 'Roth IRA / Traditional IRA', limit: '$7,000 ($8,000 if age 50+)' },
+                  { label: '401(k)', limit: '$23,500 ($31,000 if age 50+)' },
+                  { label: 'HSA (Self-only / Family)', limit: '$4,300 / $8,550' },
+                  { label: 'Brokerage / Savings', limit: 'No limit' },
+                ].map((row) => (
+                  <div key={row.label} className="flex justify-between text-xs">
+                    <span className="text-muted-foreground">{row.label}</span>
+                    <span className="font-medium">{row.limit}</span>
+                  </div>
+                ))}
+              </div>
             </Card>
           </motion.div>
         </motion.main>
       </div>
 
-      {/* Add Account Dialog */}
+      {/* ── Add Account Dialog ───────────────────────────────────────────────── */}
       <Dialog open={showAddAccount} onOpenChange={setShowAddAccount}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Add Investment Account</DialogTitle>
             <DialogDescription>
-              Add your Roth IRA, brokerage, or savings account
+              Add your Roth IRA, 401(k), brokerage, or savings account
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 pt-2">
             <div className="space-y-2">
-              <Label>Account Name</Label>
-              <Input
-                placeholder="e.g. My Roth IRA"
-                value={newAccount.account_name}
-                onChange={(e) => setNewAccount(p => ({ ...p, account_name: e.target.value }))}
-              />
-            </div>
-            <div className="space-y-2">
               <Label>Account Type</Label>
               <Select
                 value={newAccount.account_type}
-                onValueChange={(v) => setNewAccount(p => ({ ...p, account_type: v as any }))}
+                onValueChange={(v) =>
+                  setNewAccount((p) => ({ ...p, account_type: v as any }))
+                }
               >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {ACCOUNT_TYPES.map(t => (
-                    <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                  {ACCOUNT_TYPES.map((t) => (
+                    <SelectItem key={t.value} value={t.value}>
+                      {t.label}
+                      {ACCOUNT_TYPE_INFO[t.value].annualLimit &&
+                        ` — up to $${ACCOUNT_TYPE_INFO[t.value].annualLimit!.toLocaleString()}/yr`}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              {/* Contextual hint for selected type */}
+              <AccountTypeHint type={newAccount.account_type} />
             </div>
+
             <div className="space-y-2">
-              <Label>Institution (optional)</Label>
+              <Label>Account Name</Label>
+              <Input
+                placeholder="e.g. My Roth IRA"
+                value={newAccount.account_name}
+                onChange={(e) =>
+                  setNewAccount((p) => ({ ...p, account_name: e.target.value }))
+                }
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>
+                Institution{' '}
+                <span className="text-muted-foreground font-normal text-xs">(optional)</span>
+              </Label>
               <Input
                 placeholder="e.g. Fidelity, Schwab, Vanguard"
                 value={newAccount.institution_name}
-                onChange={(e) => setNewAccount(p => ({ ...p, institution_name: e.target.value }))}
+                onChange={(e) =>
+                  setNewAccount((p) => ({ ...p, institution_name: e.target.value }))
+                }
               />
+              <p className="text-2xs text-muted-foreground">
+                Adding an institution lets us link you directly to their site when you're ready to transfer.
+              </p>
             </div>
+
             <Button
               className="w-full bg-gradient-primary"
               onClick={handleAddAccount}
@@ -504,14 +966,12 @@ export default function Invest() {
         </DialogContent>
       </Dialog>
 
-      {/* Transfer Dialog */}
+      {/* ── Transfer Dialog ──────────────────────────────────────────────────── */}
       <Dialog open={showTransferDialog} onOpenChange={setShowTransferDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Invest Savings</DialogTitle>
-            <DialogDescription>
-              Choose an account and amount to invest
-            </DialogDescription>
+            <DialogDescription>Choose an account and amount to invest</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 pt-2">
             <div className="space-y-2">
@@ -536,7 +996,7 @@ export default function Invest() {
                   <SelectValue placeholder="Select account" />
                 </SelectTrigger>
                 <SelectContent>
-                  {accounts.map(a => (
+                  {accounts.map((a) => (
                     <SelectItem key={a.id} value={a.id}>
                       {a.account_name} ({getAccountTypeLabel(a.account_type)})
                     </SelectItem>
@@ -547,6 +1007,10 @@ export default function Invest() {
             {transferDescription && (
               <p className="text-xs text-muted-foreground">Source: {transferDescription}</p>
             )}
+            <div className="rounded-lg bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
+              <Info className="h-3 w-3 inline mr-1" />
+              After recording, we'll show you the exact steps to move the money in your broker's app.
+            </div>
             <Button
               className="w-full bg-gradient-primary"
               onClick={handleConfirmTransferIntent}
@@ -558,8 +1022,11 @@ export default function Invest() {
         </DialogContent>
       </Dialog>
 
-      {/* Confirmation Dialog */}
-      <AlertDialog open={!!pendingTransfer} onOpenChange={(open) => !open && setPendingTransfer(null)}>
+      {/* ── Confirmation Dialog ──────────────────────────────────────────────── */}
+      <AlertDialog
+        open={!!pendingTransfer}
+        onOpenChange={(open) => !open && setPendingTransfer(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Confirm Investment Transfer</AlertDialogTitle>
@@ -574,8 +1041,8 @@ export default function Invest() {
               {pendingTransfer?.description && (
                 <span className="block text-xs">Source: {pendingTransfer.description}</span>
               )}
-              <span className="block text-xs mt-2 text-warning">
-                Note: This records your intent. Actual fund movement requires bank integration (coming soon).
+              <span className="block text-xs mt-2 text-muted-foreground">
+                We'll show you the steps to complete the actual transfer in your broker's app.
               </span>
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -586,19 +1053,35 @@ export default function Invest() {
               disabled={isCreatingTransfer}
               className="bg-gradient-primary"
             >
-              {isCreatingTransfer ? 'Processing...' : 'Confirm Transfer'}
+              {isCreatingTransfer ? 'Processing...' : 'Confirm & See Steps'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Delete Account Confirmation */}
-      <AlertDialog open={!!deletingAccountId} onOpenChange={(open) => !open && setDeletingAccountId(null)}>
+      {/* ── Post-Transfer Next Steps Dialog ─────────────────────────────────── */}
+      {nextSteps && (
+        <NextStepsDialog
+          open={!!nextSteps}
+          onClose={() => setNextSteps(null)}
+          amount={nextSteps.amount}
+          accountName={nextSteps.accountName}
+          accountType={nextSteps.accountType}
+          institutionName={nextSteps.institutionName}
+        />
+      )}
+
+      {/* ── Delete Account Confirmation ──────────────────────────────────────── */}
+      <AlertDialog
+        open={!!deletingAccountId}
+        onOpenChange={(open) => !open && setDeletingAccountId(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Remove Account?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will remove the account and all associated transfer records. This cannot be undone.
+              This will remove the account and all associated transfer records. This cannot be
+              undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

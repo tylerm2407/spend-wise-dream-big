@@ -15,10 +15,8 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const rateLimited = checkRateLimit(req, corsHeaders, AI_RATE_LIMIT);
-  if (rateLimited) return rateLimited;
-
   try {
+    // Auth first so rate limit key is scoped per user, not just IP
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -30,6 +28,10 @@ serve(async (req) => {
     }
 
     const userId = claimsData.claims.sub as string;
+
+    // Rate limit scoped to user ID + IP to prevent abuse across shared IPs and IP rotation
+    const rateLimited = checkRateLimit(req, corsHeaders, AI_RATE_LIMIT, userId);
+    if (rateLimited) return rateLimited;
 
     const body = await req.json();
     const product = sanitizeString(body.product, 200);
@@ -172,9 +174,8 @@ Be practical, realistic, and use real brand names and stores. Focus on commonly 
     );
   } catch (error) {
     console.error("Error in suggest-alternatives:", error);
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
     return new Response(
-      JSON.stringify({ error: errorMessage }),
+      JSON.stringify({ error: "Failed to get suggestions. Please try again." }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

@@ -109,7 +109,12 @@ serve(async (req) => {
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     logStep("ERROR", { message: errorMessage });
-    return new Response(JSON.stringify({ error: errorMessage }), {
+    // Only expose safe messages; never leak internal API details to the client
+    const safeMessages = ["No authorization header provided", "User not authenticated"];
+    const clientMessage = safeMessages.includes(errorMessage)
+      ? errorMessage
+      : "IAP validation failed. Please try again.";
+    return new Response(JSON.stringify({ error: clientMessage }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 400,
     });
