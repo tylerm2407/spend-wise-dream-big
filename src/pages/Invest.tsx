@@ -431,7 +431,7 @@ export default function Invest() {
     totalInvested,
     defaultAccount,
   } = useInvestmentAccounts();
-  const { openPlaidLink, isLoading: isPlaidLoading } = usePlaid();
+  const { openPlaidLink, isLoading: isPlaidLoading, plaidError, clearError } = usePlaid();
   const { favoritedAlternatives, totalSavedAmount } = useSavedAlternatives();
   const { currentChallenge } = useWeeklyChallenge();
 
@@ -631,6 +631,62 @@ export default function Invest() {
           <motion.div variants={itemVariants}>
             <SetupGuide onAddAccount={() => setShowAddAccount(true)} />
           </motion.div>
+
+          {/* Plaid error / setup instructions */}
+          {plaidError && (
+            <motion.div variants={itemVariants}>
+              <Card className={`p-4 glass-card border-destructive/30 bg-destructive/5`}>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1">
+                    {plaidError.reason === 'not_configured' ? (
+                      <>
+                        <p className="text-sm font-semibold text-destructive mb-1">
+                          Plaid API keys not configured
+                        </p>
+                        <p className="text-xs text-muted-foreground mb-3">
+                          To enable account syncing, add your Plaid credentials to Supabase:
+                        </p>
+                        <ol className="text-xs text-muted-foreground space-y-1.5 list-decimal list-inside">
+                          <li>Go to <strong>dashboard.plaid.com</strong> → create a free account</li>
+                          <li>Copy your <strong>Client ID</strong> and <strong>Sandbox Secret</strong></li>
+                          <li>In Supabase → <strong>Edge Functions → Manage Secrets</strong> → add:</li>
+                        </ol>
+                        <div className="mt-2 rounded bg-muted px-3 py-2 text-xs font-mono space-y-1">
+                          <p>PLAID_CLIENT_ID = your_client_id</p>
+                          <p>PLAID_SECRET = your_secret</p>
+                          <p>PLAID_ENV = sandbox</p>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="mt-3 w-full"
+                          onClick={() => window.open('https://dashboard.plaid.com', '_blank')}
+                        >
+                          <ExternalLink className="h-3.5 w-3.5 mr-1" />
+                          Open Plaid Dashboard
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-sm font-semibold text-destructive mb-1">
+                          Sync failed
+                        </p>
+                        <p className="text-xs text-muted-foreground">{plaidError.message}</p>
+                      </>
+                    )}
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 w-6 p-0 text-muted-foreground flex-shrink-0"
+                    onClick={clearError}
+                  >
+                    ×
+                  </Button>
+                </div>
+              </Card>
+            </motion.div>
+          )}
 
           {/* Total Savings Overview */}
           <motion.div variants={itemVariants}>

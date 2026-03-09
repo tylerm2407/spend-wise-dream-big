@@ -1,69 +1,127 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { usePlaidLink } from 'react-plaid-link';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
 import { useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 
+export type PlaidErrorReason =
+  | 'not_configured'   // PLAID_CLIENT_ID / PLAID_SECRET not set in Supabase
+  | 'unauthorized'     // user not logged in
+  | 'network'          // fetch failed
+  | 'unknown';
+
+export interface PlaidError {
+  reason: PlaidErrorReason;
+  message: string;
+}
+
 export function usePlaid() {
-  const { user } = useAuth();
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
   const [linkToken, setLinkToken] = useState<string | null>(null);
   const [isLoadingToken, setIsLoadingToken] = useState(false);
   const [isExchanging, setIsExchanging] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [plaidError, setPlaidError] = useState<PlaidError | null>(null);
   const [shouldOpen, setShouldOpen] = useState(false);
 
+  // react-plaid-link needs null (not '') when there is no token yet
   const { open, ready } = usePlaidLink({
-    token: linkToken ?? '',
-    onSuccess: async (public_token, _metadata) => {
+    token: linkToken,
+    onSuccess: async (public_token) => {
       setIsExchanging(true);
+      setPlaidError(null);
       try {
-        const { error: invokeError } = await supabase.functions.invoke('plaid-exchange-token', {
-          body: { public_token },
-        });
+        const { data, error: invokeError } = await supabase.functions.invoke(
+          'plaid-exchange-token',
+          { body: { public_token } },
+        );
         if (invokeError) throw invokeError;
+        if (data?.error) throw new Error(data.error);
         queryClient.invalidateQueries({ queryKey: ['investment-accounts'] });
-        toast({ title: 'Account linked!', description: 'Your investment account has been synced.' });
+        toast({
+          title: 'Account linked!',
+          description: 'Your investment account has been synced.',
+        });
       } catch (err) {
-        setError('Failed to link account. Please try again.');
-        toast({ title: 'Link failed', variant: 'destructive' });
+        const msg = err instanceof Error ? err.message : 'Unknown error';
+        setPlaidError({ reason: 'unknown', message: msg });
+        toast({ title: 'Link failed', description: msg, variant: 'destructive' });
       } finally {
         setIsExchanging(false);
         setShouldOpen(false);
         setLinkToken(null);
       }
     },
-    onExit: () => {
+    onExit: (err) => {
       setShouldOpen(false);
       setLinkToken(null);
+      if (err) {
+        // User exited with an error (e.g. invalid credentials at their bank)
+        setPlaidError({ reason: 'unknown', message: err.display_message ?? err.error_message ?? 'Exited Plaid Link.' });
+      }
     },
   });
 
-  // Auto-open when token is ready and user requested it
+  // Auto-open once the Plaid Link SDK is ready and we have a token
   useEffect(() => {
     if (ready && linkToken && shouldOpen) {
       open();
     }
   }, [ready, linkToken, shouldOpen, open]);
 
-  const openPlaidLink = async () => {
-    setError(null);
+  const openPlaidLink = useCallback(async () => {
+    setPlaidError(null);
     setIsLoadingToken(true);
     try {
-      const { data, error: invokeError } = await supabase.functions.invoke('plaid-create-link-token');
-      if (invokeError || !data?.link_token) throw invokeError || new Error('No link token returned');
+      const { data, error: invokeError } = await supabase.functions.invoke(
+        'plaid-create-link-token',
+      );
+
+      // Supabase sets invokeError on non-2xx responses
+      if (invokeError) {
+        // Try to extract the reason from the error context
+        const body = (invokeError as any)?.context;
+        const msg: string = body?.error ?? invokeError.message ?? 'Unknown error';
+        const reason: PlaidErrorReason =
+          msg.toLowerCase().includes('credential') || msg.toLowerCase().includes('configured')
+            ? 'not_configured'
+            : msg.toLowerCase().includes('unauthorized') || msg.toLowerCase().includes('401')
+            ? 'unauthorized'
+            : 'unknown';
+        setPlaidError({ reason, message: msg });
+        return;
+      }
+
+      // Edge function returned 2xx but included an error payload
+      if (data?.error) {
+        const msg: string = data.error;
+        const reason: PlaidErrorReason = msg.toLowerCase().includes('credential')
+          ? 'not_configured'
+          : 'unknown';
+        setPlaidError({ reason, message: msg });
+        return;
+      }
+
+      if (!data?.link_token) {
+        setPlaidError({ reason: 'unknown', message: 'No link token returned from server.' });
+        return;
+      }
+
       setLinkToken(data.link_token);
       setShouldOpen(true);
     } catch (err) {
-      setError('Failed to start account linking. Please try again.');
-      toast({ title: 'Setup failed', variant: 'destructive' });
+      const msg = err instanceof Error ? err.message : 'Network error — check your connection.';
+      setPlaidError({ reason: 'network', message: msg });
     } finally {
       setIsLoadingToken(false);
     }
-  };
+  }, []);
 
-  return { openPlaidLink, isLoading: isLoadingToken || isExchanging, error };
+  return {
+    openPlaidLink,
+    isLoading: isLoadingToken || isExchanging,
+    plaidError,
+    clearError: () => setPlaidError(null),
+  };
 }
