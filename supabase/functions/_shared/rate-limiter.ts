@@ -27,11 +27,15 @@ export const WEBHOOK_RATE_LIMIT: RateLimitConfig = { windowMs: 60_000, maxReques
 /**
  * Check if a request should be rate limited.
  * Returns null if allowed, or a Response if blocked.
+ *
+ * When userId is provided, the rate limit key is scoped per user+IP combination,
+ * preventing abuse from shared IPs and bypasses via IP rotation.
  */
 export function checkRateLimit(
   req: Request,
   corsHeaders: Record<string, string>,
-  config: RateLimitConfig = DEFAULT_CONFIG
+  config: RateLimitConfig = DEFAULT_CONFIG,
+  userId?: string
 ): Response | null {
   const clientIp = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
     || req.headers.get("cf-connecting-ip")
@@ -39,7 +43,8 @@ export function checkRateLimit(
     || "unknown";
 
   const now = Date.now();
-  const key = `${clientIp}`;
+  // Scope key by user ID when available: prevents IP-rotation attacks and shared-IP false positives
+  const key = userId ? `${clientIp}:${userId}` : clientIp;
   const entry = requestCounts.get(key);
 
   if (!entry || now - entry.windowStart > config.windowMs) {
