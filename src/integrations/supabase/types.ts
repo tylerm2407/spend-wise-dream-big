@@ -222,6 +222,10 @@ export type Database = {
           id: string
           institution_name: string | null
           is_default: boolean
+          plaid_account_id: string | null
+          plaid_balance: number | null
+          plaid_balance_synced_at: string | null
+          plaid_item_id: string | null
           updated_at: string
           user_id: string
         }
@@ -232,6 +236,10 @@ export type Database = {
           id?: string
           institution_name?: string | null
           is_default?: boolean
+          plaid_account_id?: string | null
+          plaid_balance?: number | null
+          plaid_balance_synced_at?: string | null
+          plaid_item_id?: string | null
           updated_at?: string
           user_id: string
         }
@@ -242,10 +250,22 @@ export type Database = {
           id?: string
           institution_name?: string | null
           is_default?: boolean
+          plaid_account_id?: string | null
+          plaid_balance?: number | null
+          plaid_balance_synced_at?: string | null
+          plaid_item_id?: string | null
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "investment_accounts_plaid_item_id_fkey"
+            columns: ["plaid_item_id"]
+            isOneToOne: false
+            referencedRelation: "plaid_items"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       investment_transfers: {
         Row: {
@@ -290,6 +310,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      plaid_items: {
+        Row: {
+          access_token: string
+          created_at: string
+          id: string
+          institution_id: string | null
+          institution_name: string | null
+          item_id: string
+          user_id: string
+        }
+        Insert: {
+          access_token: string
+          created_at?: string
+          id?: string
+          institution_id?: string | null
+          institution_name?: string | null
+          item_id: string
+          user_id: string
+        }
+        Update: {
+          access_token?: string
+          created_at?: string
+          id?: string
+          institution_id?: string | null
+          institution_name?: string | null
+          item_id?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       price_alerts: {
         Row: {
