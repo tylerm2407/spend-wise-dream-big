@@ -26,9 +26,11 @@ const ALLOWED_ORIGINS: string[] = [
  */
 export function getCorsHeaders(req: Request): Record<string, string> {
   const origin = req.headers.get("origin") ?? "";
-  const allowedOrigin = ALLOWED_ORIGINS.includes(origin)
-    ? origin
-    : ALLOWED_ORIGINS[0];
+  const isAllowed =
+    ALLOWED_ORIGINS.includes(origin) ||
+    /^https:\/\/[a-z0-9-]+--[a-z0-9-]+\.lovable\.app$/.test(origin) ||
+    origin.endsWith(".lovable.app");
+  const allowedOrigin = isAllowed ? origin : ALLOWED_ORIGINS[0];
 
   return {
     "Access-Control-Allow-Origin": allowedOrigin,
