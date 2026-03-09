@@ -50,3 +50,12 @@ verify_jwt = false
 
 [functions.track-nw-referral]
 verify_jwt = false
+
+[functions.plaid-create-link-token]
+verify_jwt = false
+
+[functions.plaid-exchange-token]
+verify_jwt = false
+
+[functions.plaid-sync-balance]
+verify_jwt = false
