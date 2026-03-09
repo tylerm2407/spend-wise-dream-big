@@ -11,6 +11,9 @@ export interface InvestmentAccount {
   is_default: boolean;
   created_at: string;
   updated_at: string;
+  plaid_account_id: string | null;
+  plaid_balance: number | null;
+  plaid_balance_synced_at: string | null;
 }
 
 export interface InvestmentTransfer {
@@ -124,6 +127,19 @@ export function useInvestmentAccounts() {
     },
   });
 
+  const syncBalance = useMutation({
+    mutationFn: async (accountId: string) => {
+      const { data, error } = await supabase.functions.invoke('plaid-sync-balance', {
+        body: { account_id: accountId },
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['investment-accounts', user?.id] });
+    },
+  });
+
   const createTransfer = useMutation({
     mutationFn: async (input: CreateTransferInput) => {
       if (!user) throw new Error('Not authenticated');
@@ -154,8 +170,10 @@ export function useInvestmentAccounts() {
     createAccount: createAccount.mutateAsync,
     deleteAccount: deleteAccount.mutateAsync,
     createTransfer: createTransfer.mutateAsync,
+    syncBalance: syncBalance.mutateAsync,
     isCreatingAccount: createAccount.isPending,
     isCreatingTransfer: createTransfer.isPending,
+    isSyncingBalance: syncBalance.isPending,
     totalInvested,
     defaultAccount,
   };

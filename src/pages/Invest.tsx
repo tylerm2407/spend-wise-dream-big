@@ -16,6 +16,9 @@ import {
   Info,
   BookOpen,
   CheckCircle2,
+  RefreshCw,
+  Link2,
+  Loader2,
 } from 'lucide-react';
 import { AppLayout } from '@/components/AppLayout';
 import { Card } from '@/components/ui/card';
@@ -54,6 +57,7 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import { useInvestmentAccounts, getAccountTypeLabel, type InvestmentAccount, type InvestmentTransfer } from '@/hooks/useInvestmentAccounts';
+import { usePlaid } from '@/hooks/usePlaid';
 import { useSavedAlternatives } from '@/hooks/useSavedAlternatives';
 import { useWeeklyChallenge } from '@/hooks/useWeeklyChallenge';
 import { useToast } from '@/hooks/use-toast';
@@ -187,8 +191,14 @@ const INSTITUTION_LINKS: Record<string, string> = {
 
 function getInstitutionUrl(name: string | null): string | null {
   if (!name) return null;
-  const key = name.toLowerCase().trim();
-  return INSTITUTION_LINKS[key] ?? null;
+  const input = name.toLowerCase().trim();
+  // Exact match first
+  if (INSTITUTION_LINKS[input]) return INSTITUTION_LINKS[input];
+  // Partial match: check if any known key appears in the user's input or vice versa
+  for (const [key, url] of Object.entries(INSTITUTION_LINKS)) {
+    if (input.includes(key) || key.includes(input)) return url;
+  }
+  return null;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -414,11 +424,14 @@ export default function Invest() {
     createAccount,
     deleteAccount,
     createTransfer,
+    syncBalance,
     isCreatingAccount,
     isCreatingTransfer,
+    isSyncingBalance,
     totalInvested,
     defaultAccount,
   } = useInvestmentAccounts();
+  const { openPlaidLink, isLoading: isPlaidLoading } = usePlaid();
   const { favoritedAlternatives, totalSavedAmount } = useSavedAlternatives();
   const { currentChallenge } = useWeeklyChallenge();
 
@@ -648,21 +661,49 @@ export default function Invest() {
           <motion.div variants={itemVariants}>
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-lg font-semibold">Investment Accounts</h2>
-              <Button size="sm" variant="outline" onClick={() => setShowAddAccount(true)}>
-                <Plus className="h-4 w-4 mr-1" />
-                Add
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  onClick={openPlaidLink}
+                  disabled={isPlaidLoading}
+                  className="bg-gradient-primary text-primary-foreground"
+                >
+                  {isPlaidLoading ? (
+                    <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                  ) : (
+                    <Link2 className="h-4 w-4 mr-1" />
+                  )}
+                  {isPlaidLoading ? 'Connecting...' : 'Sync Account'}
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => setShowAddAccount(true)}>
+                  <Plus className="h-4 w-4 mr-1" />
+                  Manual
+                </Button>
+              </div>
             </div>
 
             {accounts.length === 0 ? (
               <Card className="p-6 glass-card text-center">
-                <Building2 className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-                <p className="text-sm text-muted-foreground mb-3">
-                  Add your investment accounts to start routing savings
+                <Building2 className="h-8 w-8 mx-auto text-muted-foreground mb-3" />
+                <p className="font-medium mb-1">Connect your brokerage</p>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Sync your Roth IRA, 401(k), or brokerage account to see your real balance here.
                 </p>
-                <Button onClick={() => setShowAddAccount(true)}>
+                <Button
+                  className="w-full bg-gradient-primary mb-2"
+                  onClick={openPlaidLink}
+                  disabled={isPlaidLoading}
+                >
+                  {isPlaidLoading ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Link2 className="h-4 w-4 mr-2" />
+                  )}
+                  {isPlaidLoading ? 'Connecting...' : 'Sync via Plaid'}
+                </Button>
+                <Button variant="ghost" size="sm" className="w-full text-muted-foreground" onClick={() => setShowAddAccount(true)}>
                   <Plus className="h-4 w-4 mr-1" />
-                  Add Account
+                  Add manually instead
                 </Button>
               </Card>
             ) : (
@@ -685,11 +726,30 @@ export default function Invest() {
                               {account.is_default && (
                                 <Badge variant="secondary" className="text-2xs">Default</Badge>
                               )}
+                              {account.plaid_account_id && (
+                                <Badge variant="outline" className="text-2xs text-success border-success/40">
+                                  Synced
+                                </Badge>
+                              )}
                             </div>
                             <p className="text-xs text-muted-foreground">
                               {getAccountTypeLabel(account.account_type)}
                               {account.institution_name && ` · ${account.institution_name}`}
                             </p>
+
+                            {/* Real Plaid balance */}
+                            {account.plaid_balance != null && (
+                              <div className="mt-1">
+                                <p className="text-lg font-bold text-success">
+                                  {formatCurrency(account.plaid_balance)}
+                                </p>
+                                {account.plaid_balance_synced_at && (
+                                  <p className="text-2xs text-muted-foreground">
+                                    Synced {new Date(account.plaid_balance_synced_at).toLocaleDateString()}
+                                  </p>
+                                )}
+                              </div>
+                            )}
 
                             {/* Contribution progress bar */}
                             <ContributionProgress
@@ -701,6 +761,19 @@ export default function Invest() {
                         </div>
 
                         <div className="flex items-center gap-1 flex-shrink-0">
+                          {/* Sync balance button (only for Plaid-linked accounts) */}
+                          {account.plaid_account_id && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0 text-muted-foreground hover:text-success"
+                              onClick={() => syncBalance(account.id)}
+                              disabled={isSyncingBalance}
+                              title="Refresh balance"
+                            >
+                              <RefreshCw className={`h-3.5 w-3.5 ${isSyncingBalance ? 'animate-spin' : ''}`} />
+                            </Button>
+                          )}
                           {/* Institution link */}
                           {institutionUrl && (
                             <Button
