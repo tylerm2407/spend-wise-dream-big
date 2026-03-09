@@ -12,6 +12,17 @@ dist
 dist-ssr
 *.local
 
+# Environment files — never commit real secrets
+.env
+.env.local
+.env.production
+.env.development
+supabase/.env
+supabase/functions/.env
+# Allow the example template to be committed
+!.env.example
+!supabase/functions/.env.example
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
