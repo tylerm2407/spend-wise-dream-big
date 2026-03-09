@@ -11,6 +11,7 @@ export interface InvestmentAccount {
   is_default: boolean;
   created_at: string;
   updated_at: string;
+  plaid_item_id: string | null;
   plaid_account_id: string | null;
   plaid_balance: number | null;
   plaid_balance_synced_at: string | null;
