@@ -93,7 +93,7 @@ serve(async (req) => {
   }
 });
 
-function parseSearchResults(results: any, product: string, category: string, zipCode?: string | null): any[] {
+function parseSearchResults(results: any, product: string, category: string, zipCode: string): any[] {
   const stores: any[] = [];
   
   if (!results?.data || !Array.isArray(results.data)) {
