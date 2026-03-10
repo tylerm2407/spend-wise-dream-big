@@ -659,9 +659,13 @@ export type Database = {
           custom_frequency_days: number | null
           frequency: Database["public"]["Enums"]["purchase_frequency"] | null
           id: string
+          import_batch_id: string | null
           item_name: string
+          linked_account_id: string | null
           notes: string | null
+          plaid_transaction_id: string | null
           purchase_date: string | null
+          source: string
           updated_at: string
           user_id: string
         }
@@ -672,9 +676,13 @@ export type Database = {
           custom_frequency_days?: number | null
           frequency?: Database["public"]["Enums"]["purchase_frequency"] | null
           id?: string
+          import_batch_id?: string | null
           item_name: string
+          linked_account_id?: string | null
           notes?: string | null
+          plaid_transaction_id?: string | null
           purchase_date?: string | null
+          source?: string
           updated_at?: string
           user_id: string
         }
@@ -685,9 +693,13 @@ export type Database = {
           custom_frequency_days?: number | null
           frequency?: Database["public"]["Enums"]["purchase_frequency"] | null
           id?: string
+          import_batch_id?: string | null
           item_name?: string
+          linked_account_id?: string | null
           notes?: string | null
+          plaid_transaction_id?: string | null
           purchase_date?: string | null
+          source?: string
           updated_at?: string
           user_id?: string
         }
