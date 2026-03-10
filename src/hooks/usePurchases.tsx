@@ -69,7 +69,7 @@ export function usePurchases() {
       const previous = queryClient.getQueryData<Purchase[]>(['purchases', user?.id]);
       
       // Optimistically add the purchase
-      const optimistic: Purchase = {
+      const optimistic = {
         id: `temp-${Date.now()}`,
         user_id: user?.id ?? '',
         item_name: newPurchase.item_name,
@@ -81,7 +81,11 @@ export function usePurchases() {
         custom_frequency_days: newPurchase.custom_frequency_days ?? null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-      };
+        import_batch_id: null,
+        linked_account_id: null,
+        plaid_transaction_id: null,
+        source: 'manual',
+      } as Purchase;
       
       queryClient.setQueryData<Purchase[]>(['purchases', user?.id], (old = []) => [optimistic, ...old]);
       return { previous };

@@ -311,6 +311,62 @@ export type Database = {
           },
         ]
       }
+      linked_bank_accounts: {
+        Row: {
+          account_name: string
+          account_type: string | null
+          available_balance: number | null
+          balance_synced_at: string | null
+          created_at: string
+          current_balance: number | null
+          id: string
+          institution_name: string | null
+          last_transaction_sync_at: string | null
+          mask: string | null
+          plaid_account_id: string | null
+          plaid_item_id: string | null
+          user_id: string
+        }
+        Insert: {
+          account_name: string
+          account_type?: string | null
+          available_balance?: number | null
+          balance_synced_at?: string | null
+          created_at?: string
+          current_balance?: number | null
+          id?: string
+          institution_name?: string | null
+          last_transaction_sync_at?: string | null
+          mask?: string | null
+          plaid_account_id?: string | null
+          plaid_item_id?: string | null
+          user_id: string
+        }
+        Update: {
+          account_name?: string
+          account_type?: string | null
+          available_balance?: number | null
+          balance_synced_at?: string | null
+          created_at?: string
+          current_balance?: number | null
+          id?: string
+          institution_name?: string | null
+          last_transaction_sync_at?: string | null
+          mask?: string | null
+          plaid_account_id?: string | null
+          plaid_item_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "linked_bank_accounts_plaid_item_id_fkey"
+            columns: ["plaid_item_id"]
+            isOneToOne: false
+            referencedRelation: "plaid_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       plaid_items: {
         Row: {
           access_token: string
@@ -338,57 +394,6 @@ export type Database = {
           institution_name?: string | null
           item_id?: string
           user_id?: string
-        }
-        Relationships: []
-      }
-      linked_bank_accounts: {
-        Row: {
-          id: string
-          user_id: string
-          plaid_item_id: string | null
-          plaid_account_id: string | null
-          account_name: string
-          account_type: string | null
-          institution_name: string | null
-          mask: string | null
-          current_balance: number | null
-          available_balance: number | null
-          balance_synced_at: string | null
-          last_transaction_sync_at: string | null
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          user_id: string
-          plaid_item_id?: string | null
-          plaid_account_id?: string | null
-          account_name: string
-          account_type?: string | null
-          institution_name?: string | null
-          mask?: string | null
-          current_balance?: number | null
-          available_balance?: number | null
-          balance_synced_at?: string | null
-          last_transaction_sync_at?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          user_id?: string
-          plaid_item_id?: string | null
-          plaid_account_id?: string | null
-          account_name?: string
-          account_type?: string | null
-          institution_name?: string | null
-          mask?: string | null
-          current_balance?: number | null
-          available_balance?: number | null
-          balance_synced_at?: string | null
-          last_transaction_sync_at?: string | null
-          created_at?: string
-          updated_at?: string
         }
         Relationships: []
       }
@@ -654,13 +659,9 @@ export type Database = {
           custom_frequency_days: number | null
           frequency: Database["public"]["Enums"]["purchase_frequency"] | null
           id: string
-          import_batch_id: string | null
           item_name: string
-          linked_account_id: string | null
           notes: string | null
-          plaid_transaction_id: string | null
           purchase_date: string | null
-          source: string | null
           updated_at: string
           user_id: string
         }
@@ -671,13 +672,9 @@ export type Database = {
           custom_frequency_days?: number | null
           frequency?: Database["public"]["Enums"]["purchase_frequency"] | null
           id?: string
-          import_batch_id?: string | null
           item_name: string
-          linked_account_id?: string | null
           notes?: string | null
-          plaid_transaction_id?: string | null
           purchase_date?: string | null
-          source?: string | null
           updated_at?: string
           user_id: string
         }
@@ -688,13 +685,9 @@ export type Database = {
           custom_frequency_days?: number | null
           frequency?: Database["public"]["Enums"]["purchase_frequency"] | null
           id?: string
-          import_batch_id?: string | null
           item_name?: string
-          linked_account_id?: string | null
           notes?: string | null
-          plaid_transaction_id?: string | null
           purchase_date?: string | null
-          source?: string | null
           updated_at?: string
           user_id?: string
         }
