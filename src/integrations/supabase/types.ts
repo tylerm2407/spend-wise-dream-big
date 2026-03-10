@@ -341,57 +341,6 @@ export type Database = {
         }
         Relationships: []
       }
-      linked_bank_accounts: {
-        Row: {
-          id: string
-          user_id: string
-          plaid_item_id: string | null
-          plaid_account_id: string | null
-          account_name: string
-          account_type: string | null
-          institution_name: string | null
-          mask: string | null
-          current_balance: number | null
-          available_balance: number | null
-          balance_synced_at: string | null
-          last_transaction_sync_at: string | null
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          user_id: string
-          plaid_item_id?: string | null
-          plaid_account_id?: string | null
-          account_name: string
-          account_type?: string | null
-          institution_name?: string | null
-          mask?: string | null
-          current_balance?: number | null
-          available_balance?: number | null
-          balance_synced_at?: string | null
-          last_transaction_sync_at?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          user_id?: string
-          plaid_item_id?: string | null
-          plaid_account_id?: string | null
-          account_name?: string
-          account_type?: string | null
-          institution_name?: string | null
-          mask?: string | null
-          current_balance?: number | null
-          available_balance?: number | null
-          balance_synced_at?: string | null
-          last_transaction_sync_at?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
       price_alerts: {
         Row: {
           created_at: string
@@ -654,13 +603,9 @@ export type Database = {
           custom_frequency_days: number | null
           frequency: Database["public"]["Enums"]["purchase_frequency"] | null
           id: string
-          import_batch_id: string | null
           item_name: string
-          linked_account_id: string | null
           notes: string | null
-          plaid_transaction_id: string | null
           purchase_date: string | null
-          source: string | null
           updated_at: string
           user_id: string
         }
@@ -671,13 +616,9 @@ export type Database = {
           custom_frequency_days?: number | null
           frequency?: Database["public"]["Enums"]["purchase_frequency"] | null
           id?: string
-          import_batch_id?: string | null
           item_name: string
-          linked_account_id?: string | null
           notes?: string | null
-          plaid_transaction_id?: string | null
           purchase_date?: string | null
-          source?: string | null
           updated_at?: string
           user_id: string
         }
@@ -688,13 +629,9 @@ export type Database = {
           custom_frequency_days?: number | null
           frequency?: Database["public"]["Enums"]["purchase_frequency"] | null
           id?: string
-          import_batch_id?: string | null
           item_name?: string
-          linked_account_id?: string | null
           notes?: string | null
-          plaid_transaction_id?: string | null
           purchase_date?: string | null
-          source?: string | null
           updated_at?: string
           user_id?: string
         }
