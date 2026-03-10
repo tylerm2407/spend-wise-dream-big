@@ -838,9 +838,9 @@ export default function Invest() {
                                     title: "Sync failed",
                                     description: msg,
                                     action: (
-                                      <Button variant="outline" size="sm" onClick={() => syncBalance(account.id).catch(() => {})}>
+                                      <ToastAction altText="Retry sync" onClick={() => syncBalance(account.id).catch(() => {})}>
                                         Retry
-                                      </Button>
+                                      </ToastAction>
                                     ),
                                   });
                                 }
