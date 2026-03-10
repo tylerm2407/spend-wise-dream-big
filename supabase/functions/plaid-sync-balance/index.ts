@@ -30,23 +30,29 @@ serve(async (req) => {
 
     const token = authHeader.replace("Bearer ", "");
 
-    const supabaseAdmin = createClient(
+    const supabaseAuth = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-      { auth: { persistSession: false } }
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      { global: { headers: { Authorization: authHeader } } }
     );
 
-    const { data: userData, error: userError } = await supabaseAdmin.auth.getUser(token);
-    if (userError || !userData.user) {
-      logStep("Auth failed", { error: userError?.message });
+    const { data: claimsData, error: claimsError } = await supabaseAuth.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims?.sub) {
+      logStep("Auth failed", { error: claimsError?.message });
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 401,
       });
     }
 
-    const user = userData.user;
-    logStep("User authenticated", { userId: user.id });
+    const userId = claimsData.claims.sub as string;
+    logStep("User authenticated", { userId });
+
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      { auth: { persistSession: false } }
+    );
 
     const { account_id } = await req.json();
     if (!account_id) {
@@ -61,11 +67,11 @@ serve(async (req) => {
       .from("investment_accounts")
       .select("id, plaid_account_id, plaid_item_id")
       .eq("id", account_id)
-      .eq("user_id", user.id)
+      .eq("user_id", userId)
       .maybeSingle();
 
     if (accountError || !account) {
-      logStep("Account not found", { account_id, userId: user.id });
+      logStep("Account not found", { account_id, userId });
       return new Response(JSON.stringify({ error: "Account not found" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 404,

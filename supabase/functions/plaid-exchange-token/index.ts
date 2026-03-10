@@ -49,23 +49,31 @@ serve(async (req) => {
 
     const token = authHeader.replace("Bearer ", "");
 
-    const supabaseAdmin = createClient(
+    // Use anon key client for getClaims
+    const supabaseAuth = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-      { auth: { persistSession: false } }
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      { global: { headers: { Authorization: authHeader } } }
     );
 
-    const { data: userData, error: userError } = await supabaseAdmin.auth.getUser(token);
-    if (userError || !userData.user) {
-      logStep("Auth failed", { error: userError?.message });
+    const { data: claimsData, error: claimsError } = await supabaseAuth.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims?.sub) {
+      logStep("Auth failed", { error: claimsError?.message });
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 401,
       });
     }
 
-    const user = userData.user;
-    logStep("User authenticated", { userId: user.id });
+    const userId = claimsData.claims.sub as string;
+    logStep("User authenticated", { userId });
+
+    // Service role client for DB operations (plaid_items has restrictive RLS)
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      { auth: { persistSession: false } }
+    );
 
     const { public_token } = await req.json();
     if (!public_token) {
@@ -190,7 +198,7 @@ serve(async (req) => {
     const { data: plaidItem, error: itemInsertError } = await supabaseAdmin
       .from("plaid_items")
       .insert({
-        user_id: user.id,
+        user_id: userId,
         item_id,
         access_token,
         institution_id: institutionId,
@@ -222,7 +230,7 @@ serve(async (req) => {
       const { data: existing } = await supabaseAdmin
         .from("investment_accounts")
         .select("id")
-        .eq("user_id", user.id)
+        .eq("user_id", userId)
         .eq("plaid_account_id", plaidAccount.account_id)
         .maybeSingle();
 
@@ -251,7 +259,7 @@ serve(async (req) => {
         const { data: inserted, error: insertError } = await supabaseAdmin
           .from("investment_accounts")
           .insert({
-            user_id: user.id,
+            user_id: userId,
             account_name: accountName,
             account_type: accountType,
             institution_name: institutionName,

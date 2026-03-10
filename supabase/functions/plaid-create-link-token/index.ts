@@ -30,23 +30,23 @@ serve(async (req) => {
 
     const token = authHeader.replace("Bearer ", "");
 
-    const supabaseAdmin = createClient(
+    const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-      { auth: { persistSession: false } }
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      { global: { headers: { Authorization: authHeader } } }
     );
 
-    const { data: userData, error: userError } = await supabaseAdmin.auth.getUser(token);
-    if (userError || !userData.user) {
-      logStep("Auth failed", { error: userError?.message });
+    const { data: claimsData, error: claimsError } = await supabaseClient.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims?.sub) {
+      logStep("Auth failed", { error: claimsError?.message });
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 401,
       });
     }
 
-    const user = userData.user;
-    logStep("User authenticated", { userId: user.id });
+    const userId = claimsData.claims.sub as string;
+    logStep("User authenticated", { userId });
 
     const plaidClientId = Deno.env.get("PLAID_CLIENT_ID");
     const plaidSecret = Deno.env.get("PLAID_SECRET");
@@ -61,7 +61,7 @@ serve(async (req) => {
     }
 
     const plaidBaseUrl = `https://${plaidEnv}.plaid.com`;
-    logStep("Calling Plaid link/token/create", { plaidEnv, userId: user.id });
+    logStep("Calling Plaid link/token/create", { plaidEnv, userId });
 
     const plaidRes = await fetch(`${plaidBaseUrl}/link/token/create`, {
       method: "POST",
@@ -70,7 +70,7 @@ serve(async (req) => {
         client_id: plaidClientId,
         secret: plaidSecret,
         client_name: "CostClarity",
-        user: { client_user_id: user.id },
+        user: { client_user_id: userId },
         products: ["investments"],
         country_codes: ["US"],
         language: "en",
