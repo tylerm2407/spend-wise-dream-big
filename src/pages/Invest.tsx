@@ -61,6 +61,7 @@ import { usePlaid } from '@/hooks/usePlaid';
 import { useSavedAlternatives } from '@/hooks/useSavedAlternatives';
 import { useWeeklyChallenge } from '@/hooks/useWeeklyChallenge';
 import { useToast } from '@/hooks/use-toast';
+import { ToastAction } from '@/components/ui/toast';
 import { formatCurrency } from '@/lib/calculations';
 
 // ─── Account type metadata ───────────────────────────────────────────────────
@@ -823,7 +824,28 @@ export default function Invest() {
                               variant="ghost"
                               size="sm"
                               className="h-8 w-8 p-0 text-muted-foreground hover:text-success"
-                              onClick={() => syncBalance(account.id)}
+                              onClick={async () => {
+                                try {
+                                  await syncBalance(account.id);
+                                  toast({ title: "Balance synced", description: `${account.account_name} balance updated successfully.` });
+                                } catch (err: any) {
+                                  const msg = err?.message?.includes('ITEM_LOGIN_REQUIRED')
+                                    ? 'Your bank connection needs to be re-authorized. Please reconnect your account.'
+                                    : err?.message?.includes('rate limit')
+                                    ? 'Too many requests. Please try again in a few minutes.'
+                                    : 'Unable to sync balance. Please try again later.';
+                                  toast({
+                                    variant: "destructive",
+                                    title: "Sync failed",
+                                    description: msg,
+                                    action: (
+                                      <ToastAction altText="Retry sync" onClick={() => syncBalance(account.id).catch(() => {})}>
+                                        Retry
+                                      </ToastAction>
+                                    ),
+                                  });
+                                }
+                              }}
                               disabled={isSyncingBalance}
                               title="Refresh balance"
                             >
