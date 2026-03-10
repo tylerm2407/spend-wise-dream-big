@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { verifyUser } from "../_shared/auth-helper.ts";
 
 const log = (step: string, details?: unknown) =>
   console.log(`[PLAID-LINK-BANK] ${step}${details ? ` - ${JSON.stringify(details)}` : ''}`);
@@ -12,31 +13,16 @@ serve(async (req) => {
   try {
     log("Function started");
 
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
+    const { user, error: authError } = await verifyUser(req);
+    if (authError || !user) {
+      log("Auth failed", { error: authError });
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 401,
       });
     }
 
-    const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-      { global: { headers: { Authorization: authHeader } } }
-    );
-
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await supabaseClient.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims?.sub) {
-      log("Auth failed", { error: claimsError?.message });
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 401,
-      });
-    }
-
-    const userId = claimsData.claims.sub as string;
+    const userId = user.id;
     log("User authenticated", { userId });
 
     const plaidClientId = Deno.env.get("PLAID_CLIENT_ID");
