@@ -27,16 +27,17 @@ serve(async (req) => {
     );
 
     const token = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
-    if (userError || !user) {
-      log("Auth failed", { error: userError?.message });
+    const { data: claimsData, error: claimsError } = await supabaseClient.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims?.sub) {
+      log("Auth failed", { error: claimsError?.message });
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 401,
       });
     }
 
-    log("User authenticated", { userId: user.id });
+    const userId = claimsData.claims.sub as string;
+    log("User authenticated", { userId });
 
     const plaidClientId = Deno.env.get("PLAID_CLIENT_ID");
     const plaidSecret = Deno.env.get("PLAID_SECRET");
