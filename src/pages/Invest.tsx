@@ -61,6 +61,7 @@ import { usePlaid } from '@/hooks/usePlaid';
 import { useSavedAlternatives } from '@/hooks/useSavedAlternatives';
 import { useWeeklyChallenge } from '@/hooks/useWeeklyChallenge';
 import { useToast } from '@/hooks/use-toast';
+import { ToastAction } from '@/components/ui/toast';
 import { formatCurrency } from '@/lib/calculations';
 
 // ─── Account type metadata ───────────────────────────────────────────────────
