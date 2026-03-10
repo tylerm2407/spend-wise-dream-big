@@ -60,7 +60,7 @@ serve(async (req) => {
         client_id: plaidClientId,
         secret: plaidSecret,
         client_name: "CostClarity",
-        user: { client_user_id: user.id },
+        user: { client_user_id: userId },
         products: ["transactions"],
         country_codes: ["US"],
         language: "en",
