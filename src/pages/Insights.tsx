@@ -17,6 +17,7 @@ import { usePurchases } from '@/hooks/usePurchases';
 import { useGoals } from '@/hooks/useGoals';
 import { useProfile } from '@/hooks/useProfile';
 import { SpendingCharts } from '@/components/SpendingCharts';
+import { SpendingHealthScore } from '@/components/SpendingHealthScore';
 import { OpportunityCostCalculator } from '@/components/OpportunityCostCalculator';
 import { WhatIfSimulator } from '@/components/WhatIfSimulator';
 import { InsightsSkeleton, ErrorState } from '@/components/PageSkeletons';
@@ -143,6 +144,11 @@ export default function Insights() {
           animate="visible"
           className="px-6 space-y-6 pb-6"
         >
+          {/* Spending Health Score */}
+          <motion.div variants={itemVariants}>
+            <SpendingHealthScore />
+          </motion.div>
+
           {/* Monthly Summary */}
           <motion.div variants={itemVariants}>
             <Card className="p-6 glass-card">

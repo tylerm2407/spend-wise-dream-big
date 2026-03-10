@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { 
+import {
   User,
   Target,
   Sliders,
@@ -23,7 +23,10 @@ import {
   MapPin,
   FileText,
   UserX,
-  RotateCcw
+  RotateCcw,
+  Link2,
+  Unlink,
+  PieChart
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/AppLayout';
@@ -63,6 +66,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useRevenueCat } from '@/hooks/useRevenueCat';
 import { useNovaWealth } from '@/hooks/useNovaWealth';
 import { useFreeTierLimits } from '@/hooks/useFreeTierLimits';
+import { useLinkedBankAccounts } from '@/hooks/useLinkedBankAccounts';
+import { useInvestmentAccounts } from '@/hooks/useInvestmentAccounts';
 
 export default function Settings() {
   const navigate = useNavigate();
@@ -86,6 +91,52 @@ export default function Settings() {
   const { isNative, restorePurchases, loading: rcLoading, hasActiveSubscription: hasIAP } = useRevenueCat();
   const { isNovaWealthUser, clearSession: clearNWSession } = useNovaWealth();
   const { canExportCSV } = useFreeTierLimits();
+  const { accounts: bankAccounts, removeAccount: removeBankAccount } = useLinkedBankAccounts();
+  const { accounts: investAccounts } = useInvestmentAccounts();
+  const [isDisconnecting, setIsDisconnecting] = useState(false);
+
+  // Gather all unique plaid_item_ids from bank + investment accounts
+  const connectedPlaidItems = useMemo(() => {
+    const map = new Map<string, { type: 'bank' | 'investment'; institution: string; accounts: number }>();
+    for (const acct of bankAccounts) {
+      if (acct.plaid_item_id) {
+        const key = acct.plaid_item_id;
+        const existing = map.get(key);
+        if (existing) {
+          existing.accounts += 1;
+        } else {
+          map.set(key, { type: 'bank', institution: acct.institution_name ?? 'Bank Account', accounts: 1 });
+        }
+      }
+    }
+    for (const acct of investAccounts) {
+      if (acct.plaid_item_id) {
+        const key = acct.plaid_item_id;
+        const existing = map.get(key);
+        if (existing) {
+          existing.accounts += 1;
+        } else {
+          map.set(key, { type: 'investment', institution: acct.institution_name ?? 'Investment Account', accounts: 1 });
+        }
+      }
+    }
+    return Array.from(map.entries()).map(([id, info]) => ({ id, ...info }));
+  }, [bankAccounts, investAccounts]);
+
+  const handleDisconnectPlaid = async (plaidItemId: string) => {
+    setIsDisconnecting(true);
+    try {
+      const { error } = await supabase.functions.invoke('plaid-disconnect', {
+        body: { plaid_item_id: plaidItemId },
+      });
+      if (error) throw error;
+      toast({ title: 'Account disconnected', description: 'The linked account has been removed.' });
+    } catch {
+      toast({ title: 'Failed to disconnect', description: 'Please try again.', variant: 'destructive' });
+    } finally {
+      setIsDisconnecting(false);
+    }
+  };
   const [isDarkMode, setIsDarkMode] = useState(
     document.documentElement.classList.contains('dark')
   );
@@ -475,6 +526,11 @@ export default function Settings() {
             <Card className="p-6 glass-card">
               <h3 className="font-medium mb-4">Quick Links</h3>
               <div className="space-y-2">
+                <Button variant="outline" className="w-full justify-start" onClick={() => navigate('/budget')}>
+                  <PieChart className="h-4 w-4 mr-2" />
+                  Monthly Budget
+                  <ChevronRight className="h-4 w-4 ml-auto" />
+                </Button>
                 <Button variant="outline" className="w-full justify-start" onClick={() => navigate('/subscriptions')}>
                   <CreditCard className="h-4 w-4 mr-2" />
                   My Subscriptions
@@ -488,6 +544,65 @@ export default function Settings() {
               </div>
             </Card>
           </motion.div>
+
+          {/* Connected Accounts */}
+          {connectedPlaidItems.length > 0 && (
+            <motion.div variants={itemVariants}>
+              <Card className="p-6 glass-card">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Link2 className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="font-medium">Connected Accounts</h3>
+                    <p className="text-sm text-muted-foreground">Manage your Plaid-linked institutions</p>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  {connectedPlaidItems.map(item => (
+                    <div key={item.id} className="flex items-center justify-between p-3 bg-muted/40 rounded-lg">
+                      <div>
+                        <p className="font-medium text-sm">{item.institution}</p>
+                        <p className="text-xs text-muted-foreground capitalize">
+                          {item.type} • {item.accounts} {item.accounts === 1 ? 'account' : 'accounts'}
+                        </p>
+                      </div>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-destructive/70 hover:text-destructive"
+                            disabled={isDisconnecting}
+                          >
+                            <Unlink className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Disconnect {item.institution}?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This will remove the Plaid connection and all associated linked accounts.
+                              Transaction history already imported will not be deleted.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => handleDisconnectPlaid(item.id)}
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            >
+                              Disconnect
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            </motion.div>
+          )}
  
           {/* Income & Work Hours */}
           <motion.div variants={itemVariants}>

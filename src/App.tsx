@@ -36,6 +36,7 @@ const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const TermsOfService = lazy(() => import("./pages/TermsOfService"));
 const Subscriptions = lazy(() => import("./pages/Subscriptions"));
 const Grocery = lazy(() => import("./pages/Grocery"));
+const Budget = lazy(() => import("./pages/Budget"));
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -213,6 +214,7 @@ function AppRoutes() {
         <Route path="/add-purchase" element={<ProtectedRoute><AddPurchase /></ProtectedRoute>} />
         <Route path="/history" element={<ProtectedRoute><History /></ProtectedRoute>} />
         <Route path="/goals" element={<ProtectedRoute><Goals /></ProtectedRoute>} />
+        <Route path="/budget" element={<ProtectedRoute><Budget /></ProtectedRoute>} />
 
         <Route path="*" element={<NotFound />} />
       </Routes>
