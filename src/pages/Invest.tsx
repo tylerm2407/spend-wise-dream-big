@@ -823,7 +823,28 @@ export default function Invest() {
                               variant="ghost"
                               size="sm"
                               className="h-8 w-8 p-0 text-muted-foreground hover:text-success"
-                              onClick={() => syncBalance(account.id)}
+                              onClick={async () => {
+                                try {
+                                  await syncBalance(account.id);
+                                  toast({ title: "Balance synced", description: `${account.account_name} balance updated successfully.` });
+                                } catch (err: any) {
+                                  const msg = err?.message?.includes('ITEM_LOGIN_REQUIRED')
+                                    ? 'Your bank connection needs to be re-authorized. Please reconnect your account.'
+                                    : err?.message?.includes('rate limit')
+                                    ? 'Too many requests. Please try again in a few minutes.'
+                                    : 'Unable to sync balance. Please try again later.';
+                                  toast({
+                                    variant: "destructive",
+                                    title: "Sync failed",
+                                    description: msg,
+                                    action: (
+                                      <Button variant="outline" size="sm" onClick={() => syncBalance(account.id).catch(() => {})}>
+                                        Retry
+                                      </Button>
+                                    ),
+                                  });
+                                }
+                              }}
                               disabled={isSyncingBalance}
                               title="Refresh balance"
                             >
