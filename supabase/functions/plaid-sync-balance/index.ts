@@ -71,7 +71,7 @@ serve(async (req) => {
       .maybeSingle();
 
     if (accountError || !account) {
-      logStep("Account not found", { account_id, userId: user.id });
+      logStep("Account not found", { account_id, userId });
       return new Response(JSON.stringify({ error: "Account not found" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 404,

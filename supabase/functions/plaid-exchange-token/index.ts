@@ -259,7 +259,7 @@ serve(async (req) => {
         const { data: inserted, error: insertError } = await supabaseAdmin
           .from("investment_accounts")
           .insert({
-            user_id: user.id,
+            user_id: userId,
             account_name: accountName,
             account_type: accountType,
             institution_name: institutionName,
