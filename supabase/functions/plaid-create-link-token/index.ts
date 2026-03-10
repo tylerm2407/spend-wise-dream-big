@@ -61,7 +61,7 @@ serve(async (req) => {
     }
 
     const plaidBaseUrl = `https://${plaidEnv}.plaid.com`;
-    logStep("Calling Plaid link/token/create", { plaidEnv, userId: user.id });
+    logStep("Calling Plaid link/token/create", { plaidEnv, userId });
 
     const plaidRes = await fetch(`${plaidBaseUrl}/link/token/create`, {
       method: "POST",
