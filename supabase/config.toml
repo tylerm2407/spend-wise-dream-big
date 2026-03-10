@@ -59,3 +59,9 @@ verify_jwt = false
 
 [functions.plaid-sync-balance]
 verify_jwt = false
+
+[functions.plaid-link-bank]
+verify_jwt = false
+
+[functions.plaid-exchange-bank-token]
+verify_jwt = false
