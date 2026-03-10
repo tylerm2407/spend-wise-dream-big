@@ -67,7 +67,7 @@ serve(async (req) => {
       .from("investment_accounts")
       .select("id, plaid_account_id, plaid_item_id")
       .eq("id", account_id)
-      .eq("user_id", user.id)
+      .eq("user_id", userId)
       .maybeSingle();
 
     if (accountError || !account) {
