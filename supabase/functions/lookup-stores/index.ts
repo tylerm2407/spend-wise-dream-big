@@ -77,7 +77,7 @@ serve(async (req) => {
     const searchResults = await response.json();
     console.log("Firecrawl results:", JSON.stringify(searchResults).slice(0, 500));
 
-    const stores = parseSearchResults(searchResults, product, category, zipCode);
+    const stores = parseSearchResults(searchResults, product, category, zipCode ?? "");
 
     return new Response(
       JSON.stringify({ stores, source: "firecrawl" }),

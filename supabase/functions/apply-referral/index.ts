@@ -131,7 +131,7 @@ serve(async (req) => {
 
       logStep("Referrals marked as rewarded");
 
-      await sendMilestoneEmail(supabaseClient, referrerProfile.user_id, totalReferrals, newBonusDays);
+      await sendMilestoneEmail(supabaseClient as any, referrerProfile.user_id, totalReferrals, newBonusDays);
     }
 
     return new Response(JSON.stringify({
