@@ -198,7 +198,7 @@ serve(async (req) => {
     const { data: plaidItem, error: itemInsertError } = await supabaseAdmin
       .from("plaid_items")
       .insert({
-        user_id: user.id,
+        user_id: userId,
         item_id,
         access_token,
         institution_id: institutionId,
