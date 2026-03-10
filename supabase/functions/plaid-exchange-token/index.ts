@@ -230,7 +230,7 @@ serve(async (req) => {
       const { data: existing } = await supabaseAdmin
         .from("investment_accounts")
         .select("id")
-        .eq("user_id", user.id)
+        .eq("user_id", userId)
         .eq("plaid_account_id", plaidAccount.account_id)
         .maybeSingle();
 
