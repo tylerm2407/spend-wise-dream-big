@@ -28,24 +28,24 @@ serve(async (req) => {
       });
     }
 
-    const token = authHeader.replace("Bearer ", "");
-
+    // Standard Supabase edge function auth pattern: pass the JWT via header,
+    // then call getUser() with no arguments — it reads from the header automatically.
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_ANON_KEY") ?? "",
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    const { data: claimsData, error: claimsError } = await supabaseClient.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims?.sub) {
-      logStep("Auth failed", { error: claimsError?.message });
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+    if (userError || !user) {
+      logStep("Auth failed", { error: userError?.message });
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 401,
       });
     }
 
-    const userId = claimsData.claims.sub as string;
+    const userId = user.id;
     logStep("User authenticated", { userId });
 
     const plaidClientId = Deno.env.get("PLAID_CLIENT_ID");
