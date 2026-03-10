@@ -36,7 +36,15 @@ export function usePlaid() {
           'plaid-exchange-token',
           { body: { public_token } },
         );
-        if (invokeError) throw invokeError;
+        if (invokeError) {
+          let msg: string = invokeError.message ?? 'Unknown error';
+          try {
+            const context = (invokeError as any)?.context;
+            const body = typeof context?.json === 'function' ? await context.json() : context;
+            if (body?.error) msg = String(body.error);
+          } catch { /* ignore */ }
+          throw new Error(msg);
+        }
         if (data?.error) throw new Error(data.error);
         queryClient.invalidateQueries({ queryKey: ['investment-accounts'] });
         toast({
@@ -78,13 +86,23 @@ export function usePlaid() {
         'plaid-create-link-token',
       );
 
-      // Supabase sets invokeError on non-2xx responses
+      // Supabase sets invokeError on non-2xx responses.
+      // invokeError.context is a Response object — we must await .json() to read the body.
       if (invokeError) {
-        // Try to extract the reason from the error context
-        const body = (invokeError as any)?.context;
-        const msg: string = body?.error ?? invokeError.message ?? 'Unknown error';
+        let msg: string = invokeError.message ?? 'Unknown error';
+        try {
+          const context = (invokeError as any)?.context;
+          // context may be a Response object or already-parsed object
+          const body = typeof context?.json === 'function'
+            ? await context.json()
+            : context;
+          if (body?.error) msg = String(body.error);
+          else if (body?.message) msg = String(body.message);
+        } catch {
+          // body wasn't JSON (e.g. 404 HTML) — keep the default message
+        }
         const reason: PlaidErrorReason =
-          msg.toLowerCase().includes('credential') || msg.toLowerCase().includes('configured')
+          msg.toLowerCase().includes('credential') || msg.toLowerCase().includes('configured') || msg.toLowerCase().includes('not found')
             ? 'not_configured'
             : msg.toLowerCase().includes('unauthorized') || msg.toLowerCase().includes('401')
             ? 'unauthorized'
