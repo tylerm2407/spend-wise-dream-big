@@ -311,6 +311,62 @@ export type Database = {
           },
         ]
       }
+      linked_bank_accounts: {
+        Row: {
+          account_name: string
+          account_type: string | null
+          available_balance: number | null
+          balance_synced_at: string | null
+          created_at: string
+          current_balance: number | null
+          id: string
+          institution_name: string | null
+          last_transaction_sync_at: string | null
+          mask: string | null
+          plaid_account_id: string | null
+          plaid_item_id: string | null
+          user_id: string
+        }
+        Insert: {
+          account_name: string
+          account_type?: string | null
+          available_balance?: number | null
+          balance_synced_at?: string | null
+          created_at?: string
+          current_balance?: number | null
+          id?: string
+          institution_name?: string | null
+          last_transaction_sync_at?: string | null
+          mask?: string | null
+          plaid_account_id?: string | null
+          plaid_item_id?: string | null
+          user_id: string
+        }
+        Update: {
+          account_name?: string
+          account_type?: string | null
+          available_balance?: number | null
+          balance_synced_at?: string | null
+          created_at?: string
+          current_balance?: number | null
+          id?: string
+          institution_name?: string | null
+          last_transaction_sync_at?: string | null
+          mask?: string | null
+          plaid_account_id?: string | null
+          plaid_item_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "linked_bank_accounts_plaid_item_id_fkey"
+            columns: ["plaid_item_id"]
+            isOneToOne: false
+            referencedRelation: "plaid_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       plaid_items: {
         Row: {
           access_token: string
