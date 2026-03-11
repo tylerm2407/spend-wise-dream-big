@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { verifyUser } from "../_shared/auth-helper.ts";
+import { checkRateLimit, AUTH_RATE_LIMIT } from "../_shared/rate-limiter.ts";
 
 const log = (step: string, details?: unknown) =>
   console.log(`[PLAID-LINK-BANK] ${step}${details ? ` - ${JSON.stringify(details)}` : ''}`);
@@ -9,6 +10,9 @@ const log = (step: string, details?: unknown) =>
 serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  const rateLimited = checkRateLimit(req, corsHeaders, AUTH_RATE_LIMIT);
+  if (rateLimited) return rateLimited;
 
   try {
     log("Function started");
